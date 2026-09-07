@@ -1,16 +1,19 @@
 Package: udp
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Uniform Distribution Preserving Transformations
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Alexander J.", "McNeil",
+      email = "alexanderjmcneil@gmail.com",
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: Tools for constructing and applying transformations that preserve
+    the uniform distribution on the unit interval and unit hypercube. Provides
+    utilities for building such maps and for checking the
+    distribution-preserving property.
+License: MIT + file LICENSE
+URL: https://github.com/ajmcneil/udp
+BugReports: https://github.com/ajmcneil/udp/issues
 Encoding: UTF-8
-LazyData: true
