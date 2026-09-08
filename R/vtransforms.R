@@ -493,6 +493,10 @@ pcoincide <- function(x) {
     return(0.5)
   }
   delta <- unname(x@pars["delta"])
+  # the linear v-transform has constant down-probability delta, so varDelta = 0
+  if (x@name == "Vlinear") {
+    return(delta^2 + (1 - delta)^2)
+  }
   integrand <- function(v) (vdownprob(x, v) - delta)^2
   varDelta <- integrate(integrand, 0, 1)$value
   unname(delta^2 + (1 - delta)^2 + 2 * varDelta)
