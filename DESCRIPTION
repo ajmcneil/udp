@@ -14,6 +14,10 @@ Description: Tools for constructing and applying transformations that preserve
     utilities for building such maps and for checking the
     distribution-preserving property.
 License: MIT + file LICENSE
+Imports:
+    graphics,
+    methods,
+    stats
 URL: https://github.com/ajmcneil/udp
 BugReports: https://github.com/ajmcneil/udp/issues
 Encoding: UTF-8

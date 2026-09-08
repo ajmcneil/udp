@@ -254,7 +254,7 @@ V3p <- function(delta = 0.5, kappa = 1, xi = 1) {
 #' @examples
 #' V3b(delta = 0.45, kappa = 1.2, xi = 1.2)
 V3b <- function(delta = 0.5, kappa = 1, xi = 1) {
-  new("Vtransform", name = "V2b", Vtrans = function(u, delta, kappa, xi) {
+  new("Vtransform", name = "V3b", Vtrans = function(u, delta, kappa, xi) {
     if (delta == 0)
       return(u)
     else if (delta == 1)
@@ -277,10 +277,10 @@ V3b <- function(delta = 0.5, kappa = 1, xi = 1) {
 #' Evaluate a v-transform
 #'
 #' @param x an object of class \linkS4class{Vtransform}.
-#' @param u a vector or time series with values in [0, 1].
+#' @param u a vector or time series with values in `[0, 1]`.
 #'
 #'
-#' @return A vector or time series with values in [0, 1].
+#' @return A vector or time series with values in `[0, 1]`.
 #' @export
 #'
 #' @examples
@@ -292,7 +292,7 @@ vtrans <- function(x, u) {
 #' Calculate gradient of v-transform
 #'
 #' @param x an object of class \linkS4class{Vtransform}.
-#' @param u a vector or time series with values in [0, 1].
+#' @param u a vector or time series with values in `[0, 1]`.
 #'
 #' @return A vector or time series of values of gradient.
 #' @export
@@ -310,11 +310,11 @@ vgradient <- function(x, u) {
 #' an inverse is found by numerical root finding with \code{\link[stats]{uniroot}}.
 #'
 #' @param x an object ofc lass \linkS4class{Vtransform}.
-#' @param v a vector or time series with values in [0, 1].
+#' @param v a vector or time series with values in `[0, 1]`.
 #' @param tol the desired accuracy (convergence tolerance) that is passed to
 #' \code{uniroot} if numerical inversion is used.
 #'
-#' @return A vector or time series with values in [0, 1].
+#' @return A vector or time series with values in `[0, 1]`.
 #' @export
 #'
 #' @examples
@@ -335,40 +335,41 @@ vinverse <- function(x, v, tol = .Machine$double.eps^0.75) {
 #' Calculate conditional down probability of v-transform
 #'
 #' @param x an object of class \linkS4class{Vtransform}.
-#' @param v a vector or time series with values in [0, 1].
+#' @param v a vector or time series with values in `[0, 1]`.
+#' @param tol the desired accuracy (convergence tolerance) that is passed to
+#' \code{uniroot} if numerical inversion is used.
 #'
 #' @return A vector or time series of values of gradient.
 #' @export
 #'
 #' @examples
-#' vdownprob(V2p(delta = 0.55, kapp = 1.2), c(0, 0.25, 0.5, 0.75, 1))
-vdownprob <- function(x, v) {
-  -1 / vgradient(x, vinverse(x, v))
+#' vdownprob(V2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
+vdownprob <- function(x, v, tol = .Machine$double.eps^0.75) {
+  -1 / vgradient(x, vinverse(x, v, tol))
 }
 
 #' Stochastic inverse of a v-transform
 #'
 #' @param x an object of class \linkS4class{Vtransform}.
-#' @param v a vector, matrix or time series with values in [0, 1].
-#' @param tscopula a time series copula object.
+#' @param v a vector, matrix or time series with values in `[0, 1]`.
+#' @param Z a vector or time series of uniform randomizers with values in
+#' `[0, 1]`; defaults to a fresh draw from [stats::runif()].
 #' @param tol the desired accuracy (convergence tolerance) that is passed to
 #' \code{uniroot} if numerical inversion is used.
 #'
-#' @return A vector, matrix or time series with values in [0, 1].
+#' @return A vector, matrix or time series with values in `[0, 1]`.
 #' @export
 #'
 #'
 #' @examples
-#' stochinverse(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-stochinverse <- function(x, v, tscopula = NULL, tol = .Machine$double.eps^0.75) {
+#' vsi(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75) {
+  if (length(Z) != length(v)) {
+    stop("'Z' must have the same length as 'v'.")
+  }
   vinv <- vinverse(x, v, tol)
   pdown <- -1 / vgradient(x, vinv)
-  if (!(is.null(tscopula))) {
-    W <- sim(tscopula, length(v))
-  } else {
-    W <- runif(length(v))
-  }
-  output <- ifelse(W <= pdown, vinv, v + vinv)
+  output <- ifelse(Z <= pdown, vinv, v + vinv)
   if (!(is.null(attributes(v)))) {
     attributes(output) <- attributes(v)
   }
@@ -440,7 +441,7 @@ setMethod("plot", c(x = "Vtransform", y = "missing"), function(x, type = "transf
 #' pcoincide(Vlinear(delta = 0.4))
 #' pcoincide(V3p(delta = 0.45, kappa = 0.5, xi = 1.3))
 pcoincide <- function(x) {
-  if (x@name == "symmetric") {
+  if (x@name == "Vsymmetric") {
     return(0.5)
   }
   integrand <- function(v, Vtransform) (vdownprob(Vtransform, v) - Vtransform@pars[1])^2
