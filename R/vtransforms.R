@@ -8,11 +8,12 @@
 #' @slot pars vector containing the named parameters of the v-transform.
 #' @slot gradient function to evaluate the gradient of the v-transform.
 #'
+#' @include udp-package.R
 #' @export
 #'
 #' @examples
 #' v2p(delta = 0.5, kappa = 1.2)
-setClass("vtransform", slots = list(
+setClass("vtransform", contains = "udp", slots = list(
   name = "character", vtrans = "function", pars = "numeric",
   gradient = "function"
 ))
@@ -242,19 +243,11 @@ v3b <- function(delta = 0.5, kappa = 1, xi = 1) {
   })
 }
 
-#' Evaluate a v-transform
-#'
-#' @param x an object of class \linkS4class{vtransform}.
-#' @param u a vector, matrix or time series with values in `[0, 1]`.
-#'
-#' @return An object shaped like `u` with values in `[0, 1]`.
+#' @describeIn udptrans Evaluate a v-transform.
 #' @export
-#'
-#' @examples
-#' vtrans(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-vtrans <- function(x, u) {
+setMethod("udptrans", "vtransform", function(x, u) {
   do.call(x@vtrans, append(x@pars, list(u = u)))
-}
+})
 
 #' Calculate gradient of v-transform
 #'
@@ -277,7 +270,7 @@ vgradient <- function(x, u) {
 #' Calculate the lower-branch inverse of a v-transform
 #'
 #' Returns the pre-image at or below the fulcrum: the value `u` in
-#' `[0, delta]` with `vtrans(x, u)` equal to `v`.
+#' `[0, delta]` with `udptrans(x, u)` equal to `v`.
 #'
 #' For a \linkS4class{vtransformi} object the analytic inverse stored in the
 #' `inverse` slot is used and `method`, `tol` and `ngrid` are ignored.
@@ -347,7 +340,7 @@ vinverse <- function(x, v, method = c("newton", "spline"),
       g <- vg(u)
       dx <- dxold <- rep(delta, length(vt))
       for (i in seq_len(100L)) {
-        # phi(u) = vtrans(x, u) - v is strictly decreasing on [0, delta]
+        # phi(u) = udptrans(x, u) - v is strictly decreasing on [0, delta]
         left <- f > 0
         lo[left] <- u[left]
         hi[!left] <- u[!left]
@@ -395,22 +388,11 @@ vdownprob <- function(x, v, tol = .Machine$double.eps^0.5, ...) {
   -1 / vgradient(x, vinverse(x, v, tol = tol, ...))
 }
 
-#' Stochastic inverse of a v-transform
-#'
-#' @param x an object of class \linkS4class{vtransform}.
-#' @param v a vector, matrix or time series with values in `[0, 1]`.
-#' @param Z a vector or time series of uniform randomizers with values in
-#' `[0, 1]`; defaults to a fresh draw from [stats::runif()].
-#' @param tol convergence tolerance passed to [vinverse()].
-#' @param ... further arguments passed to [vinverse()], such as `method`.
-#'
-#' @return A vector, matrix or time series with values in `[0, 1]`.
+#' @describeIn udpsi Stochastic inverse of a v-transform. Accepts `tol` and
+#'   further arguments of [vinverse()] (such as `method`).
 #' @export
-#'
-#'
-#' @examples
-#' vsi(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...) {
+setMethod("udpsi", "vtransform", function(x, v, Z = runif(length(v)),
+                                          tol = .Machine$double.eps^0.5, ...) {
   if (length(Z) != length(v)) {
     stop("'Z' must have the same length as 'v'.")
   }
@@ -422,7 +404,7 @@ vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...) 
     attributes(output) <- attributes(v)
   }
   output
-}
+})
 
 #' Plot method for vtransform class
 #'
@@ -462,7 +444,7 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
   }, transform = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     if ((delta > lower) & (delta < upper)) uvals <- sort(c(uvals, delta))
-    plot(uvals, vtrans(x, uvals), xlab = "u", ylab = "V(u)", type = "l")
+    plot(uvals, udptrans(x, uvals), xlab = "u", ylab = "V(u)", type = "l")
     if (shading) {
       # colchoice = 'gray97'
       colchoice <- "gray90"

@@ -1,10 +1,10 @@
-test_that("vgradient() agrees with a finite-difference derivative of vtrans()", {
+test_that("vgradient() agrees with a finite-difference derivative of udptrans()", {
   h <- 1e-6
   for (case in vtransform_list()) {
     below <- seq(0.05, case$delta - 0.05, length.out = 8)
     above <- seq(case$delta + 0.05, 0.95, length.out = 8)
     u <- c(below, above)
-    fd <- (vtrans(case$x, u + h) - vtrans(case$x, u - h)) / (2 * h)
+    fd <- (udptrans(case$x, u + h) - udptrans(case$x, u - h)) / (2 * h)
     expect_equal(vgradient(case$x, u), fd, tolerance = 1e-4)
   }
 })

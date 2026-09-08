@@ -10,35 +10,35 @@ test_that("udpcosine() validates degree and stores it as an integer", {
   expect_error(udpcosine(NA), "positive integer")
 })
 
-test_that("udpcostrans() matches known closed forms", {
+test_that("udptrans() matches known closed forms", {
   u <- seq(0, 1, length.out = 101)
-  expect_equal(udpcostrans(udpcosine(1), u), u)            # degree 1 is the identity
-  expect_equal(udpcostrans(udpcosine(2), u), abs(2 * u - 1)) # degree 2 is the tent
+  expect_equal(udptrans(udpcosine(1), u), u)            # degree 1 is the identity
+  expect_equal(udptrans(udpcosine(2), u), abs(2 * u - 1)) # degree 2 is the tent
 })
 
-test_that("udpcostrans() maps [0, 1] into [0, 1]", {
+test_that("udptrans() maps [0, 1] into [0, 1]", {
   u <- seq(0, 1, length.out = 2001)
   for (d in 1:8) {
-    y <- udpcostrans(udpcosine(d), u)
+    y <- udptrans(udpcosine(d), u)
     expect_false(anyNA(y))
     expect_true(all(y >= 0 & y <= 1))
   }
 })
 
-test_that("udpcostrans() is piecewise linear with slope of magnitude degree", {
+test_that("udptrans() is piecewise linear with slope of magnitude degree", {
   for (d in 1:7) {
     x <- udpcosine(d)
     k <- seq_len(d)
     u1 <- (k - 0.75) / d # two points strictly inside piece k = [(k-1)/d, k/d]
     u2 <- (k - 0.25) / d
-    slope <- (udpcostrans(x, u2) - udpcostrans(x, u1)) / (u2 - u1)
+    slope <- (udptrans(x, u2) - udptrans(x, u1)) / (u2 - u1)
     expect_equal(abs(slope), rep(d, d), tolerance = 1e-6)
   }
 })
 
-test_that("udpcostrans() preserves the shape and attributes of u", {
+test_that("udptrans() preserves the shape and attributes of u", {
   u <- ts(seq(0.05, 0.95, length.out = 24), frequency = 4)
-  y <- udpcostrans(udpcosine(3), u)
+  y <- udptrans(udpcosine(3), u)
   expect_s3_class(y, "ts")
   expect_identical(tsp(y), tsp(u))
 })
@@ -48,7 +48,7 @@ test_that("cosine udp transformations preserve the uniform distribution", {
   set.seed(20240908)
   u <- runif(1e5)
   for (d in 1:6) {
-    p <- suppressWarnings(stats::ks.test(udpcostrans(udpcosine(d), u), "punif")$p.value)
+    p <- suppressWarnings(stats::ks.test(udptrans(udpcosine(d), u), "punif")$p.value)
     expect_gte(p, 0.01)
   }
 })
@@ -74,7 +74,7 @@ test_that("udpcosinverse() gives 'degree' roots for v in (0, 1), each a pre-imag
       expect_length(r, d)
       expect_false(is.unsorted(r))
       expect_true(all(r >= 0 & r <= 1))
-      expect_equal(udpcostrans(x, r), rep(v[j], d), tolerance = 1e-9)
+      expect_equal(udptrans(x, r), rep(v[j], d), tolerance = 1e-9)
     }
   }
 })
@@ -87,8 +87,8 @@ test_that("udpcosinverse() collapses shared roots at v = 0 and v = 1", {
 
     expect_length(r0, ceiling(d / 2))
     expect_length(r1, floor(d / 2) + 1)
-    expect_equal(udpcostrans(x, r0), rep(0, length(r0)), tolerance = 1e-9)
-    expect_equal(udpcostrans(x, r1), rep(1, length(r1)), tolerance = 1e-9)
+    expect_equal(udptrans(x, r0), rep(0, length(r0)), tolerance = 1e-9)
+    expect_equal(udptrans(x, r1), rep(1, length(r1)), tolerance = 1e-9)
     expect_false(anyDuplicated(r0) > 0)
     expect_false(anyDuplicated(r1) > 0)
   }
@@ -109,64 +109,64 @@ test_that("udpcosinverse() validates v", {
   expect_error(udpcosinverse(x, c(0.5, NA)), "in \\[0, 1\\]")
 })
 
-test_that("udpcosinesi() returns one pre-image per v in (0, 1)", {
+test_that("udpsi() returns one pre-image per v in (0, 1)", {
   set.seed(1)
   for (d in 1:6) {
     x <- udpcosine(d)
     v <- runif(1000)
     Z <- runif(1000)
-    u <- udpcosinesi(x, v, Z)
+    u <- udpsi(x, v, Z)
 
     expect_length(u, 1000L)
     expect_true(all(u >= 0 & u <= 1))
-    expect_equal(udpcostrans(x, u), v, tolerance = 1e-9)
+    expect_equal(udptrans(x, u), v, tolerance = 1e-9)
   }
 })
 
-test_that("udpcosinesi() uses Z as a categorical quantile over the roots", {
+test_that("udpsi() uses Z as a categorical quantile over the roots", {
   set.seed(2)
   x <- udpcosine(5)
   v <- runif(500)
   roots <- udpcosinverse(x, v)
 
   expect_equal(
-    udpcosinesi(x, v, rep(1e-9, 500)),
+    udpsi(x, v, rep(1e-9, 500)),
     vapply(roots, `[`, numeric(1), 1)
   )
   expect_equal(
-    udpcosinesi(x, v, rep(1, 500)),
+    udpsi(x, v, rep(1, 500)),
     vapply(roots, `[`, numeric(1), 5)
   )
   expect_equal(
-    udpcosinesi(x, v, rep(0.5, 500)), # ceiling(0.5 * 5) = 3
+    udpsi(x, v, rep(0.5, 500)), # ceiling(0.5 * 5) = 3
     vapply(roots, `[`, numeric(1), 3)
   )
 })
 
-test_that("udpcosinesi() returns 0 at v = 0 and v = 1", {
+test_that("udpsi() returns 0 at v = 0 and v = 1", {
   x <- udpcosine(4)
-  expect_identical(udpcosinesi(x, c(0, 1), c(0.2, 0.8)), c(0, 0))
-  expect_identical(udpcosinesi(x, c(0, 0.5, 1), c(0.1, 0.1, 0.1))[c(1, 3)], c(0, 0))
+  expect_identical(udpsi(x, c(0, 1), c(0.2, 0.8)), c(0, 0))
+  expect_identical(udpsi(x, c(0, 0.5, 1), c(0.1, 0.1, 0.1))[c(1, 3)], c(0, 0))
 })
 
-test_that("udpcosinesi() validates its arguments and edge inputs", {
+test_that("udpsi() validates its arguments and edge inputs", {
   x <- udpcosine(3)
-  expect_error(udpcosinesi(x, c(0.3, 0.4), Z = 0.5), "same length")
-  expect_error(udpcosinesi(x, 1.2, 0.5), "in \\[0, 1\\]")
-  expect_error(udpcosinesi(x, c(0.5, NA), c(0.1, 0.1)), "in \\[0, 1\\]")
-  expect_length(udpcosinesi(x, numeric(0), numeric(0)), 0L)
+  expect_error(udpsi(x, c(0.3, 0.4), Z = 0.5), "same length")
+  expect_error(udpsi(x, 1.2, 0.5), "in \\[0, 1\\]")
+  expect_error(udpsi(x, c(0.5, NA), c(0.1, 0.1)), "in \\[0, 1\\]")
+  expect_length(udpsi(x, numeric(0), numeric(0)), 0L)
 })
 
-test_that("udpcosinesi() is reproducible and preserves attributes", {
+test_that("udpsi() is reproducible and preserves attributes", {
   x <- udpcosine(3)
   set.seed(7)
-  a <- udpcosinesi(x, seq(0.1, 0.9, by = 0.1))
+  a <- udpsi(x, seq(0.1, 0.9, by = 0.1))
   set.seed(7)
-  b <- udpcosinesi(x, seq(0.1, 0.9, by = 0.1))
+  b <- udpsi(x, seq(0.1, 0.9, by = 0.1))
   expect_identical(a, b)
 
   v <- ts(seq(0.05, 0.95, length.out = 24), frequency = 4)
-  out <- udpcosinesi(x, v)
+  out <- udpsi(x, v)
   expect_s3_class(out, "ts")
   expect_identical(tsp(out), tsp(v))
 })
@@ -177,7 +177,7 @@ test_that("the stochastic inverse recovers a uniform input", {
   for (d in 1:6) {
     x <- udpcosine(d)
     u <- runif(1e5)
-    back <- udpcosinesi(x, udpcostrans(x, u), runif(1e5))
+    back <- udpsi(x, udptrans(x, u), runif(1e5))
     expect_gte(suppressWarnings(stats::ks.test(back, "punif")$p.value), 0.01)
   }
 })

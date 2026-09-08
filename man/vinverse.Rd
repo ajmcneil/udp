@@ -30,7 +30,7 @@ where \code{v} is \code{NA} or otherwise non-finite are returned as \code{NA}.
 }
 \description{
 Returns the pre-image at or below the fulcrum: the value \code{u} in
-\verb{[0, delta]} with \code{vtrans(x, u)} equal to \code{v}.
+\verb{[0, delta]} with \code{udptrans(x, u)} equal to \code{v}.
 }
 \details{
 For a \linkS4class{vtransformi} object the analytic inverse stored in the

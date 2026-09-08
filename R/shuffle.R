@@ -11,10 +11,12 @@
 #' @slot perm integer vector; a permutation of `seq_len(m)`.
 #' @slot signs numeric vector of `1` and `-1`, the same length as `perm`.
 #'
-#' @seealso [shuffle()] to construct one; [shtrans()] and [shinverse()] to
+#' @seealso [shuffle()] to construct one; [udptrans()] and [shinverse()] to
 #'   evaluate it and its inverse.
+#' @include udp-package.R
 #' @export
-setClass("shuffle", slots = list(perm = "integer", signs = "numeric"))
+setClass("shuffle", contains = "udp",
+  slots = list(perm = "integer", signs = "numeric"))
 
 #' Construct a shuffle
 #'
@@ -43,18 +45,9 @@ shuffle <- function(perm, signs = rep(1, length(perm))) {
   new("shuffle", perm = perm, signs = as.numeric(signs))
 }
 
-#' Evaluate a shuffle
-#'
-#' @param x an object of class \linkS4class{shuffle}.
-#' @param u a vector with values in `[0, 1]`.
-#'
-#' @return An object shaped like `u` with values in `[0, 1]`.
+#' @describeIn udptrans Evaluate a shuffle.
 #' @export
-#'
-#' @examples
-#' s <- shuffle(c(2, 1, 3))
-#' shtrans(s, c(0, 0.2, 0.5, 0.9, 1))
-shtrans <- function(x, u) {
+setMethod("udptrans", "shuffle", function(x, u) {
   m <- length(x@perm)
   i <- as.integer(pmax(pmin(floor(u * m) + 1, m), 1))
   t <- u * m - (i - 1)
@@ -64,7 +57,7 @@ shtrans <- function(x, u) {
     attributes(out) <- attributes(u)
   }
   out
-}
+})
 
 #' Evaluate the inverse of a shuffle
 #'
@@ -79,11 +72,18 @@ shtrans <- function(x, u) {
 #'
 #' @examples
 #' s <- shuffle(c(3, 1, 2), signs = c(1, -1, 1))
-#' shinverse(s, shtrans(s, c(0.1, 0.5, 0.9)))
+#' shinverse(s, udptrans(s, c(0.1, 0.5, 0.9)))
 shinverse <- function(x, v) {
   o <- order(x@perm)
-  shtrans(new("shuffle", perm = o, signs = x@signs[o]), v)
+  udptrans(new("shuffle", perm = o, signs = x@signs[o]), v)
 }
+
+#' @describeIn udpsi Invert a shuffle. A shuffle is a bijection, so this is the
+#'   deterministic inverse [shinverse()] and `Z` is ignored.
+#' @export
+setMethod("udpsi", "shuffle", function(x, v, Z = runif(length(v)), ...) {
+  shinverse(x, v)
+})
 
 #' Plot method for the shuffle class
 #'
@@ -201,8 +201,8 @@ aceshuffle <- function(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL) {
   it <- 0L
   repeat {
     it <- it + 1L
-    new1 <- best(f1, t1, shtrans(s2, U2))
-    new2 <- best(f2, t2, shtrans(new1, U1))
+    new1 <- best(f1, t1, udptrans(s2, U2))
+    new2 <- best(f2, t2, udptrans(new1, U1))
     done <- unchanged(new1, s1) && unchanged(new2, s2)
     s1 <- new1
     s2 <- new2
@@ -213,7 +213,7 @@ aceshuffle <- function(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL) {
     data = cbind(U1 = U1, U2 = U2),
     shuffle1 = s1,
     shuffle2 = s2,
-    correlation = cor(shtrans(s1, U1), shtrans(s2, U2)),
+    correlation = cor(udptrans(s1, U1), udptrans(s2, U2)),
     iterations = it
   )
 }

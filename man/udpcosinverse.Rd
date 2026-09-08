@@ -13,10 +13,10 @@ udpcosinverse(x, v)
 }
 \value{
 A list the same length as \code{v}; element \code{j} is the sorted vector of
-\code{u} in \verb{[0, 1]} with \code{udpcostrans(x, u)} equal to \code{v[j]}.
+\code{u} in \verb{[0, 1]} with \code{udptrans(x, u)} equal to \code{v[j]}.
 }
 \description{
-\code{udpcostrans()} is a degree-fold triangle wave and so is not injective: a
+\code{udptrans()} is a degree-fold triangle wave and so is not injective: a
 value \code{v} in \verb{(0, 1)} has \code{degree} pre-images, one in each linear piece,
 while \code{v = 0} and \code{v = 1} have fewer (the shared troughs and peaks
 respectively).

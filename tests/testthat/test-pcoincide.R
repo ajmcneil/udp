@@ -31,8 +31,8 @@ test_that("pcoincide() matches a direct Monte Carlo estimate", {
   x <- v2p(delta = 0.4, kappa = 1.3)
 
   u <- runif(2e5)
-  v <- vtrans(x, u)
-  u_back <- vsi(x, v)
+  v <- udptrans(x, u)
+  u_back <- udpsi(x, v)
   # a "coincidence" is landing back on the same pre-image; the numeric
   # inverse is accurate to ~1e-8, distinct pre-images differ by O(0.1)
   mc <- mean(abs(u_back - u) < 1e-6)

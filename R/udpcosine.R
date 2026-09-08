@@ -4,13 +4,14 @@
 #'
 #' A cosine udp transformation is the uniform-distribution-preserving map of
 #' `[0, 1]` given by a folded cosine of the stated degree: for `U` uniform on
-#' `[0, 1]`, `udpcostrans(x, U)` is again uniform on `[0, 1]`.
+#' `[0, 1]`, `udptrans(x, U)` is again uniform on `[0, 1]`.
 #'
 #' @slot degree integer; the degree of the transformation (at least 1).
 #'
-#' @seealso [udpcosine()] to construct one, [udpcostrans()] to evaluate it.
+#' @seealso [udpcosine()] to construct one, [udptrans()] to evaluate it.
+#' @include udp-package.R
 #' @export
-setClass("udpcosine", slots = list(degree = "integer"))
+setClass("udpcosine", contains = "udp", slots = list(degree = "integer"))
 
 #' Construct a cosine udp transformation
 #'
@@ -29,17 +30,9 @@ udpcosine <- function(degree) {
   new("udpcosine", degree = as.integer(degree))
 }
 
-#' Evaluate a cosine udp transformation
-#'
-#' @param x an object of class \linkS4class{udpcosine}.
-#' @param u a vector with values in `[0, 1]`.
-#'
-#' @return An object shaped like `u` with values in `[0, 1]`.
+#' @describeIn udptrans Evaluate a cosine udp transformation.
 #' @export
-#'
-#' @examples
-#' udpcostrans(udpcosine(2), c(0, 0.25, 0.5, 0.75, 1))
-udpcostrans <- function(x, u) {
+setMethod("udptrans", "udpcosine", function(x, u) {
   d <- x@degree
   arg <- pmin(pmax(cos(d * pi * u) * (-1)^d, -1), 1)
   out <- 1 - acos(arg) / pi
@@ -47,11 +40,11 @@ udpcostrans <- function(x, u) {
     attributes(out) <- attributes(u)
   }
   out
-}
+})
 
 #' Roots of a cosine udp transformation
 #'
-#' `udpcostrans()` is a degree-fold triangle wave and so is not injective: a
+#' `udptrans()` is a degree-fold triangle wave and so is not injective: a
 #' value `v` in `(0, 1)` has `degree` pre-images, one in each linear piece,
 #' while `v = 0` and `v = 1` have fewer (the shared troughs and peaks
 #' respectively).
@@ -60,7 +53,7 @@ udpcostrans <- function(x, u) {
 #' @param v a vector with values in `[0, 1]`.
 #'
 #' @return A list the same length as `v`; element `j` is the sorted vector of
-#'   `u` in `[0, 1]` with `udpcostrans(x, u)` equal to `v[j]`.
+#'   `u` in `[0, 1]` with `udptrans(x, u)` equal to `v[j]`.
 #' @export
 #'
 #' @examples
@@ -77,31 +70,12 @@ udpcosinverse <- function(x, v) {
   })
 }
 
-#' Stochastic inverse of a cosine udp transformation
-#'
-#' For each `v` in `(0, 1)`, [udpcosinverse()] returns `degree` pre-images;
-#' `udpcosinesi()` picks one of them uniformly at random. `Z` is the
-#' randomiser: the selected pre-image is the `Z[i]`-quantile of the equiprobable
-#' categorical distribution over the pre-images, i.e. root number
-#' `ceiling(Z[i] * degree)`. Values of `v` equal to `0` or `1` return `0`.
-#'
-#' If `v` is uniform on `[0, 1]` and `Z` is an independent uniform, the result
-#' is again uniform on `[0, 1]`.
-#'
-#' @param x an object of class \linkS4class{udpcosine}.
-#' @param v a vector, matrix or time series with values in `[0, 1]`.
-#' @param Z a vector of randomisers with values in `[0, 1]`, the same length as
-#'   `v`; defaults to a fresh draw from [stats::runif()].
-#'
-#' @return An object shaped like `v` with values in `[0, 1]`.
+#' @describeIn udpsi Stochastic inverse of a cosine udp transformation. For each
+#'   `v` in `(0, 1)`, [udpcosinverse()] returns `degree` pre-images and the
+#'   selected one is root number `ceiling(Z * degree)`; `v` equal to `0` or `1`
+#'   returns `0`.
 #' @export
-#'
-#' @examples
-#' x <- udpcosine(3)
-#' set.seed(1)
-#' u <- runif(5)
-#' udpcosinesi(x, udpcostrans(x, u))
-udpcosinesi <- function(x, v, Z = runif(length(v))) {
+setMethod("udpsi", "udpcosine", function(x, v, Z = runif(length(v)), ...) {
   if (anyNA(v) || any(v < 0 | v > 1)) {
     stop("every element of 'v' must be in [0, 1].", call. = FALSE)
   }
@@ -126,7 +100,7 @@ udpcosinesi <- function(x, v, Z = runif(length(v))) {
     attributes(out) <- attributes(v)
   }
   out
-}
+})
 
 #' Plot method for the udpcosine class
 #'
@@ -151,6 +125,6 @@ setMethod("plot", c(x = "udpcosine", y = "missing"),
       xlab = xlab, ylab = ylab, ...
     )
     abline(v = u, col = "red", lwd = 0.5)
-    lines(u, udpcostrans(x, u), lwd = 2)
+    lines(u, udptrans(x, u), lwd = 2)
   }
 )

@@ -8,7 +8,7 @@ test_that("v-transforms preserve the uniform distribution", {
   set.seed(20240908)
   u <- runif(1e5)
   for (case in vtransform_list()) {
-    v <- vtrans(case$x, u)
+    v <- udptrans(case$x, u)
     expect_gte(suppressWarnings(stats::ks.test(v, "punif")$p.value), 0.01)
   }
 })
@@ -18,17 +18,17 @@ test_that("the stochastic inverse recovers a uniform input", {
   set.seed(20240908)
   u <- runif(1e5)
   for (case in vtransform_list()) {
-    back <- vsi(case$x, vtrans(case$x, u))
+    back <- udpsi(case$x, udptrans(case$x, u))
     expect_gte(suppressWarnings(stats::ks.test(back, "punif")$p.value), 0.01)
   }
 })
 
-test_that("vsi() inverts vtrans() pointwise for a uniform input", {
+test_that("udpsi() inverts udptrans() pointwise for a uniform input", {
   skip_on_cran()
   set.seed(1)
   u <- runif(5000)
   for (case in vtransform_list()) {
-    back <- vsi(case$x, vtrans(case$x, u), Z = rep(0, length(u)))
+    back <- udpsi(case$x, udptrans(case$x, u), Z = rep(0, length(u)))
     # Z = 0 always takes the lower pre-image; recovers u wherever u <= delta
     lower <- u <= case$delta
     expect_equal(back[lower], u[lower], tolerance = 1e-6)

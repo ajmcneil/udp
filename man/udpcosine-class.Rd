@@ -7,7 +7,7 @@
 \description{
 A cosine udp transformation is the uniform-distribution-preserving map of
 \verb{[0, 1]} given by a folded cosine of the stated degree: for \code{U} uniform on
-\verb{[0, 1]}, \code{udpcostrans(x, U)} is again uniform on \verb{[0, 1]}.
+\verb{[0, 1]}, \code{udptrans(x, U)} is again uniform on \verb{[0, 1]}.
 }
 \section{Slots}{
 
@@ -16,5 +16,5 @@ A cosine udp transformation is the uniform-distribution-preserving map of
 }}
 
 \seealso{
-\code{\link[=udpcosine]{udpcosine()}} to construct one, \code{\link[=udpcostrans]{udpcostrans()}} to evaluate it.
+\code{\link[=udpcosine]{udpcosine()}} to construct one, \code{\link[=udptrans]{udptrans()}} to evaluate it.
 }

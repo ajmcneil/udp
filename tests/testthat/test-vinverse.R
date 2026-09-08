@@ -1,8 +1,8 @@
-test_that("vinverse() is a right inverse of vtrans() (lower branch)", {
+test_that("vinverse() is a right inverse of udptrans() (lower branch)", {
   v <- seq(0.05, 0.95, length.out = 19)
   for (case in vtransform_list()) {
     u <- vinverse(case$x, v)
-    expect_equal(vtrans(case$x, u), v, tolerance = 1e-6)
+    expect_equal(udptrans(case$x, u), v, tolerance = 1e-6)
   }
 })
 
@@ -30,7 +30,7 @@ test_that("the Newton inverse can reach full double precision with a tight tol",
   v <- seq(0.01, 0.99, length.out = 50)
   for (case in vtransform_list()) {
     u <- vinverse(case$x, v, method = "newton", tol = .Machine$double.eps^0.9)
-    expect_equal(vtrans(case$x, u), v, tolerance = 1e-9)
+    expect_equal(udptrans(case$x, u), v, tolerance = 1e-9)
     expect_true(all(u >= 0 & u <= case$delta + 1e-12))
   }
 })
@@ -39,7 +39,7 @@ test_that("the default-tol Newton inverse is accurate to about 1e-8", {
   v <- seq(0.01, 0.99, length.out = 50)
   for (case in vtransform_list()) {
     u <- vinverse(case$x, v)
-    expect_equal(vtrans(case$x, u), v, tolerance = 1e-6)
+    expect_equal(udptrans(case$x, u), v, tolerance = 1e-6)
   }
 })
 
@@ -85,12 +85,12 @@ test_that("invertible v-transforms ignore method/ngrid", {
   )
 })
 
-test_that("method flows through vsi() and vdownprob() via ...", {
+test_that("method flows through udpsi() and vdownprob() via ...", {
   x <- v2b(delta = 0.35, kappa = 1.2)
   v <- seq(0.05, 0.95, length.out = 15)
 
-  set.seed(1); a <- vsi(x, v, method = "newton")
-  set.seed(1); b <- vsi(x, v, method = "spline", ngrid = 4000)
+  set.seed(1); a <- udpsi(x, v, method = "newton")
+  set.seed(1); b <- udpsi(x, v, method = "spline", ngrid = 4000)
   expect_equal(a, b, tolerance = 1e-3)
 
   expect_equal(
