@@ -277,10 +277,9 @@ V3b <- function(delta = 0.5, kappa = 1, xi = 1) {
 #' Evaluate a v-transform
 #'
 #' @param x an object of class \linkS4class{Vtransform}.
-#' @param u a vector or time series with values in `[0, 1]`.
+#' @param u a vector, matrix or time series with values in `[0, 1]`.
 #'
-#'
-#' @return A vector or time series with values in `[0, 1]`.
+#' @return An object shaped like `u` with values in `[0, 1]`.
 #' @export
 #'
 #' @examples
@@ -292,15 +291,19 @@ vtrans <- function(x, u) {
 #' Calculate gradient of v-transform
 #'
 #' @param x an object of class \linkS4class{Vtransform}.
-#' @param u a vector or time series with values in `[0, 1]`.
+#' @param u a vector, matrix or time series with values in `[0, 1]`.
 #'
-#' @return A vector or time series of values of gradient.
+#' @return An object shaped like `u` giving the gradient of the v-transform.
 #' @export
 #'
 #' @examples
 #' vgradient(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
 vgradient <- function(x, u) {
-  do.call(x@gradient, append(x@pars, list(u = u)))
+  g <- do.call(x@gradient, append(x@pars, list(u = u)))
+  if (!is.null(attributes(u))) {
+    attributes(g) <- attributes(u)
+  }
+  g
 }
 
 #' Calculate the lower-branch inverse of a v-transform
@@ -327,9 +330,10 @@ vgradient <- function(x, u) {
 #' @param method inversion method for non-invertible v-transforms, either
 #' `"newton"` or `"spline"`. Ignored for invertible v-transforms.
 #' @param tol convergence tolerance for `method = "newton"`.
-#' @param ngrid number of grid points for `method = "spline"`.
+#' @param ngrid number of grid points (at least 2) for `method = "spline"`.
 #'
-#' @return An object shaped like `v` with values in `[0, delta]`.
+#' @return An object shaped like `v` with values in `[0, delta]`. Positions
+#' where `v` is `NA` or otherwise non-finite are returned as `NA`.
 #' @export
 #'
 #' @examples
@@ -361,6 +365,9 @@ vinverse <- function(x, v, method = c("newton", "spline"),
   if (any(todo)) {
     vt <- vv[todo]
     if (method == "spline") {
+      if (length(ngrid) != 1L || !is.finite(ngrid) || ngrid < 2) {
+        stop("'ngrid' must be a single number of at least 2.")
+      }
       ug <- seq(0, delta, length.out = ngrid)
       out[todo] <- stats::splinefun(rev(Vf(ug)), rev(ug), method = "monoH.FC")(vt)
     } else {
@@ -390,6 +397,9 @@ vinverse <- function(x, v, method = c("newton", "spline"),
 
         f <- Vf(u) - vt
         g <- Vg(u)
+      }
+      if (max(abs(dx)) >= tol) {
+        warning("vinverse(): Newton iteration did not reach 'tol' in 100 steps.")
       }
       out[todo] <- u
     }
@@ -438,6 +448,7 @@ vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...) 
   }
   vinv <- vinverse(x, v, tol = tol, ...)
   pdown <- -1 / vgradient(x, vinv)
+  # the two pre-images of v satisfy u2 = u1 + v, so v + vinv is the upper one
   output <- ifelse(Z <= pdown, vinv, v + vinv)
   if (!(is.null(attributes(v)))) {
     attributes(output) <- attributes(v)
@@ -513,9 +524,9 @@ pcoincide <- function(x) {
   if (x@name == "Vsymmetric") {
     return(0.5)
   }
-  integrand <- function(v, Vtransform) (vdownprob(Vtransform, v) - Vtransform@pars[1])^2
-  delta <- x@pars[1]
-  varDelta <- integrate(integrand, 0, 1, Vtransform = x)$value
+  delta <- unname(x@pars["delta"])
+  integrand <- function(v) (vdownprob(x, v) - delta)^2
+  varDelta <- integrate(integrand, 0, 1)$value
   unname(delta^2 + (1 - delta)^2 + 2 * varDelta)
 }
 

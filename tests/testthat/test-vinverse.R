@@ -57,6 +57,13 @@ test_that("vinverse() handles the endpoints and NA", {
   expect_equal(vinverse(x, c(0, 1)), c(0.4, 0))
   expect_equal(vinverse(x, c(0, 1), method = "spline"), c(0.4, 0))
   expect_identical(vinverse(x, NA_real_), NA_real_)
+  expect_equal(vinverse(x, c(0.3, NA, 0.7))[c(1, 3)], vinverse(x, c(0.3, 0.7)))
+})
+
+test_that("vinverse() rejects an invalid ngrid for the spline method", {
+  x <- V2p(delta = 0.4, kappa = 1.2)
+  expect_error(vinverse(x, 0.5, method = "spline", ngrid = 1), "at least 2")
+  expect_error(vinverse(x, 0.5, method = "spline", ngrid = c(10, 20)), "single number")
 })
 
 test_that("vinverse() preserves the shape and attributes of v", {

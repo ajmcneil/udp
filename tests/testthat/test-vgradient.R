@@ -18,6 +18,17 @@ test_that("the gradient is negative below the fulcrum and positive above", {
   }
 })
 
+test_that("vgradient() preserves the shape and attributes of u", {
+  x <- V2p(delta = 0.4, kappa = 1.2)
+  u <- ts(seq(0.1, 0.9, length.out = 24), frequency = 4)
+  g <- vgradient(x, u)
+  expect_s3_class(g, "ts")
+  expect_identical(tsp(g), tsp(u))
+
+  m <- matrix(seq(0.1, 0.9, length.out = 12), nrow = 3)
+  expect_identical(dim(vgradient(x, m)), dim(m))
+})
+
 test_that("Vsymmetric and Vlinear gradients match their closed forms", {
   expect_equal(vgradient(Vsymmetric(), c(0.2, 0.8)), c(-2, 2))
 

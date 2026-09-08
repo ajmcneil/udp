@@ -9,10 +9,10 @@ vgradient(x, u)
 \arguments{
 \item{x}{an object of class \linkS4class{Vtransform}.}
 
-\item{u}{a vector or time series with values in \verb{[0, 1]}.}
+\item{u}{a vector, matrix or time series with values in \verb{[0, 1]}.}
 }
 \value{
-A vector or time series of values of gradient.
+An object shaped like \code{u} giving the gradient of the v-transform.
 }
 \description{
 Calculate gradient of v-transform

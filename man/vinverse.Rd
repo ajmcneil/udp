@@ -22,10 +22,11 @@ vinverse(
 
 \item{tol}{convergence tolerance for \code{method = "newton"}.}
 
-\item{ngrid}{number of grid points for \code{method = "spline"}.}
+\item{ngrid}{number of grid points (at least 2) for \code{method = "spline"}.}
 }
 \value{
-An object shaped like \code{v} with values in \verb{[0, delta]}.
+An object shaped like \code{v} with values in \verb{[0, delta]}. Positions
+where \code{v} is \code{NA} or otherwise non-finite are returned as \code{NA}.
 }
 \description{
 Returns the pre-image at or below the fulcrum: the value \code{u} in

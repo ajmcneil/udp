@@ -9,10 +9,10 @@ vtrans(x, u)
 \arguments{
 \item{x}{an object of class \linkS4class{Vtransform}.}
 
-\item{u}{a vector or time series with values in \verb{[0, 1]}.}
+\item{u}{a vector, matrix or time series with values in \verb{[0, 1]}.}
 }
 \value{
-A vector or time series with values in \verb{[0, 1]}.
+An object shaped like \code{u} with values in \verb{[0, 1]}.
 }
 \description{
 Evaluate a v-transform
