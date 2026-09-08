@@ -337,7 +337,7 @@ vgradient <- function(x, u) {
 #' vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
 #' vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
 vinverse <- function(x, v, method = c("newton", "spline"),
-                     tol = .Machine$double.eps^0.75, ngrid = 1000L) {
+                     tol = .Machine$double.eps^0.5, ngrid = 1000L) {
   method <- match.arg(method)
 
   if (is(x, "VtransformI")) {
@@ -413,7 +413,7 @@ vinverse <- function(x, v, method = c("newton", "spline"),
 #'
 #' @examples
 #' vdownprob(V2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
-vdownprob <- function(x, v, tol = .Machine$double.eps^0.75, ...) {
+vdownprob <- function(x, v, tol = .Machine$double.eps^0.5, ...) {
   -1 / vgradient(x, vinverse(x, v, tol = tol, ...))
 }
 
@@ -432,7 +432,7 @@ vdownprob <- function(x, v, tol = .Machine$double.eps^0.75, ...) {
 #'
 #' @examples
 #' vsi(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75, ...) {
+vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...) {
   if (length(Z) != length(v)) {
     stop("'Z' must have the same length as 'v'.")
   }

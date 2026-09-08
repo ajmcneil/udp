@@ -4,7 +4,7 @@
 \alias{vsi}
 \title{Stochastic inverse of a v-transform}
 \usage{
-vsi(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75, ...)
+vsi(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{Vtransform}.}

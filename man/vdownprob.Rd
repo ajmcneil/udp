@@ -4,7 +4,7 @@
 \alias{vdownprob}
 \title{Calculate conditional down probability of v-transform}
 \usage{
-vdownprob(x, v, tol = .Machine$double.eps^0.75, ...)
+vdownprob(x, v, tol = .Machine$double.eps^0.5, ...)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{Vtransform}.}

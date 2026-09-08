@@ -20,7 +20,9 @@ test_that("pcoincide() matches a direct Monte Carlo estimate", {
   u <- runif(2e5)
   v <- vtrans(x, u)
   u_back <- vsi(x, v)
-  mc <- mean(abs(u_back - u) < 1e-9)
+  # a "coincidence" is landing back on the same pre-image; the numeric
+  # inverse is accurate to ~1e-8, distinct pre-images differ by O(0.1)
+  mc <- mean(abs(u_back - u) < 1e-6)
 
   expect_equal(pcoincide(x), mc, tolerance = 0.02)
 })

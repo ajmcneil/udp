@@ -8,7 +8,7 @@ vinverse(
   x,
   v,
   method = c("newton", "spline"),
-  tol = .Machine$double.eps^0.75,
+  tol = .Machine$double.eps^0.5,
   ngrid = 1000L
 )
 }
