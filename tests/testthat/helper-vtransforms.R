@@ -1,7 +1,7 @@
 # Shared fixtures for the v-transform tests.
 
-# "Proper" v-transforms: V(0) = 1, V(delta) = 0, V(1) = 1, V-shaped about the
-# fulcrum. Vdegenerate() (the identity) is deliberately excluded.
+# Every v-transform: V(0) = 1, V(delta) = 0, V(1) = 1, V-shaped about the
+# fulcrum, which lies strictly inside (0, 1).
 vtransform_list <- function() {
   list(
     Vsymmetric = list(x = Vsymmetric(), delta = 0.5),

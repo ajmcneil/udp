@@ -1,5 +1,5 @@
 test_that("invertible constructors return VtransformI objects", {
-  for (ctor in list(Vsymmetric(), Vdegenerate(), Vlinear(delta = 0.4))) {
+  for (ctor in list(Vsymmetric(), Vlinear(delta = 0.4))) {
     expect_s4_class(ctor, "VtransformI")
     expect_s4_class(ctor, "Vtransform")
   }
@@ -19,12 +19,20 @@ test_that("parametric constructors return (non-invertible) Vtransform objects", 
 
 test_that("constructors record their own name", {
   expect_identical(Vsymmetric()@name, "Vsymmetric")
-  expect_identical(Vdegenerate()@name, "Vdegenerate")
   expect_identical(Vlinear()@name, "Vlinear")
   expect_identical(V2p()@name, "V2p")
   expect_identical(V2b()@name, "V2b")
   expect_identical(V3p()@name, "V3p")
   expect_identical(V3b()@name, "V3b")
+})
+
+test_that("constructors reject a fulcrum outside (0, 1)", {
+  for (ctor in list(Vlinear, V2p, V2b, V3p, V3b)) {
+    expect_error(ctor(delta = 0), "in \\(0, 1\\)")
+    expect_error(ctor(delta = 1), "in \\(0, 1\\)")
+    expect_error(ctor(delta = -0.1), "in \\(0, 1\\)")
+    expect_error(ctor(delta = c(0.3, 0.4)), "single number")
+  }
 })
 
 test_that("coef() returns the named parameter vector", {

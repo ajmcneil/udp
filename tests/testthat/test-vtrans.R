@@ -37,17 +37,3 @@ test_that("Vsymmetric and Vlinear match their closed forms", {
   expected <- abs(u / delta - 1) * ((delta / (1 - delta))^(u > delta))
   expect_equal(vtrans(Vlinear(delta = delta), u), expected)
 })
-
-test_that("Vdegenerate is the identity", {
-  u <- u_grid()
-  expect_equal(vtrans(Vdegenerate(), u), u)
-  expect_equal(vinverse(Vdegenerate(), u), u)
-})
-
-test_that("delta = 0 and delta = 1 collapse the parametric v-transforms", {
-  u <- c(0.2, 0.5, 0.8)
-  for (ctor in list(V2p, V2b, function(d) V3p(d), function(d) V3b(d))) {
-    expect_equal(vtrans(ctor(0), u), u)
-    expect_equal(vtrans(ctor(1), u), 1 - u)
-  }
-})

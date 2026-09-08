@@ -37,6 +37,14 @@ setClass("VtransformI", contains = "Vtransform", slots = list(
   pars = "numeric", gradient = "function", inverse = "function"
 ))
 
+# Validate a fulcrum: every v-transform must have delta strictly inside (0, 1).
+check_delta <- function(delta) {
+  if (!is.numeric(delta) || length(delta) != 1L || is.na(delta) ||
+      delta <= 0 || delta >= 1) {
+    stop("'delta' must be a single number in (0, 1).", call. = FALSE)
+  }
+}
+
 #' Constructor function for symmetric v-transform
 #'
 #' @return An object of class \linkS4class{VtransformI}.
@@ -56,23 +64,6 @@ Vsymmetric <- function() {
   })
 }
 
-#' Constructor function for degenerate v-transform
-#'
-#' @return An object of class \linkS4class{VtransformI}.
-#' @export
-#'
-#' @examples
-#' Vdegenerate()
-Vdegenerate <- function() {
-  new("VtransformI", name = "Vdegenerate", Vtrans = function(u) {
-    u
-  }, gradient = function(u) {
-    rep(1, length(u))
-  }, inverse = function(v) {
-    v
-  })
-}
-
 #' Constructor function for linear v-transform
 #'
 #' @param delta a value in (0, 1) specifying the fulcrum of the v-transform.
@@ -83,12 +74,9 @@ Vdegenerate <- function() {
 #' @examples
 #' Vlinear(delta = 0.45)
 Vlinear <- function(delta = 0.5) {
+  check_delta(delta)
   new("VtransformI", name = "Vlinear", Vtrans = function(u, delta) {
-    if (delta == 0) {
-      return(u)
-    } else {
-      abs(u / delta - 1) * ((delta / (1 - delta))^(u > delta))
-    }
+    abs(u / delta - 1) * ((delta / (1 - delta))^(u > delta))
   }, pars = c(delta = delta), gradient = function(u, delta) {
     slope <- rep(-1 / delta, length(u))
     slope[u > delta] <- 1 / (1 - delta)
@@ -109,15 +97,10 @@ Vlinear <- function(delta = 0.5) {
 #' @examples
 #' V2p(delta = 0.45, kappa = 1.2)
 V2p <- function(delta = 0.5, kappa = 1) {
+  check_delta(delta)
   new("Vtransform", name = "V2p", Vtrans = function(u, delta, kappa) {
-    if (delta == 0)
-      return(u)
-    else if (delta == 1)
-      return(1-u)
-    else {
-      ifelse(u <= delta, 1 - u - (1 - delta) * exp(-kappa * log(delta / u)), u - delta *
-               exp(-(-log((1 - u) / (1 - delta)) / kappa)))
-    }
+    ifelse(u <= delta, 1 - u - (1 - delta) * exp(-kappa * log(delta / u)), u - delta *
+             exp(-(-log((1 - u) / (1 - delta)) / kappa)))
   }, pars = c(delta = delta, kappa = kappa),
   gradient = function(u, delta, kappa) {
     slope <- rep(-1, length(u))
@@ -164,17 +147,12 @@ V2p <- function(delta = 0.5, kappa = 1) {
 #' @examples
 #' V2b(delta = 0.45, kappa = 1.2)
 V2b <- function(delta = 0.5, kappa = 1) {
+  check_delta(delta)
   new("Vtransform", name = "V2b", Vtrans = function(u, delta, kappa) {
-    if (delta == 0)
-      return(u)
-    else if (delta == 1)
-      return(1-u)
-    else {
-      suppressWarnings(ifelse(u <= delta, 1 - u - (1 - delta) * pbeta(
-        u / delta, kappa,
-        1 / kappa
-      ), u - delta * qbeta((1 - u) / (1 - delta), kappa, 1 / kappa)))
-    }
+    suppressWarnings(ifelse(u <= delta, 1 - u - (1 - delta) * pbeta(
+      u / delta, kappa,
+      1 / kappa
+    ), u - delta * qbeta((1 - u) / (1 - delta), kappa, 1 / kappa)))
   }, pars = c(delta = delta, kappa = kappa),
   gradient = function(u, delta, kappa) {
     slope <- rep(-1, length(u))
@@ -196,15 +174,10 @@ V2b <- function(delta = 0.5, kappa = 1) {
 #' @examples
 #' V3p(delta = 0.45, kappa = 0.8, xi = 1.1)
 V3p <- function(delta = 0.5, kappa = 1, xi = 1) {
+  check_delta(delta)
   new("Vtransform", name = "V3p", Vtrans = function(u, delta, kappa, xi) {
-    if (delta == 0)
-      return(u)
-    else if (delta == 1)
-      return(1-u)
-    else {
-      ifelse(u <= delta, 1 - u - (1 - delta) * exp(-kappa * (log(delta / u))^xi), u -
-               delta * exp(-(-log((1 - u) / (1 - delta)) / kappa)^(1 / xi)))
-    }
+    ifelse(u <= delta, 1 - u - (1 - delta) * exp(-kappa * (log(delta / u))^xi), u -
+             delta * exp(-(-log((1 - u) / (1 - delta)) / kappa)^(1 / xi)))
   }, pars = c(delta = delta, kappa = kappa, xi = xi),
   gradient = function(u, delta, kappa, xi) {
     slope <- rep(-1, length(u))
@@ -254,17 +227,12 @@ V3p <- function(delta = 0.5, kappa = 1, xi = 1) {
 #' @examples
 #' V3b(delta = 0.45, kappa = 1.2, xi = 1.2)
 V3b <- function(delta = 0.5, kappa = 1, xi = 1) {
+  check_delta(delta)
   new("Vtransform", name = "V3b", Vtrans = function(u, delta, kappa, xi) {
-    if (delta == 0)
-      return(u)
-    else if (delta == 1)
-      return(1-u)
-    else {
-      suppressWarnings(ifelse(u <= delta, 1 - u - (1 - delta) * pbeta(
-        u / delta, kappa,
-        xi
-      ), u - delta * qbeta((1 - u) / (1 - delta), kappa, xi)))
-    }
+    suppressWarnings(ifelse(u <= delta, 1 - u - (1 - delta) * pbeta(
+      u / delta, kappa,
+      xi
+    ), u - delta * qbeta((1 - u) / (1 - delta), kappa, xi)))
   }, pars = c(delta = delta, kappa = kappa, xi = xi),
   gradient = function(u, delta, kappa, xi) {
     slope <- rep(-1, length(u))
