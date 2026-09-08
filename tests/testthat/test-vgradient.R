@@ -1,9 +1,3 @@
-# KNOWN FAILURE (V2p, V3p): the upper-branch (u > delta) gradient slot of V2p()
-# and V3p() does not match the derivative of their Vtrans slot. vtrans() upper
-# branch is  u - delta * ((1 - u) / (1 - delta))^(1 / kappa)  but the gradient
-# uses kappa where it needs 1 / kappa. Lower branch and the beta variants
-# (V2b, V3b) are correct. vsi()/vdownprob()/pcoincide() are unaffected because
-# they only evaluate the gradient below the fulcrum.
 test_that("vgradient() agrees with a finite-difference derivative of vtrans()", {
   h <- 1e-6
   for (case in vtransform_list()) {

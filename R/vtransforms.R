@@ -124,7 +124,7 @@ V2p <- function(delta = 0.5, kappa = 1) {
     arg1 <- log(delta / u[u <= delta])
     arg2 <- log((1 - delta) / (1 - u[u > delta]))
     slope[u <= delta] <- -1 - (1 - delta) * exp(-kappa * arg1) * kappa / u[u <= delta]
-    slope[u > delta] <- 1 + delta * exp(-kappa * arg2) * kappa / (1 - u[u > delta])
+    slope[u > delta] <- 1 + delta * exp(-arg2 / kappa) / (kappa * (1 - u[u > delta]))
     if (length(u[u == 0]) > 0) {
       if (kappa < 1) {
         val <- -Inf
@@ -212,8 +212,8 @@ V3p <- function(delta = 0.5, kappa = 1, xi = 1) {
     arg2 <- log((1 - delta) / (1 - u[u > delta]))
     slope[u <= delta] <- -1 - (1 - delta) * exp(-kappa * arg1^xi) * arg1^(xi -
                                                                             1) * (xi * kappa / u[u <= delta])
-    slope[u > delta] <- 1 + delta * exp(-(kappa * arg2)^(1 / xi)) * arg2^(1 / xi - 1) *
-      kappa^(1 / xi) / (xi * (1 - u[u > delta]))
+    slope[u > delta] <- 1 + delta * exp(-(arg2 / kappa)^(1 / xi)) *
+      (arg2 / kappa)^(1 / xi - 1) / (xi * kappa * (1 - u[u > delta]))
     if (length(u[u == 0]) > 0) {
       if ((xi < 1) || ((xi == 1) && (kappa < 1))) {
         val <- -Inf
