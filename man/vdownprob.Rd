@@ -4,15 +4,16 @@
 \alias{vdownprob}
 \title{Calculate conditional down probability of v-transform}
 \usage{
-vdownprob(x, v, tol = .Machine$double.eps^0.75)
+vdownprob(x, v, tol = .Machine$double.eps^0.75, ...)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{Vtransform}.}
 
 \item{v}{a vector or time series with values in \verb{[0, 1]}.}
 
-\item{tol}{the desired accuracy (convergence tolerance) that is passed to
-\code{uniroot} if numerical inversion is used.}
+\item{tol}{convergence tolerance passed to \code{\link[=vinverse]{vinverse()}}.}
+
+\item{...}{further arguments passed to \code{\link[=vinverse]{vinverse()}}, such as \code{method}.}
 }
 \value{
 A vector or time series of values of gradient.

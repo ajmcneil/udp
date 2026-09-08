@@ -303,49 +303,118 @@ vgradient <- function(x, u) {
   do.call(x@gradient, append(x@pars, list(u = u)))
 }
 
-#' Calculate inverse of v-transform
+#' Calculate the lower-branch inverse of a v-transform
 #'
-#' If the \linkS4class{Vtransform} object is also a \linkS4class{VtransformI} object (an
-#' invertible v-transform) then the analytical inverse is used. Otherwise
-#' an inverse is found by numerical root finding with \code{\link[stats]{uniroot}}.
+#' Returns the pre-image at or below the fulcrum: the value `u` in
+#' `[0, delta]` with `vtrans(x, u)` equal to `v`.
 #'
-#' @param x an object ofc lass \linkS4class{Vtransform}.
-#' @param v a vector or time series with values in `[0, 1]`.
-#' @param tol the desired accuracy (convergence tolerance) that is passed to
-#' \code{uniroot} if numerical inversion is used.
+#' For a \linkS4class{VtransformI} object the analytic inverse stored in the
+#' `inverse` slot is used and `method`, `tol` and `ngrid` are ignored.
+#' Otherwise the inverse is computed numerically, either with
 #'
-#' @return A vector or time series with values in `[0, 1]`.
+#' * `method = "newton"` (the default): a vectorised Newton iteration,
+#'   safeguarded by bisection, that uses the analytic gradient of the
+#'   v-transform. Accurate to roughly `tol` and typically several times
+#'   faster than element-wise root finding.
+#' * `method = "spline"`: monotone cubic interpolation of the v-transform
+#'   evaluated on an equally spaced grid of `ngrid` points on `[0, delta]`.
+#'   Much faster again for long `v`, but the accuracy is limited by the grid
+#'   spacing and degrades for extreme parameter values (for example a small
+#'   `kappa`, where the v-transform has infinite slope at `0`).
+#'
+#' @param x an object of class \linkS4class{Vtransform}.
+#' @param v a vector, matrix or time series with values in `[0, 1]`.
+#' @param method inversion method for non-invertible v-transforms, either
+#' `"newton"` or `"spline"`. Ignored for invertible v-transforms.
+#' @param tol convergence tolerance for `method = "newton"`.
+#' @param ngrid number of grid points for `method = "spline"`.
+#'
+#' @return An object shaped like `v` with values in `[0, delta]`.
 #' @export
 #'
 #' @examples
 #' vinverse(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-vinverse <- function(x, v, tol = .Machine$double.eps^0.75) {
-  if (is(x,"VtransformI")) {
-    do.call(x@inverse, append(x@pars, list(v = v)))
-  } else {
-    vecinverse <- Vectorize(function(v, vfunc, pars, tol) {
-      uniroot(function(t) {
-        do.call(vfunc, append(pars, list(u = t))) - v
-      }, lower = 0, upper = pars["delta"], tol = tol)$root
-    }, "v")
-    vecinverse(v, x@Vtrans, x@pars, tol)
+#' vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
+#' vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
+vinverse <- function(x, v, method = c("newton", "spline"),
+                     tol = .Machine$double.eps^0.75, ngrid = 1000L) {
+  method <- match.arg(method)
+
+  if (is(x, "VtransformI")) {
+    return(do.call(x@inverse, append(x@pars, list(v = v))))
   }
+
+  delta <- unname(x@pars["delta"])
+  if (is.na(delta)) {
+    stop("'x' has no 'delta' parameter; cannot invert numerically.")
+  }
+  parlist <- as.list(x@pars)
+  Vf <- function(u) do.call(x@Vtrans, c(list(u = u), parlist))
+
+  vv <- as.numeric(v)
+  out <- rep(NA_real_, length(vv))
+  finite <- is.finite(vv)
+  out[finite & vv <= 0] <- delta
+  out[finite & vv >= 1] <- 0
+  todo <- finite & vv > 0 & vv < 1
+
+  if (any(todo)) {
+    vt <- vv[todo]
+    if (method == "spline") {
+      ug <- seq(0, delta, length.out = ngrid)
+      out[todo] <- stats::splinefun(rev(Vf(ug)), rev(ug), method = "monoH.FC")(vt)
+    } else {
+      Vg <- function(u) do.call(x@gradient, c(list(u = u), parlist))
+      lo <- rep(0, length(vt))
+      hi <- rep(delta, length(vt))
+      u <- rep(delta / 2, length(vt))
+      f <- Vf(u) - vt
+      g <- Vg(u)
+      dx <- dxold <- rep(delta, length(vt))
+      for (i in seq_len(100L)) {
+        # phi(u) = vtrans(x, u) - v is strictly decreasing on [0, delta]
+        left <- f > 0
+        lo[left] <- u[left]
+        hi[!left] <- u[!left]
+
+        step_ok <- is.finite(g) & g != 0
+        cand <- u - f / g
+        slow <- abs(2 * f) > abs(dxold * g)
+        bisect <- !step_ok | slow | cand <= lo | cand >= hi
+        cand[bisect] <- 0.5 * (lo[bisect] + hi[bisect])
+
+        dxold <- dx
+        dx <- cand - u
+        u <- cand
+        if (max(abs(dx)) < tol) break
+
+        f <- Vf(u) - vt
+        g <- Vg(u)
+      }
+      out[todo] <- u
+    }
+  }
+
+  if (!is.null(attributes(v))) {
+    attributes(out) <- attributes(v)
+  }
+  out
 }
 
 #' Calculate conditional down probability of v-transform
 #'
 #' @param x an object of class \linkS4class{Vtransform}.
 #' @param v a vector or time series with values in `[0, 1]`.
-#' @param tol the desired accuracy (convergence tolerance) that is passed to
-#' \code{uniroot} if numerical inversion is used.
+#' @param tol convergence tolerance passed to [vinverse()].
+#' @param ... further arguments passed to [vinverse()], such as `method`.
 #'
 #' @return A vector or time series of values of gradient.
 #' @export
 #'
 #' @examples
 #' vdownprob(V2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
-vdownprob <- function(x, v, tol = .Machine$double.eps^0.75) {
-  -1 / vgradient(x, vinverse(x, v, tol))
+vdownprob <- function(x, v, tol = .Machine$double.eps^0.75, ...) {
+  -1 / vgradient(x, vinverse(x, v, tol = tol, ...))
 }
 
 #' Stochastic inverse of a v-transform
@@ -354,8 +423,8 @@ vdownprob <- function(x, v, tol = .Machine$double.eps^0.75) {
 #' @param v a vector, matrix or time series with values in `[0, 1]`.
 #' @param Z a vector or time series of uniform randomizers with values in
 #' `[0, 1]`; defaults to a fresh draw from [stats::runif()].
-#' @param tol the desired accuracy (convergence tolerance) that is passed to
-#' \code{uniroot} if numerical inversion is used.
+#' @param tol convergence tolerance passed to [vinverse()].
+#' @param ... further arguments passed to [vinverse()], such as `method`.
 #'
 #' @return A vector, matrix or time series with values in `[0, 1]`.
 #' @export
@@ -363,11 +432,11 @@ vdownprob <- function(x, v, tol = .Machine$double.eps^0.75) {
 #'
 #' @examples
 #' vsi(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75) {
+vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75, ...) {
   if (length(Z) != length(v)) {
     stop("'Z' must have the same length as 'v'.")
   }
-  vinv <- vinverse(x, v, tol)
+  vinv <- vinverse(x, v, tol = tol, ...)
   pdown <- -1 / vgradient(x, vinv)
   output <- ifelse(Z <= pdown, vinv, v + vinv)
   if (!(is.null(attributes(v)))) {

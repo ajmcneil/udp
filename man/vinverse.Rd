@@ -2,26 +2,53 @@
 % Please edit documentation in R/vtransforms.R
 \name{vinverse}
 \alias{vinverse}
-\title{Calculate inverse of v-transform}
+\title{Calculate the lower-branch inverse of a v-transform}
 \usage{
-vinverse(x, v, tol = .Machine$double.eps^0.75)
+vinverse(
+  x,
+  v,
+  method = c("newton", "spline"),
+  tol = .Machine$double.eps^0.75,
+  ngrid = 1000L
+)
 }
 \arguments{
-\item{x}{an object ofc lass \linkS4class{Vtransform}.}
+\item{x}{an object of class \linkS4class{Vtransform}.}
 
-\item{v}{a vector or time series with values in \verb{[0, 1]}.}
+\item{v}{a vector, matrix or time series with values in \verb{[0, 1]}.}
 
-\item{tol}{the desired accuracy (convergence tolerance) that is passed to
-\code{uniroot} if numerical inversion is used.}
+\item{method}{inversion method for non-invertible v-transforms, either
+\code{"newton"} or \code{"spline"}. Ignored for invertible v-transforms.}
+
+\item{tol}{convergence tolerance for \code{method = "newton"}.}
+
+\item{ngrid}{number of grid points for \code{method = "spline"}.}
 }
 \value{
-A vector or time series with values in \verb{[0, 1]}.
+An object shaped like \code{v} with values in \verb{[0, delta]}.
 }
 \description{
-If the \linkS4class{Vtransform} object is also a \linkS4class{VtransformI} object (an
-invertible v-transform) then the analytical inverse is used. Otherwise
-an inverse is found by numerical root finding with \code{\link[stats]{uniroot}}.
+Returns the pre-image at or below the fulcrum: the value \code{u} in
+\verb{[0, delta]} with \code{vtrans(x, u)} equal to \code{v}.
+}
+\details{
+For a \linkS4class{VtransformI} object the analytic inverse stored in the
+\code{inverse} slot is used and \code{method}, \code{tol} and \code{ngrid} are ignored.
+Otherwise the inverse is computed numerically, either with
+\itemize{
+\item \code{method = "newton"} (the default): a vectorised Newton iteration,
+safeguarded by bisection, that uses the analytic gradient of the
+v-transform. Accurate to roughly \code{tol} and typically several times
+faster than element-wise root finding.
+\item \code{method = "spline"}: monotone cubic interpolation of the v-transform
+evaluated on an equally spaced grid of \code{ngrid} points on \verb{[0, delta]}.
+Much faster again for long \code{v}, but the accuracy is limited by the grid
+spacing and degrades for extreme parameter values (for example a small
+\code{kappa}, where the v-transform has infinite slope at \code{0}).
+}
 }
 \examples{
 vinverse(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
+vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
 }

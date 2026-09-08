@@ -4,7 +4,7 @@
 \alias{vsi}
 \title{Stochastic inverse of a v-transform}
 \usage{
-vsi(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75)
+vsi(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75, ...)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{Vtransform}.}
@@ -14,8 +14,9 @@ vsi(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.75)
 \item{Z}{a vector or time series of uniform randomizers with values in
 \verb{[0, 1]}; defaults to a fresh draw from \code{\link[stats:runif]{stats::runif()}}.}
 
-\item{tol}{the desired accuracy (convergence tolerance) that is passed to
-\code{uniroot} if numerical inversion is used.}
+\item{tol}{convergence tolerance passed to \code{\link[=vinverse]{vinverse()}}.}
+
+\item{...}{further arguments passed to \code{\link[=vinverse]{vinverse()}}, such as \code{method}.}
 }
 \value{
 A vector, matrix or time series with values in \verb{[0, 1]}.
