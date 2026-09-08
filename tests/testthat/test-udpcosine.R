@@ -109,6 +109,79 @@ test_that("udpcosinverse() validates v", {
   expect_error(udpcosinverse(x, c(0.5, NA)), "in \\[0, 1\\]")
 })
 
+test_that("udpcosinesi() returns one pre-image per v in (0, 1)", {
+  set.seed(1)
+  for (d in 1:6) {
+    x <- udpcosine(d)
+    v <- runif(1000)
+    Z <- runif(1000)
+    u <- udpcosinesi(x, v, Z)
+
+    expect_length(u, 1000L)
+    expect_true(all(u >= 0 & u <= 1))
+    expect_equal(udpcostrans(x, u), v, tolerance = 1e-9)
+  }
+})
+
+test_that("udpcosinesi() uses Z as a categorical quantile over the roots", {
+  set.seed(2)
+  x <- udpcosine(5)
+  v <- runif(500)
+  roots <- udpcosinverse(x, v)
+
+  expect_equal(
+    udpcosinesi(x, v, rep(1e-9, 500)),
+    vapply(roots, `[`, numeric(1), 1)
+  )
+  expect_equal(
+    udpcosinesi(x, v, rep(1, 500)),
+    vapply(roots, `[`, numeric(1), 5)
+  )
+  expect_equal(
+    udpcosinesi(x, v, rep(0.5, 500)), # ceiling(0.5 * 5) = 3
+    vapply(roots, `[`, numeric(1), 3)
+  )
+})
+
+test_that("udpcosinesi() returns 0 at v = 0 and v = 1", {
+  x <- udpcosine(4)
+  expect_identical(udpcosinesi(x, c(0, 1), c(0.2, 0.8)), c(0, 0))
+  expect_identical(udpcosinesi(x, c(0, 0.5, 1), c(0.1, 0.1, 0.1))[c(1, 3)], c(0, 0))
+})
+
+test_that("udpcosinesi() validates its arguments and edge inputs", {
+  x <- udpcosine(3)
+  expect_error(udpcosinesi(x, c(0.3, 0.4), Z = 0.5), "same length")
+  expect_error(udpcosinesi(x, 1.2, 0.5), "in \\[0, 1\\]")
+  expect_error(udpcosinesi(x, c(0.5, NA), c(0.1, 0.1)), "in \\[0, 1\\]")
+  expect_length(udpcosinesi(x, numeric(0), numeric(0)), 0L)
+})
+
+test_that("udpcosinesi() is reproducible and preserves attributes", {
+  x <- udpcosine(3)
+  set.seed(7)
+  a <- udpcosinesi(x, seq(0.1, 0.9, by = 0.1))
+  set.seed(7)
+  b <- udpcosinesi(x, seq(0.1, 0.9, by = 0.1))
+  expect_identical(a, b)
+
+  v <- ts(seq(0.05, 0.95, length.out = 24), frequency = 4)
+  out <- udpcosinesi(x, v)
+  expect_s3_class(out, "ts")
+  expect_identical(tsp(out), tsp(v))
+})
+
+test_that("the stochastic inverse recovers a uniform input", {
+  skip_on_cran()
+  set.seed(20240908)
+  for (d in 1:6) {
+    x <- udpcosine(d)
+    u <- runif(1e5)
+    back <- udpcosinesi(x, udpcostrans(x, u), runif(1e5))
+    expect_gte(suppressWarnings(stats::ks.test(back, "punif")$p.value), 0.01)
+  }
+})
+
 test_that("plot() runs for a udpcosine", {
   f <- tempfile(fileext = ".pdf")
   pdf(f)

@@ -77,6 +77,57 @@ udpcosinverse <- function(x, v) {
   })
 }
 
+#' Stochastic inverse of a cosine udp transformation
+#'
+#' For each `v` in `(0, 1)`, [udpcosinverse()] returns `degree` pre-images;
+#' `udpcosinesi()` picks one of them uniformly at random. `Z` is the
+#' randomiser: the selected pre-image is the `Z[i]`-quantile of the equiprobable
+#' categorical distribution over the pre-images, i.e. root number
+#' `ceiling(Z[i] * degree)`. Values of `v` equal to `0` or `1` return `0`.
+#'
+#' If `v` is uniform on `[0, 1]` and `Z` is an independent uniform, the result
+#' is again uniform on `[0, 1]`.
+#'
+#' @param x an object of class \linkS4class{udpcosine}.
+#' @param v a vector, matrix or time series with values in `[0, 1]`.
+#' @param Z a vector of randomisers with values in `[0, 1]`, the same length as
+#'   `v`; defaults to a fresh draw from [stats::runif()].
+#'
+#' @return An object shaped like `v` with values in `[0, 1]`.
+#' @export
+#'
+#' @examples
+#' x <- udpcosine(3)
+#' set.seed(1)
+#' u <- runif(5)
+#' udpcosinesi(x, udpcostrans(x, u))
+udpcosinesi <- function(x, v, Z = runif(length(v))) {
+  if (anyNA(v) || any(v < 0 | v > 1)) {
+    stop("every element of 'v' must be in [0, 1].", call. = FALSE)
+  }
+  if (length(Z) != length(v)) {
+    stop("'Z' must have the same length as 'v'.", call. = FALSE)
+  }
+  d <- x@degree
+  edge <- v <= 0 | v >= 1
+  vw <- v
+  vw[edge] <- 0.5 # working value with the full complement of degree roots
+  j <- pmin(pmax(ceiling(as.numeric(Z) * d), 1L), d)
+
+  if (length(v) == 0L) {
+    out <- numeric(0)
+  } else {
+    roots <- do.call(rbind, udpcosinverse(x, vw)) # length(v) x degree
+    out <- roots[cbind(seq_along(v), j)]
+  }
+  out[edge] <- 0
+
+  if (!is.null(attributes(v))) {
+    attributes(out) <- attributes(v)
+  }
+  out
+}
+
 #' Plot method for the udpcosine class
 #'
 #' Draws the graph of the cosine udp transformation over thin red gridlines at
