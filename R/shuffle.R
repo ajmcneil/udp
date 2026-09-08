@@ -84,3 +84,35 @@ shinverse <- function(x, v) {
   o <- order(x@perm)
   sheval(new("shuffle", perm = o, signs = x@signs[o]), v)
 }
+
+#' Plot method for the shuffle class
+#'
+#' Draws the graph of the shuffle as one thick black line segment per strip,
+#' over thin red gridlines at the boundaries of the vertical and horizontal
+#' strips.
+#'
+#' @param x an object of class \linkS4class{shuffle}.
+#' @param xlab,ylab axis labels.
+#' @param ... further graphical parameters passed to [graphics::plot()].
+#'
+#' @return No return value, generates a plot.
+#' @export
+#'
+#' @examples
+#' plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)))
+setMethod("plot", c(x = "shuffle", y = "missing"),
+  function(x, xlab = "u", ylab = "s(u)", ...) {
+    m <- length(x@perm)
+    bounds <- (0:m) / m
+
+    plot(NA,
+      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
+      xlab = xlab, ylab = ylab, ...
+    )
+    abline(v = bounds, h = bounds, col = "red", lwd = 0.5)
+
+    y0 <- (x@perm - (x@signs > 0)) / m
+    y1 <- (x@perm - (x@signs > 0) + x@signs) / m
+    segments((0:(m - 1)) / m, y0, (1:m) / m, y1, lwd = 2)
+  }
+)

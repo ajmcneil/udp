@@ -22,7 +22,11 @@ exportMethods(coef)
 exportMethods(plot)
 exportMethods(show)
 import(methods)
-importFrom(graphics,polygon)
+importFrom(graphics,
+  abline,
+  polygon,
+  segments
+)
 importFrom(stats,
   coef,
   dbeta,

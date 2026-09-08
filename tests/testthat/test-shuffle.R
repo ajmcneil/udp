@@ -56,6 +56,18 @@ test_that("the inverse of a shuffle is the shuffle of the inverse permutation", 
   expect_equal(shinverse(s, v), sheval(inv, v))
 })
 
+test_that("plot() runs for a shuffle", {
+  f <- tempfile(fileext = ".pdf")
+  pdf(f)
+  on.exit({
+    dev.off()
+    unlink(f)
+  })
+  expect_no_error(plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1))))
+  expect_no_error(plot(shuffle(1:5)))
+  expect_no_error(plot(shuffle(c(2, 1)), main = "swap"))
+})
+
 test_that("shuffles preserve the uniform distribution", {
   skip_on_cran()
   set.seed(20240908)
