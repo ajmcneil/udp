@@ -76,3 +76,30 @@ udpcosinverse <- function(x, v) {
     sort(unique(ifelse(increasing, (vi + k - 1) / d, (k - vi) / d)))
   })
 }
+
+#' Plot method for the udpcosine class
+#'
+#' Draws the graph of the cosine udp transformation over thin red gridlines at
+#' the boundaries of its `degree` linear pieces.
+#'
+#' @param x an object of class \linkS4class{udpcosine}.
+#' @param xlab,ylab axis labels.
+#' @param ... further graphical parameters passed to [graphics::plot()].
+#'
+#' @return No return value, generates a plot.
+#' @export
+#'
+#' @examples
+#' plot(udpcosine(3))
+#' plot(udpcosine(4))
+setMethod("plot", c(x = "udpcosine", y = "missing"),
+  function(x, xlab = "u", ylab = "T(u)", ...) {
+    u <- (0:x@degree) / x@degree
+    plot(NA,
+      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
+      xlab = xlab, ylab = ylab, ...
+    )
+    abline(v = u, col = "red", lwd = 0.5)
+    lines(u, udpcostrans(x, u), lwd = 2)
+  }
+)

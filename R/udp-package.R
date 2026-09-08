@@ -3,7 +3,7 @@
 
 ## usethis namespace: start
 #' @import methods
-#' @importFrom graphics abline polygon segments
+#' @importFrom graphics abline lines polygon segments
 #' @importFrom stats coef cor dbeta integrate pbeta qbeta runif splinefun
 ## usethis namespace: end
 NULL

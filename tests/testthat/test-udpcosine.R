@@ -108,3 +108,16 @@ test_that("udpcosinverse() validates v", {
   expect_error(udpcosinverse(x, -0.01), "in \\[0, 1\\]")
   expect_error(udpcosinverse(x, c(0.5, NA)), "in \\[0, 1\\]")
 })
+
+test_that("plot() runs for a udpcosine", {
+  f <- tempfile(fileext = ".pdf")
+  pdf(f)
+  on.exit({
+    dev.off()
+    unlink(f)
+  })
+  for (d in 1:5) {
+    expect_no_error(plot(udpcosine(d)))
+  }
+  expect_no_error(plot(udpcosine(3), main = "degree 3", ylab = "y"))
+})
