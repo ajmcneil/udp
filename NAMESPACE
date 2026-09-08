@@ -6,6 +6,7 @@ export(V3b)
 export(V3p)
 export(Vlinear)
 export(Vsymmetric)
+export(aceshuffle)
 export(pcoincide)
 export(shinverse)
 export(shtrans)
@@ -29,6 +30,7 @@ importFrom(graphics,
 )
 importFrom(stats,
   coef,
+  cor,
   dbeta,
   integrate,
   pbeta,

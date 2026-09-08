@@ -79,3 +79,67 @@ test_that("shuffles preserve the uniform distribution", {
     expect_gte(p, 0.01)
   }
 })
+
+test_that("aceshuffle() returns the documented structure", {
+  set.seed(1)
+  u1 <- runif(500)
+  u2 <- runif(500)
+  fit <- aceshuffle(u1, u2, m = 4)
+
+  expect_named(fit, c("data", "shuffle1", "shuffle2", "correlation", "iterations"))
+  expect_identical(fit$data, cbind(U1 = u1, U2 = u2))
+  expect_s4_class(fit$shuffle1, "shuffle")
+  expect_s4_class(fit$shuffle2, "shuffle")
+  expect_length(fit$shuffle1@perm, 4L)
+  expect_length(fit$correlation, 1L)
+  expect_gte(fit$iterations, 1L)
+})
+
+test_that("aceshuffle() recovers an exact shuffle relationship", {
+  set.seed(2)
+  u1 <- runif(4000)
+
+  # u2 is u1 shifted half a period: shuffle(c(2, 1)) maps u1 exactly to u2
+  fit <- aceshuffle(u1, (u1 + 0.5) %% 1, m = 2)
+  expect_equal(fit$correlation, 1, tolerance = 1e-6)
+  expect_identical(fit$shuffle1@perm, c(2L, 1L))
+
+  # perfect negative dependence: a sign flip on one margin fixes it
+  fit <- aceshuffle(u1, 1 - u1, m = 1)
+  expect_equal(fit$correlation, 1, tolerance = 1e-6)
+})
+
+test_that("aceshuffle() uncovers non-monotone dependence", {
+  set.seed(3)
+  u1 <- runif(4000)
+  u2 <- pmin(pmax(abs(2 * u1 - 1) + rnorm(4000, 0, 0.03), 0), 1)
+
+  expect_lt(abs(cor(u1, u2)), 0.1)
+  fit <- aceshuffle(u1, u2, m = 8)
+  expect_gt(fit$correlation, 0.9)
+})
+
+test_that("aceshuffle() stops at a fixed point", {
+  set.seed(4)
+  u1 <- runif(1000)
+  u2 <- (u1 + 0.3 * runif(1000)) %% 1
+  fit <- aceshuffle(u1, u2, m = 5)
+
+  refit <- aceshuffle(u1, u2, m = 5,
+    init1 = fit$shuffle1, init2 = fit$shuffle2
+  )
+  expect_identical(refit$iterations, 1L)
+  expect_identical(refit$shuffle1@perm, fit$shuffle1@perm)
+  expect_identical(refit$shuffle1@signs, fit$shuffle1@signs)
+})
+
+test_that("aceshuffle() validates its arguments", {
+  u <- runif(100)
+  expect_error(aceshuffle(u, u[1:50], m = 3), "same length")
+  expect_error(aceshuffle(u, u, m = c(2, 3)), "single positive integer")
+  expect_error(aceshuffle(u, u, m = 0), "single positive integer")
+  expect_error(
+    aceshuffle(u, u, m = 3, init1 = shuffle(c(2, 1))),
+    "permutations of length m"
+  )
+})

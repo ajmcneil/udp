@@ -116,3 +116,104 @@ setMethod("plot", c(x = "shuffle", y = "missing"),
     segments((0:(m - 1)) / m, y0, (1:m) / m, y1, lwd = 2)
   }
 )
+
+#' Alternating conditional expectation for shuffle transformations
+#'
+#' Given a paired sample of (approximately) uniform variables, `aceshuffle()`
+#' searches for a [shuffle()] of each margin that maximises the linear
+#' correlation between the transformed variables.
+#'
+#' It alternates in the manner of alternating conditional expectations: with the
+#' shuffle of `U2` fixed it selects the shuffle of `U1` maximising the
+#' correlation, then with that new shuffle of `U1` fixed it selects the shuffle
+#' of `U2`, repeating until neither shuffle changes or `maxit` sweeps have been
+#' done.
+#'
+#' Each selection is solved in closed form. Written as a covariance (a shuffle
+#' leaves the variance of uniform data essentially unchanged), the objective
+#' separates: the sign on each strip is chosen independently, and the
+#' permutation follows from the rearrangement inequality. A sweep therefore
+#' costs `O(n + m log m)`.
+#'
+#' @param U1,U2 numeric vectors of equal length with values in `[0, 1]`.
+#' @param m the common length of the two permutations (the number of strips).
+#' @param maxit maximum number of alternating sweeps.
+#' @param init1,init2 optional starting \linkS4class{shuffle} objects with
+#'   permutations of length `m`; the identity shuffle is used by default.
+#'
+#' @return A list with elements `data` (the `cbind(U1, U2)` matrix),
+#'   `shuffle1` and `shuffle2` (the fitted \linkS4class{shuffle} objects),
+#'   `correlation` (the achieved linear correlation) and `iterations` (the
+#'   number of sweeps performed).
+#' @export
+#'
+#' @examples
+#' set.seed(1)
+#' u1 <- runif(2000)
+#' u2 <- (u1 + 0.5) %% 1
+#' fit <- aceshuffle(u1, u2, m = 4)
+#' fit$correlation
+#' plot(fit$shuffle1)
+aceshuffle <- function(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL) {
+  n <- length(U1)
+  if (!is.numeric(U1) || !is.numeric(U2) || length(U2) != n || n < 2L) {
+    stop("'U1' and 'U2' must be numeric vectors of the same length (>= 2).",
+      call. = FALSE
+    )
+  }
+  if (!is.numeric(m) || length(m) != 1L || is.na(m) || m < 1) {
+    stop("'m' must be a single positive integer.", call. = FALSE)
+  }
+  m <- as.integer(m)
+
+  s1 <- if (is.null(init1)) shuffle(seq_len(m)) else init1
+  s2 <- if (is.null(init2)) shuffle(seq_len(m)) else init2
+  if (!is(s1, "shuffle") || !is(s2, "shuffle") ||
+    length(s1@perm) != m || length(s2@perm) != m) {
+    stop("'init1' and 'init2' must be shuffles with permutations of length m.",
+      call. = FALSE
+    )
+  }
+
+  # domain strip index (1..m) and within-strip position for each point
+  strip_index <- function(u) as.integer(pmax(pmin(floor(u * m) + 1, m), 1))
+  i1 <- strip_index(U1)
+  i2 <- strip_index(U2)
+  t1 <- U1 * m - (i1 - 1)
+  t2 <- U2 * m - (i2 - 1)
+  f1 <- factor(i1, levels = seq_len(m))
+  f2 <- factor(i2, levels = seq_len(m))
+
+  # shuffle of the variable with strip data (fi, t) that best matches target y
+  best <- function(fi, t, y) {
+    yc <- y - mean(y)
+    S <- tapply(yc, fi, sum)
+    A <- tapply(t * yc, fi, sum)
+    S[is.na(S)] <- 0
+    A[is.na(A)] <- 0
+    shuffle(rank(S, ties.method = "first"), ifelse(2 * A >= S, 1, -1))
+  }
+
+  unchanged <- function(a, b) {
+    identical(a@perm, b@perm) && identical(a@signs, b@signs)
+  }
+
+  it <- 0L
+  repeat {
+    it <- it + 1L
+    new1 <- best(f1, t1, shtrans(s2, U2))
+    new2 <- best(f2, t2, shtrans(new1, U1))
+    done <- unchanged(new1, s1) && unchanged(new2, s2)
+    s1 <- new1
+    s2 <- new2
+    if (done || it >= maxit) break
+  }
+
+  list(
+    data = cbind(U1 = U1, U2 = U2),
+    shuffle1 = s1,
+    shuffle2 = s2,
+    correlation = cor(shtrans(s1, U1), shtrans(s2, U2)),
+    iterations = it
+  )
+}
