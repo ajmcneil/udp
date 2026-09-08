@@ -1,29 +1,29 @@
 #' Class of v-transforms
 #'
-#' This is the class of v-transforms. It contains the \linkS4class{VtransformI} subclass consisting of v-transforms
+#' This is the class of v-transforms. It contains the \linkS4class{vtransformi} subclass consisting of v-transforms
 #' with an analytical expression for the inverse.
 #'
 #' @slot name a name for the v-transform of class character.
-#' @slot Vtrans function to evaluate the v-transform.
+#' @slot vtrans function to evaluate the v-transform.
 #' @slot pars vector containing the named parameters of the v-transform.
 #' @slot gradient function to evaluate the gradient of the v-transform.
 #'
 #' @export
 #'
 #' @examples
-#' V2p(delta = 0.5, kappa = 1.2)
-setClass("Vtransform", slots = list(
-  name = "character", Vtrans = "function", pars = "numeric",
+#' v2p(delta = 0.5, kappa = 1.2)
+setClass("vtransform", slots = list(
+  name = "character", vtrans = "function", pars = "numeric",
   gradient = "function"
 ))
 
 #' Class of invertible v-transforms
 #'
-#' This class inherits from the \linkS4class{Vtransform} class and contains v-transforms
+#' This class inherits from the \linkS4class{vtransform} class and contains v-transforms
 #' with an analytical expression for the inverse.
 #'
 #' @slot name a name for the v-transform of class character.
-#' @slot Vtrans function to evaluate the v-transform.
+#' @slot vtrans function to evaluate the v-transform.
 #' @slot pars vector containing the named parameters of the v-transform.
 #' @slot gradient function to evaluate the gradient of the v-transform.
 #' @slot inverse function to evaluate the inverse of the v-transform.
@@ -31,9 +31,9 @@ setClass("Vtransform", slots = list(
 #' @export
 #'
 #' @examples
-#' Vlinear(delta = 0.55)
-setClass("VtransformI", contains = "Vtransform", slots = list(
-  name = "character", Vtrans = "function",
+#' vlinear(delta = 0.55)
+setClass("vtransformi", contains = "vtransform", slots = list(
+  name = "character", vtrans = "function",
   pars = "numeric", gradient = "function", inverse = "function"
 ))
 
@@ -47,13 +47,13 @@ check_delta <- function(delta) {
 
 #' Constructor function for symmetric v-transform
 #'
-#' @return An object of class \linkS4class{VtransformI}.
+#' @return An object of class \linkS4class{vtransformi}.
 #' @export
 #'
 #' @examples
-#' Vsymmetric()
-Vsymmetric <- function() {
-  new("VtransformI", name = "Vsymmetric", Vtrans = function(u) {
+#' vsymmetric()
+vsymmetric <- function() {
+  new("vtransformi", name = "vsymmetric", vtrans = function(u) {
     abs(2 * u - 1)
   }, gradient = function(u) {
     slope <- rep(-2, length(u))
@@ -68,14 +68,14 @@ Vsymmetric <- function() {
 #'
 #' @param delta a value in (0, 1) specifying the fulcrum of the v-transform.
 #'
-#' @return An object of class \linkS4class{VtransformI}.
+#' @return An object of class \linkS4class{vtransformi}.
 #' @export
 #'
 #' @examples
-#' Vlinear(delta = 0.45)
-Vlinear <- function(delta = 0.5) {
+#' vlinear(delta = 0.45)
+vlinear <- function(delta = 0.5) {
   check_delta(delta)
-  new("VtransformI", name = "Vlinear", Vtrans = function(u, delta) {
+  new("vtransformi", name = "vlinear", vtrans = function(u, delta) {
     abs(u / delta - 1) * ((delta / (1 - delta))^(u > delta))
   }, pars = c(delta = delta), gradient = function(u, delta) {
     slope <- rep(-1 / delta, length(u))
@@ -91,14 +91,14 @@ Vlinear <- function(delta = 0.5) {
 #' @param delta a value in (0, 1) specifying the fulcrum of the v-transform.
 #' @param kappa additional positive parameter of v-transform.
 #'
-#' @return An object of class \linkS4class{Vtransform}.
+#' @return An object of class \linkS4class{vtransform}.
 #' @export
 #'
 #' @examples
-#' V2p(delta = 0.45, kappa = 1.2)
-V2p <- function(delta = 0.5, kappa = 1) {
+#' v2p(delta = 0.45, kappa = 1.2)
+v2p <- function(delta = 0.5, kappa = 1) {
   check_delta(delta)
-  new("Vtransform", name = "V2p", Vtrans = function(u, delta, kappa) {
+  new("vtransform", name = "v2p", vtrans = function(u, delta, kappa) {
     ifelse(u <= delta, 1 - u - (1 - delta) * exp(-kappa * log(delta / u)), u - delta *
              exp(-(-log((1 - u) / (1 - delta)) / kappa)))
   }, pars = c(delta = delta, kappa = kappa),
@@ -141,14 +141,14 @@ V2p <- function(delta = 0.5, kappa = 1) {
 #' @param delta a value in (0, 1) specifying the fulcrum of the v-transform.
 #' @param kappa additional positive parameter of v-transform.
 #'
-#' @return An object of class \linkS4class{Vtransform}.
+#' @return An object of class \linkS4class{vtransform}.
 #' @export
 #'
 #' @examples
-#' V2b(delta = 0.45, kappa = 1.2)
-V2b <- function(delta = 0.5, kappa = 1) {
+#' v2b(delta = 0.45, kappa = 1.2)
+v2b <- function(delta = 0.5, kappa = 1) {
   check_delta(delta)
-  new("Vtransform", name = "V2b", Vtrans = function(u, delta, kappa) {
+  new("vtransform", name = "v2b", vtrans = function(u, delta, kappa) {
     suppressWarnings(ifelse(u <= delta, 1 - u - (1 - delta) * pbeta(
       u / delta, kappa,
       1 / kappa
@@ -168,14 +168,14 @@ V2b <- function(delta = 0.5, kappa = 1) {
 #' @param kappa additional positive parameter of v-transform.
 #' @param xi additional positive parameter of v-transform.
 #'
-#' @return An object of class \linkS4class{Vtransform}.
+#' @return An object of class \linkS4class{vtransform}.
 #' @export
 #'
 #' @examples
-#' V3p(delta = 0.45, kappa = 0.8, xi = 1.1)
-V3p <- function(delta = 0.5, kappa = 1, xi = 1) {
+#' v3p(delta = 0.45, kappa = 0.8, xi = 1.1)
+v3p <- function(delta = 0.5, kappa = 1, xi = 1) {
   check_delta(delta)
-  new("Vtransform", name = "V3p", Vtrans = function(u, delta, kappa, xi) {
+  new("vtransform", name = "v3p", vtrans = function(u, delta, kappa, xi) {
     ifelse(u <= delta, 1 - u - (1 - delta) * exp(-kappa * (log(delta / u))^xi), u -
              delta * exp(-(-log((1 - u) / (1 - delta)) / kappa)^(1 / xi)))
   }, pars = c(delta = delta, kappa = kappa, xi = xi),
@@ -221,14 +221,14 @@ V3p <- function(delta = 0.5, kappa = 1, xi = 1) {
 #' @param kappa additional positive parameter of v-transform.
 #' @param xi additional positive parameter of v-transform.
 #'
-#' @return An object of class \linkS4class{Vtransform}.
+#' @return An object of class \linkS4class{vtransform}.
 #' @export
 #'
 #' @examples
-#' V3b(delta = 0.45, kappa = 1.2, xi = 1.2)
-V3b <- function(delta = 0.5, kappa = 1, xi = 1) {
+#' v3b(delta = 0.45, kappa = 1.2, xi = 1.2)
+v3b <- function(delta = 0.5, kappa = 1, xi = 1) {
   check_delta(delta)
-  new("Vtransform", name = "V3b", Vtrans = function(u, delta, kappa, xi) {
+  new("vtransform", name = "v3b", vtrans = function(u, delta, kappa, xi) {
     suppressWarnings(ifelse(u <= delta, 1 - u - (1 - delta) * pbeta(
       u / delta, kappa,
       xi
@@ -244,28 +244,28 @@ V3b <- function(delta = 0.5, kappa = 1, xi = 1) {
 
 #' Evaluate a v-transform
 #'
-#' @param x an object of class \linkS4class{Vtransform}.
+#' @param x an object of class \linkS4class{vtransform}.
 #' @param u a vector, matrix or time series with values in `[0, 1]`.
 #'
 #' @return An object shaped like `u` with values in `[0, 1]`.
 #' @export
 #'
 #' @examples
-#' vtrans(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+#' vtrans(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
 vtrans <- function(x, u) {
-  do.call(x@Vtrans, append(x@pars, list(u = u)))
+  do.call(x@vtrans, append(x@pars, list(u = u)))
 }
 
 #' Calculate gradient of v-transform
 #'
-#' @param x an object of class \linkS4class{Vtransform}.
+#' @param x an object of class \linkS4class{vtransform}.
 #' @param u a vector, matrix or time series with values in `[0, 1]`.
 #'
 #' @return An object shaped like `u` giving the gradient of the v-transform.
 #' @export
 #'
 #' @examples
-#' vgradient(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+#' vgradient(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
 vgradient <- function(x, u) {
   g <- do.call(x@gradient, append(x@pars, list(u = u)))
   if (!is.null(attributes(u))) {
@@ -279,7 +279,7 @@ vgradient <- function(x, u) {
 #' Returns the pre-image at or below the fulcrum: the value `u` in
 #' `[0, delta]` with `vtrans(x, u)` equal to `v`.
 #'
-#' For a \linkS4class{VtransformI} object the analytic inverse stored in the
+#' For a \linkS4class{vtransformi} object the analytic inverse stored in the
 #' `inverse` slot is used and `method`, `tol` and `ngrid` are ignored.
 #' Otherwise the inverse is computed numerically, either with
 #'
@@ -293,7 +293,7 @@ vgradient <- function(x, u) {
 #'   spacing and degrades for extreme parameter values (for example a small
 #'   `kappa`, where the v-transform has infinite slope at `0`).
 #'
-#' @param x an object of class \linkS4class{Vtransform}.
+#' @param x an object of class \linkS4class{vtransform}.
 #' @param v a vector, matrix or time series with values in `[0, 1]`.
 #' @param method inversion method for non-invertible v-transforms, either
 #' `"newton"` or `"spline"`. Ignored for invertible v-transforms.
@@ -305,14 +305,14 @@ vgradient <- function(x, u) {
 #' @export
 #'
 #' @examples
-#' vinverse(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-#' vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
-#' vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
+#' vinverse(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+#' vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
+#' vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
 vinverse <- function(x, v, method = c("newton", "spline"),
                      tol = .Machine$double.eps^0.5, ngrid = 1000L) {
   method <- match.arg(method)
 
-  if (is(x, "VtransformI")) {
+  if (is(x, "vtransformi")) {
     return(do.call(x@inverse, append(x@pars, list(v = v))))
   }
 
@@ -321,7 +321,7 @@ vinverse <- function(x, v, method = c("newton", "spline"),
     stop("'x' has no 'delta' parameter; cannot invert numerically.")
   }
   parlist <- as.list(x@pars)
-  Vf <- function(u) do.call(x@Vtrans, c(list(u = u), parlist))
+  vf <- function(u) do.call(x@vtrans, c(list(u = u), parlist))
 
   vv <- as.numeric(v)
   out <- rep(NA_real_, length(vv))
@@ -337,14 +337,14 @@ vinverse <- function(x, v, method = c("newton", "spline"),
         stop("'ngrid' must be a single number of at least 2.")
       }
       ug <- seq(0, delta, length.out = ngrid)
-      out[todo] <- stats::splinefun(rev(Vf(ug)), rev(ug), method = "monoH.FC")(vt)
+      out[todo] <- stats::splinefun(rev(vf(ug)), rev(ug), method = "monoH.FC")(vt)
     } else {
-      Vg <- function(u) do.call(x@gradient, c(list(u = u), parlist))
+      vg <- function(u) do.call(x@gradient, c(list(u = u), parlist))
       lo <- rep(0, length(vt))
       hi <- rep(delta, length(vt))
       u <- rep(delta / 2, length(vt))
-      f <- Vf(u) - vt
-      g <- Vg(u)
+      f <- vf(u) - vt
+      g <- vg(u)
       dx <- dxold <- rep(delta, length(vt))
       for (i in seq_len(100L)) {
         # phi(u) = vtrans(x, u) - v is strictly decreasing on [0, delta]
@@ -363,8 +363,8 @@ vinverse <- function(x, v, method = c("newton", "spline"),
         u <- cand
         if (max(abs(dx)) < tol) break
 
-        f <- Vf(u) - vt
-        g <- Vg(u)
+        f <- vf(u) - vt
+        g <- vg(u)
       }
       if (max(abs(dx)) >= tol) {
         warning("vinverse(): Newton iteration did not reach 'tol' in 100 steps.")
@@ -381,7 +381,7 @@ vinverse <- function(x, v, method = c("newton", "spline"),
 
 #' Calculate conditional down probability of v-transform
 #'
-#' @param x an object of class \linkS4class{Vtransform}.
+#' @param x an object of class \linkS4class{vtransform}.
 #' @param v a vector or time series with values in `[0, 1]`.
 #' @param tol convergence tolerance passed to [vinverse()].
 #' @param ... further arguments passed to [vinverse()], such as `method`.
@@ -390,14 +390,14 @@ vinverse <- function(x, v, method = c("newton", "spline"),
 #' @export
 #'
 #' @examples
-#' vdownprob(V2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
+#' vdownprob(v2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
 vdownprob <- function(x, v, tol = .Machine$double.eps^0.5, ...) {
   -1 / vgradient(x, vinverse(x, v, tol = tol, ...))
 }
 
 #' Stochastic inverse of a v-transform
 #'
-#' @param x an object of class \linkS4class{Vtransform}.
+#' @param x an object of class \linkS4class{vtransform}.
 #' @param v a vector, matrix or time series with values in `[0, 1]`.
 #' @param Z a vector or time series of uniform randomizers with values in
 #' `[0, 1]`; defaults to a fresh draw from [stats::runif()].
@@ -409,7 +409,7 @@ vdownprob <- function(x, v, tol = .Machine$double.eps^0.5, ...) {
 #'
 #'
 #' @examples
-#' vsi(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+#' vsi(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
 vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...) {
   if (length(Z) != length(v)) {
     stop("'Z' must have the same length as 'v'.")
@@ -424,13 +424,13 @@ vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...) 
   output
 }
 
-#' Plot method for Vtransform class
+#' Plot method for vtransform class
 #'
 #' Plots the v-transform as well as its gradient or inverse. Can also plot the
 #' conditional probability that a series PIT falls below the fulcrum for a
 #' given volatility PIT value v.
 #'
-#' @param x an object of class \linkS4class{Vtransform}.
+#' @param x an object of class \linkS4class{vtransform}.
 #' @param type type of plot: 'transform' for plot of transform, 'inverse' for plot of inverse,
 #' 'gradient' for plot of gradient or 'pdown' for plot of conditional probability.
 #' @param shading logical variable specifying whether inadmissible zone for v-transform
@@ -444,10 +444,10 @@ vsi <- function(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...) 
 #'
 #'
 #' @examples
-#' plot(Vsymmetric())
-#' plot(V2p(delta = 0.45, kappa = 0.8), type = "inverse")
-#' plot(V2p(delta = 0.45, kappa = 0.8), type = "gradient")
-setMethod("plot", c(x = "Vtransform", y = "missing"), function(x, type = "transform",
+#' plot(vsymmetric())
+#' plot(v2p(delta = 0.45, kappa = 0.8), type = "inverse")
+#' plot(v2p(delta = 0.45, kappa = 0.8), type = "gradient")
+setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transform",
                                                                shading = TRUE, npoints = 200, lower = 0, upper = 1) {
   delta <- ifelse(is.element("delta", names(x@pars)), x@pars["delta"], 0.5)
   switch(type, inverse = {
@@ -480,21 +480,21 @@ setMethod("plot", c(x = "Vtransform", y = "missing"), function(x, type = "transf
 #' random variable and then stochastically invert the
 #' v-transform, we get back to the original value.
 #'
-#' @param x an object of class \linkS4class{Vtransform}.
+#' @param x an object of class \linkS4class{vtransform}.
 #'
 #' @return The probability of coincidence.
 #' @export
 #'
 #' @examples
-#' pcoincide(Vlinear(delta = 0.4))
-#' pcoincide(V3p(delta = 0.45, kappa = 0.5, xi = 1.3))
+#' pcoincide(vlinear(delta = 0.4))
+#' pcoincide(v3p(delta = 0.45, kappa = 0.5, xi = 1.3))
 pcoincide <- function(x) {
-  if (x@name == "Vsymmetric") {
+  if (x@name == "vsymmetric") {
     return(0.5)
   }
   delta <- unname(x@pars["delta"])
   # the linear v-transform has constant down-probability delta, so varDelta = 0
-  if (x@name == "Vlinear") {
+  if (x@name == "vlinear") {
     return(delta^2 + (1 - delta)^2)
   }
   integrand <- function(v) (vdownprob(x, v) - delta)^2
@@ -502,13 +502,13 @@ pcoincide <- function(x) {
   unname(delta^2 + (1 - delta)^2 + 2 * varDelta)
 }
 
-#' @describeIn Vtransform Show method for Vtransform class
+#' @describeIn vtransform Show method for vtransform class
 #'
 #' @param object an object of the class.
 #'
 #' @export
 #'
-setMethod("show", "Vtransform", function(object) {
+setMethod("show", "vtransform", function(object) {
   cat("name: ", object@name, "\n", "parameters: ",
       "\n",
       sep = ""
@@ -516,12 +516,12 @@ setMethod("show", "Vtransform", function(object) {
   print(object@pars)
 })
 
-#' @describeIn Vtransform Coef method for Vtransform class
+#' @describeIn vtransform Coef method for vtransform class
 #'
 #' @param object an object of the class.
 #'
 #' @export
 #'
-setMethod("coef", "Vtransform", function(object) {
+setMethod("coef", "vtransform", function(object) {
   object@pars
 })

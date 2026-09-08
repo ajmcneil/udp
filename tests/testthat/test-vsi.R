@@ -31,7 +31,7 @@ test_that("vsi() output lies in [0, 1] for a random Z", {
 
 test_that("vsi() errors when Z and v have different lengths", {
   expect_error(
-    vsi(Vsymmetric(), c(0.2, 0.4, 0.6), Z = c(0, 1)),
+    vsi(vsymmetric(), c(0.2, 0.4, 0.6), Z = c(0, 1)),
     "same length"
   )
 })
@@ -39,8 +39,8 @@ test_that("vsi() errors when Z and v have different lengths", {
 test_that("vsi() is reproducible under a fixed seed and preserves ts attributes", {
   v <- ts(runif(50), frequency = 12)
 
-  set.seed(1); a <- vsi(V2p(delta = 0.4, kappa = 1.2), v)
-  set.seed(1); b <- vsi(V2p(delta = 0.4, kappa = 1.2), v)
+  set.seed(1); a <- vsi(v2p(delta = 0.4, kappa = 1.2), v)
+  set.seed(1); b <- vsi(v2p(delta = 0.4, kappa = 1.2), v)
   expect_identical(a, b)
   expect_s3_class(a, "ts")
   expect_identical(tsp(a), tsp(v))

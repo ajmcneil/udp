@@ -7,7 +7,7 @@
 pcoincide(x)
 }
 \arguments{
-\item{x}{an object of class \linkS4class{Vtransform}.}
+\item{x}{an object of class \linkS4class{vtransform}.}
 }
 \value{
 The probability of coincidence.
@@ -18,6 +18,6 @@ random variable and then stochastically invert the
 v-transform, we get back to the original value.
 }
 \examples{
-pcoincide(Vlinear(delta = 0.4))
-pcoincide(V3p(delta = 0.45, kappa = 0.5, xi = 1.3))
+pcoincide(vlinear(delta = 0.4))
+pcoincide(v3p(delta = 0.45, kappa = 0.5, xi = 1.3))
 }

@@ -25,15 +25,15 @@ test_that("v-transforms are decreasing then increasing about the fulcrum", {
 })
 
 test_that("vtrans() is vectorised and preserves length", {
-  x <- V2p(delta = 0.4, kappa = 1.2)
+  x <- v2p(delta = 0.4, kappa = 1.2)
   expect_length(vtrans(x, u_grid(30)), 30)
 })
 
-test_that("Vsymmetric and Vlinear match their closed forms", {
+test_that("vsymmetric and vlinear match their closed forms", {
   u <- u_grid()
-  expect_equal(vtrans(Vsymmetric(), u), abs(2 * u - 1))
+  expect_equal(vtrans(vsymmetric(), u), abs(2 * u - 1))
 
   delta <- 0.4
   expected <- abs(u / delta - 1) * ((delta / (1 - delta))^(u > delta))
-  expect_equal(vtrans(Vlinear(delta = delta), u), expected)
+  expect_equal(vtrans(vlinear(delta = delta), u), expected)
 })

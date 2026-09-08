@@ -15,11 +15,11 @@ test_that("vinverse() returns the pre-image at or below the fulcrum", {
 
 test_that("analytic and numeric inversion agree for an invertible v-transform", {
   v <- seq(0.05, 0.95, length.out = 19)
-  analytic <- Vlinear(delta = 0.4)
+  analytic <- vlinear(delta = 0.4)
 
   # same transform, stripped to the base class so vinverse() must go numeric
-  numeric_only <- new("Vtransform",
-    name = analytic@name, Vtrans = analytic@Vtrans,
+  numeric_only <- new("vtransform",
+    name = analytic@name, vtrans = analytic@vtrans,
     pars = analytic@pars, gradient = analytic@gradient
   )
 
@@ -53,7 +53,7 @@ test_that("the spline inverse agrees with Newton to grid accuracy", {
 })
 
 test_that("vinverse() handles the endpoints and NA", {
-  x <- V2p(delta = 0.4, kappa = 1.2)
+  x <- v2p(delta = 0.4, kappa = 1.2)
   expect_equal(vinverse(x, c(0, 1)), c(0.4, 0))
   expect_equal(vinverse(x, c(0, 1), method = "spline"), c(0.4, 0))
   expect_identical(vinverse(x, NA_real_), NA_real_)
@@ -61,13 +61,13 @@ test_that("vinverse() handles the endpoints and NA", {
 })
 
 test_that("vinverse() rejects an invalid ngrid for the spline method", {
-  x <- V2p(delta = 0.4, kappa = 1.2)
+  x <- v2p(delta = 0.4, kappa = 1.2)
   expect_error(vinverse(x, 0.5, method = "spline", ngrid = 1), "at least 2")
   expect_error(vinverse(x, 0.5, method = "spline", ngrid = c(10, 20)), "single number")
 })
 
 test_that("vinverse() preserves the shape and attributes of v", {
-  x <- V3p(delta = 0.45, kappa = 0.8, xi = 1.2)
+  x <- v3p(delta = 0.45, kappa = 0.8, xi = 1.2)
   v <- ts(seq(0.1, 0.9, length.out = 24), frequency = 4)
   u <- vinverse(x, v)
   expect_s3_class(u, "ts")
@@ -80,13 +80,13 @@ test_that("vinverse() preserves the shape and attributes of v", {
 test_that("invertible v-transforms ignore method/ngrid", {
   v <- seq(0.05, 0.95, length.out = 10)
   expect_identical(
-    vinverse(Vsymmetric(), v, method = "spline", ngrid = 5),
-    vinverse(Vsymmetric(), v)
+    vinverse(vsymmetric(), v, method = "spline", ngrid = 5),
+    vinverse(vsymmetric(), v)
   )
 })
 
 test_that("method flows through vsi() and vdownprob() via ...", {
-  x <- V2b(delta = 0.35, kappa = 1.2)
+  x <- v2b(delta = 0.35, kappa = 1.2)
   v <- seq(0.05, 0.95, length.out = 15)
 
   set.seed(1); a <- vsi(x, v, method = "newton")
@@ -110,5 +110,5 @@ test_that("vdownprob() returns probabilities in [0, 1]", {
 
 test_that("vdownprob() is 1/2 everywhere for the symmetric v-transform", {
   v <- seq(0.05, 0.95, length.out = 10)
-  expect_equal(vdownprob(Vsymmetric(), v), rep(0.5, length(v)))
+  expect_equal(vdownprob(vsymmetric(), v), rep(0.5, length(v)))
 })

@@ -7,7 +7,7 @@
 vdownprob(x, v, tol = .Machine$double.eps^0.5, ...)
 }
 \arguments{
-\item{x}{an object of class \linkS4class{Vtransform}.}
+\item{x}{an object of class \linkS4class{vtransform}.}
 
 \item{v}{a vector or time series with values in \verb{[0, 1]}.}
 
@@ -22,5 +22,5 @@ A vector or time series of values of gradient.
 Calculate conditional down probability of v-transform
 }
 \examples{
-vdownprob(V2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
+vdownprob(v2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
 }

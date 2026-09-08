@@ -13,7 +13,7 @@ vinverse(
 )
 }
 \arguments{
-\item{x}{an object of class \linkS4class{Vtransform}.}
+\item{x}{an object of class \linkS4class{vtransform}.}
 
 \item{v}{a vector, matrix or time series with values in \verb{[0, 1]}.}
 
@@ -33,7 +33,7 @@ Returns the pre-image at or below the fulcrum: the value \code{u} in
 \verb{[0, delta]} with \code{vtrans(x, u)} equal to \code{v}.
 }
 \details{
-For a \linkS4class{VtransformI} object the analytic inverse stored in the
+For a \linkS4class{vtransformi} object the analytic inverse stored in the
 \code{inverse} slot is used and \code{method}, \code{tol} and \code{ngrid} are ignored.
 Otherwise the inverse is computed numerically, either with
 \itemize{
@@ -49,7 +49,7 @@ spacing and degrades for extreme parameter values (for example a small
 }
 }
 \examples{
-vinverse(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
-vinverse(V2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
+vinverse(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
+vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
 }

@@ -7,7 +7,7 @@
 vsi(x, v, Z = runif(length(v)), tol = .Machine$double.eps^0.5, ...)
 }
 \arguments{
-\item{x}{an object of class \linkS4class{Vtransform}.}
+\item{x}{an object of class \linkS4class{vtransform}.}
 
 \item{v}{a vector, matrix or time series with values in \verb{[0, 1]}.}
 
@@ -25,5 +25,5 @@ A vector, matrix or time series with values in \verb{[0, 1]}.
 Stochastic inverse of a v-transform
 }
 \examples{
-vsi(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+vsi(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
 }

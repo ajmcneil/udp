@@ -7,7 +7,7 @@
 vtrans(x, u)
 }
 \arguments{
-\item{x}{an object of class \linkS4class{Vtransform}.}
+\item{x}{an object of class \linkS4class{vtransform}.}
 
 \item{u}{a vector, matrix or time series with values in \verb{[0, 1]}.}
 }
@@ -18,5 +18,5 @@ An object shaped like \code{u} with values in \verb{[0, 1]}.
 Evaluate a v-transform
 }
 \examples{
-vtrans(Vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+vtrans(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
 }

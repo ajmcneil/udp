@@ -4,12 +4,12 @@
 # fulcrum, which lies strictly inside (0, 1).
 vtransform_list <- function() {
   list(
-    Vsymmetric = list(x = Vsymmetric(), delta = 0.5),
-    Vlinear    = list(x = Vlinear(delta = 0.4), delta = 0.4),
-    V2p        = list(x = V2p(delta = 0.4, kappa = 1.3), delta = 0.4),
-    V2b        = list(x = V2b(delta = 0.35, kappa = 1.2), delta = 0.35),
-    V3p        = list(x = V3p(delta = 0.45, kappa = 0.8, xi = 1.2), delta = 0.45),
-    V3b        = list(x = V3b(delta = 0.3, kappa = 1.4, xi = 1.1), delta = 0.3)
+    vsymmetric = list(x = vsymmetric(), delta = 0.5),
+    vlinear    = list(x = vlinear(delta = 0.4), delta = 0.4),
+    v2p        = list(x = v2p(delta = 0.4, kappa = 1.3), delta = 0.4),
+    v2b        = list(x = v2b(delta = 0.35, kappa = 1.2), delta = 0.35),
+    v3p        = list(x = v3p(delta = 0.45, kappa = 0.8, xi = 1.2), delta = 0.45),
+    v3b        = list(x = v3b(delta = 0.3, kappa = 1.4, xi = 1.1), delta = 0.3)
   )
 }
 
