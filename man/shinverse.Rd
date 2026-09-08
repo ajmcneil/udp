@@ -20,5 +20,5 @@ The inverse of a shuffle is itself a shuffle, with permutation
 }
 \examples{
 s <- shuffle(c(3, 1, 2), signs = c(1, -1, 1))
-shinverse(s, sheval(s, c(0.1, 0.5, 0.9)))
+shinverse(s, shtrans(s, c(0.1, 0.5, 0.9)))
 }

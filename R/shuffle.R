@@ -11,7 +11,7 @@
 #' @slot perm integer vector; a permutation of `seq_len(m)`.
 #' @slot signs numeric vector of `1` and `-1`, the same length as `perm`.
 #'
-#' @seealso [shuffle()] to construct one; [sheval()] and [shinverse()] to
+#' @seealso [shuffle()] to construct one; [shtrans()] and [shinverse()] to
 #'   evaluate it and its inverse.
 #' @export
 setClass("shuffle", slots = list(perm = "integer", signs = "numeric"))
@@ -53,8 +53,8 @@ shuffle <- function(perm, signs = rep(1, length(perm))) {
 #'
 #' @examples
 #' s <- shuffle(c(2, 1, 3))
-#' sheval(s, c(0, 0.2, 0.5, 0.9, 1))
-sheval <- function(x, u) {
+#' shtrans(s, c(0, 0.2, 0.5, 0.9, 1))
+shtrans <- function(x, u) {
   m <- length(x@perm)
   i <- as.integer(pmax(pmin(floor(u * m) + 1, m), 1))
   t <- u * m - (i - 1)
@@ -79,10 +79,10 @@ sheval <- function(x, u) {
 #'
 #' @examples
 #' s <- shuffle(c(3, 1, 2), signs = c(1, -1, 1))
-#' shinverse(s, sheval(s, c(0.1, 0.5, 0.9)))
+#' shinverse(s, shtrans(s, c(0.1, 0.5, 0.9)))
 shinverse <- function(x, v) {
   o <- order(x@perm)
-  sheval(new("shuffle", perm = o, signs = x@signs[o]), v)
+  shtrans(new("shuffle", perm = o, signs = x@signs[o]), v)
 }
 
 #' Plot method for the shuffle class

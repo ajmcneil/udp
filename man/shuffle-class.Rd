@@ -19,6 +19,6 @@ uniform-distribution-preserving bijection of \verb{[0, 1]}.
 }}
 
 \seealso{
-\code{\link[=shuffle]{shuffle()}} to construct one; \code{\link[=sheval]{sheval()}} and \code{\link[=shinverse]{shinverse()}} to
+\code{\link[=shuffle]{shuffle()}} to construct one; \code{\link[=shtrans]{shtrans()}} and \code{\link[=shinverse]{shinverse()}} to
 evaluate it and its inverse.
 }
