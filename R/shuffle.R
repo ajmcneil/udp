@@ -86,6 +86,11 @@ setMethod("udpinverse", "shuffle", function(x, v, prob = FALSE, ...) {
   M
 })
 
+#' @describeIn pcoincide A shuffle is a bijection, so stochastic inversion
+#'   always recovers the original value: the probability is `1`.
+#' @export
+setMethod("pcoincide", "shuffle", function(x) 1)
+
 #' Plot method for the shuffle class
 #'
 #' Draws the graph of the shuffle as one thick black line segment per strip,
