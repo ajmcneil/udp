@@ -76,6 +76,9 @@ legendre_realroots <- function(coef, y, tol = 1e-7) {
 # Interior turning points of L_j (roots of L_j' in (0, 1)); all j - 1 of them
 # are real.
 legendre_turnpoints <- function(coefD) {
+  if (length(coefD) < 2L) {
+    return(numeric(0))
+  }
   z <- polyroot(coefD)
   tp <- Re(z)[abs(Im(z)) < 1e-6]
   sort(tp[tp > 0 & tp < 1])
@@ -287,3 +290,34 @@ setMethod("udpinverse", "udplegendre", function(x, v, prob = FALSE, ...) {
   }
   M
 })
+
+#' Plot method for the udplegendre class
+#'
+#' Draws the graph of the shifted-Legendre udp transformation over thin red
+#' gridlines: vertical at the turning points of `L_j` (which are also the
+#' turning points of `T`) and horizontal at the transformed turning-point
+#' values `T(tp)`.
+#'
+#' @param x an object of class \linkS4class{udplegendre}.
+#' @param n number of points at which to evaluate the transformation.
+#' @param xlab,ylab axis labels.
+#' @param ... further graphical parameters passed to [graphics::plot()].
+#'
+#' @return No return value, generates a plot.
+#' @export
+#'
+#' @examples
+#' plot(udplegendre(4))
+#' plot(udplegendre(7))
+setMethod("plot", c(x = "udplegendre", y = "missing"),
+  function(x, n = 500L, xlab = "u", ylab = "T(u)", ...) {
+    tp <- legendre_turnpoints(x@cfsD)
+    u <- sort(unique(c(seq(0, 1, length.out = n), tp)))
+    plot(NA,
+      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
+      xlab = xlab, ylab = ylab, ...
+    )
+    abline(v = tp, h = udptrans(x, tp), col = "red", lwd = 0.5)
+    lines(u, udptrans(x, u), lwd = 2)
+  }
+)

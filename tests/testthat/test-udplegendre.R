@@ -148,3 +148,16 @@ test_that("udpsi() on a shifted-Legendre map is reproducible and keeps attribute
   expect_s3_class(a, "ts")
   expect_identical(tsp(a), tsp(v))
 })
+
+test_that("plot() runs for a udplegendre", {
+  f <- tempfile(fileext = ".pdf")
+  pdf(f)
+  on.exit({
+    dev.off()
+    unlink(f)
+  })
+  for (d in 1:7) {
+    expect_no_error(plot(udplegendre(d)))
+  }
+  expect_no_error(plot(udplegendre(5), n = 200, main = "degree 5", ylab = "y"))
+})
