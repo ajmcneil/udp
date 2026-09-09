@@ -54,10 +54,7 @@ setMethod("udptrans", "udpcosine", function(x, u) {
 #'
 #' @return A list the same length as `v`; element `j` is the sorted vector of
 #'   `u` in `[0, 1]` with `udptrans(x, u)` equal to `v[j]`.
-#' @export
-#'
-#' @examples
-#' udpcosinverse(udpcosine(3), c(0, 0.4, 1))
+#' @keywords internal
 udpcosinverse <- function(x, v) {
   if (anyNA(v) || any(v < 0 | v > 1)) {
     stop("every element of 'v' must be in [0, 1].", call. = FALSE)

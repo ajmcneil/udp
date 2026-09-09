@@ -18,7 +18,4 @@ An object shaped like \code{v} with values in \verb{[0, 1]}.
 The inverse of a shuffle is itself a shuffle, with permutation
 \code{order(perm)} and the signs reordered to match.
 }
-\examples{
-s <- shuffle(c(3, 1, 2), signs = c(1, -1, 1))
-shinverse(s, udptrans(s, c(0.1, 0.5, 0.9)))
-}
+\keyword{internal}

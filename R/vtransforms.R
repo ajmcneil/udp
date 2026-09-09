@@ -295,12 +295,7 @@ vgradient <- function(x, u) {
 #'
 #' @return An object shaped like `v` with values in `[0, delta]`. Positions
 #' where `v` is `NA` or otherwise non-finite are returned as `NA`.
-#' @export
-#'
-#' @examples
-#' vinverse(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-#' vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
-#' vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
+#' @keywords internal
 vinverse <- function(x, v, method = c("newton", "spline"),
                      tol = .Machine$double.eps^0.5, ngrid = 1000L) {
   method <- match.arg(method)
@@ -380,10 +375,7 @@ vinverse <- function(x, v, method = c("newton", "spline"),
 #' @param ... further arguments passed to [vinverse()], such as `method`.
 #'
 #' @return A vector or time series of values of gradient.
-#' @export
-#'
-#' @examples
-#' vdownprob(v2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
+#' @keywords internal
 vdownprob <- function(x, v, tol = .Machine$double.eps^0.5, ...) {
   -1 / vgradient(x, vinverse(x, v, tol = tol, ...))
 }

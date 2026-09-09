@@ -48,8 +48,4 @@ spacing and degrades for extreme parameter values (for example a small
 \code{kappa}, where the v-transform has infinite slope at \code{0}).
 }
 }
-\examples{
-vinverse(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
-vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
-}
+\keyword{internal}
