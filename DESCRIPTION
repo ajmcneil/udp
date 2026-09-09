@@ -30,4 +30,5 @@ Collate:
     'udp-package.R'
     'shuffle.R'
     'udpcosine.R'
+    'udplegendre.R'
     'vtransforms.R'
