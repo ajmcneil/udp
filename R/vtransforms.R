@@ -11,6 +11,10 @@
 #' @include udp-package.R
 #' @export
 #'
+#' @references
+#' McNeil, A. J. (2021). Modelling volatile time series with v-transforms and
+#' copulas. *Risks*, **9**(1), 14. \doi{10.3390/risks9010014}
+#'
 #' @examples
 #' v2p(delta = 0.5, kappa = 1.2)
 setClass("vtransform", contains = "udp", slots = list(
@@ -255,10 +259,7 @@ setMethod("udptrans", "vtransform", function(x, u) {
 #' @param u a vector, matrix or time series with values in `[0, 1]`.
 #'
 #' @return An object shaped like `u` giving the gradient of the v-transform.
-#' @export
-#'
-#' @examples
-#' vgradient(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+#' @noRd
 vgradient <- function(x, u) {
   g <- do.call(x@gradient, append(x@pars, list(u = u)))
   if (!is.null(attributes(u))) {
@@ -428,17 +429,29 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
   delta <- ifelse(is.element("delta", names(x@pars)), x@pars["delta"], 0.5)
   switch(type, inverse = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
-    plot(vvals, vinverse(x, vvals), xlab = "v", ylab = "Vinv(v)", type = "l")
+    plot(vvals, vinverse(x, vvals),
+      xlab = "v", ylab = "Vinv(v)", type = "l", lwd = 2,
+      xaxs = "i", yaxs = "i"
+    )
   }, gradient = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
-    plot(uvals, vgradient(x, uvals), xlab = "u", ylab = "Vprime(u)", type = "l")
+    plot(uvals, vgradient(x, uvals),
+      xlab = "u", ylab = "Vprime(u)", type = "l", lwd = 2,
+      xaxs = "i", yaxs = "i"
+    )
   }, pdown = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
-    plot(vvals, vdownprob(x, vvals), xlab = "v", ylab = "Delta(v)", type = "l")
+    plot(vvals, vdownprob(x, vvals),
+      xlab = "v", ylab = "Delta(v)", type = "l", lwd = 2,
+      xaxs = "i", yaxs = "i"
+    )
   }, transform = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     if ((delta > lower) & (delta < upper)) uvals <- sort(c(uvals, delta))
-    plot(uvals, udptrans(x, uvals), xlab = "u", ylab = "V(u)", type = "l")
+    plot(NA,
+      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
+      xlab = "u", ylab = "T(u)"
+    )
     if (shading) {
       # colchoice = 'gray97'
       colchoice <- "gray90"
@@ -447,6 +460,7 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
       polygon(c(0, delta, delta), c(1, 1, 1 - delta), col = colchoice, border = NA)
       polygon(c(delta, delta, 1), c(delta, 1, 1), col = colchoice, border = NA)
     }
+    lines(uvals, udptrans(x, uvals), lwd = 2)
   }, stop("Not a plot method for v-transform."))
 })
 

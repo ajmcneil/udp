@@ -13,6 +13,10 @@ class has no slots and cannot be instantiated; it exists so that
 \code{\link[=udptrans]{udptrans()}} and \code{\link[=udpsi]{udpsi()}} can offer a single evaluation and inversion
 interface for all of them.
 }
+\references{
+McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
+}
 \seealso{
 \code{\link[=udptrans]{udptrans()}} to evaluate one, \code{\link[=udpsi]{udpsi()}} to invert one.
 }

@@ -6,7 +6,14 @@
 \alias{udp-package}
 \title{udp: Uniform Distribution Preserving Transformations}
 \description{
-Tools for constructing and applying transformations that preserve the uniform distribution on the unit interval and unit hypercube. Provides utilities for building such maps and for checking the distribution-preserving property.
+Tools for constructing and applying transformations that preserve the uniform distribution on the unit interval and unit hypercube. Provides utilities for building such maps and for checking the distribution-preserving property. Methods are described in McNeil (2021) \doi{10.3390/risks9010014} and McNeil, Neslehova and Smith (2025) \doi{10.48550/arXiv.2512.10828}.
+}
+\references{
+McNeil, A. J. (2021). Modelling volatile time series with v-transforms and
+copulas. \emph{Risks}, \strong{9}(1), 14. \doi{10.3390/risks9010014}
+
+McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
 }
 \seealso{
 Useful links:

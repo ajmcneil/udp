@@ -137,6 +137,10 @@ legendre_measure <- function(coef, y, lbound) {
 #' @seealso [udplegendre()] to construct one, [udptrans()] to evaluate it.
 #' @include udp-package.R
 #' @export
+#'
+#' @references
+#' McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+#' of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
 setClass("udplegendre",
   contains = "udp",
   slots = list(

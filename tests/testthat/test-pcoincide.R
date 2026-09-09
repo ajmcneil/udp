@@ -75,12 +75,18 @@ test_that("pcoincide() for udplegendre matches a Monte Carlo estimate", {
   set.seed(2025)
   for (j in c(3, 4, 6, 9)) {
     x <- udplegendre(j)
+    # a "coincidence" is landing back on the same monotone branch of L_j.
+    # Compare branch indices rather than |u_back - u|: a distance threshold
+    # counts wrong pre-images that happen to sit close to u near the turning
+    # points of L_j, a bias that grows with the degree.
+    turns <- sort(Re(polyroot(x@cfsD)))
+    turns <- turns[turns > 0 & turns < 1]
+    branch <- function(z) findInterval(z, turns)
     u <- runif(3e5)
-    v <- udptrans(x, u)
-    u_back <- udpsi(x, v)
-    # the F_j^{-1} spline makes the round trip accurate only to ~1e-4,
-    # while distinct pre-images differ by O(1 / j)
-    mc <- mean(abs(u_back - u) < 1e-3)
-    expect_equal(pcoincide(x), mc, tolerance = 0.01)
+    u_back <- udpsi(x, udptrans(x, u))
+    mc <- mean(branch(u_back) == branch(u))
+    # tolerance covers Monte Carlo noise plus pcoincide()'s own ~1e-3 accuracy
+    # for udplegendre (the spline-interpolated F_j)
+    expect_equal(pcoincide(x), mc, tolerance = 0.02)
   }
 })

@@ -35,6 +35,10 @@ derivative.}
 \item{\code{Tfun,Qfun}}{functions evaluating \code{T} and \code{F_j^{-1}}.}
 }}
 
+\references{
+McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
+}
 \seealso{
 \code{\link[=udplegendre]{udplegendre()}} to construct one, \code{\link[=udptrans]{udptrans()}} to evaluate it.
 }

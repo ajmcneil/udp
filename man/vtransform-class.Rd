@@ -40,3 +40,7 @@ with an analytical expression for the inverse.
 \examples{
 v2p(delta = 0.5, kappa = 1.2)
 }
+\references{
+McNeil, A. J. (2021). Modelling volatile time series with v-transforms and
+copulas. \emph{Risks}, \strong{9}(1), 14. \doi{10.3390/risks9010014}
+}
