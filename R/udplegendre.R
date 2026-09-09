@@ -291,6 +291,17 @@ setMethod("udpinverse", "udplegendre", function(x, v, prob = FALSE, ...) {
   M
 })
 
+#' @describeIn pcoincide Integrate `sum_j p_j(v)^2` as in the default method,
+#'   but split the range at the images of the turning points of `L_j`, where
+#'   the integrand has a corner, so each piece is smooth. Accuracy is bounded
+#'   by the `F_j^{-1}` spline, like the rest of the class.
+#' @export
+setMethod("pcoincide", "udplegendre", function(x) {
+  tp <- legendre_turnpoints(x@cfsD)
+  breaks <- pmin(pmax(x@Tfun(tp), 0), 1)
+  integrate_collision(x, breaks)
+})
+
 #' Plot method for the udplegendre class
 #'
 #' Draws the graph of the shifted-Legendre udp transformation over thin red

@@ -91,6 +91,11 @@ setMethod("udpinverse", "udpcosine", function(x, v, prob = FALSE, ...) {
   M
 })
 
+#' @describeIn pcoincide The degree-`k` triangle wave has `k` equally weighted
+#'   pre-images at almost every `v`, so the probability is `1 / k`.
+#' @export
+setMethod("pcoincide", "udpcosine", function(x) 1 / x@degree)
+
 #' Plot method for the udpcosine class
 #'
 #' Draws the graph of the cosine udp transformation over thin red gridlines at

@@ -134,6 +134,62 @@ setGeneric("udpinverse", function(x, v, prob = FALSE, ...) {
   standardGeneric("udpinverse")
 })
 
+#' Probability that stochastic inversion recovers the original value
+#'
+#' Let `U` be uniform on `[0, 1]` and `V = udptrans(x, U)`. Feeding `V` back
+#' through [udpsi()] with an independent uniform randomiser returns *some*
+#' pre-image of `V`; `pcoincide()` is the probability that it is `U` itself,
+#' `P(udpsi(x, udptrans(x, U)) == U)`.
+#'
+#' Write `p_1(v), ..., p_k(v)` for the selection probabilities [udpinverse()]
+#' attaches to the pre-images of `v`. The uniform-distribution-preserving
+#' property makes the true pre-image `U` given `V = v` follow that same
+#' distribution, so the chance of drawing it again is the collision probability
+#' `sum_j p_j(v)^2`, and
+#' \deqn{\mathrm{pcoincide}(x) = \int_0^1 \sum_j p_j(v)^2 \, dv.}
+#'
+#' The default method evaluates this integral numerically from [udpinverse()].
+#' Classes with a closed form override it: a \linkS4class{shuffle} is a
+#' bijection so the probability is `1`; a degree-`k` \linkS4class{udpcosine}
+#' has `k` equally weighted pre-images so it is `1 / k`; a
+#' \linkS4class{vtransform} gives `delta^2 + (1 - delta)^2 + 2 Var(p_down)`.
+#'
+#' @param x an object of class \linkS4class{udp}.
+#'
+#' @return A single unnamed probability in `(0, 1]`.
+#' @export
+#'
+#' @examples
+#' pcoincide(shuffle(c(2, 1, 3)))
+#' pcoincide(udpcosine(4))
+#' pcoincide(vlinear(delta = 0.4))
+#' pcoincide(udplegendre(3))
+setGeneric("pcoincide", function(x) standardGeneric("pcoincide"))
+
+# Numerically integrate sum_j p_j(v)^2 over v in [0, 1], the general formula
+# for pcoincide(). `breaks` are interior points of [0, 1] where the integrand
+# has a corner (pre-image count changes); integrating piece by piece keeps each
+# call to integrate() on a smooth stretch.
+integrate_collision <- function(x, breaks = numeric(0)) {
+  g <- function(v) {
+    P <- attr(udpinverse(x, v, prob = TRUE), "prob")
+    rowSums(P^2, na.rm = TRUE)
+  }
+  cuts <- sort(unique(c(0, breaks[breaks > 0 & breaks < 1], 1)))
+  cuts <- cuts[c(TRUE, diff(cuts) > 1e-9)]
+  total <- 0
+  for (i in seq_len(length(cuts) - 1L)) {
+    total <- total + integrate(g, cuts[i], cuts[i + 1L])$value
+  }
+  total
+}
+
+#' @describeIn pcoincide Numerically integrate `sum_j p_j(v)^2` using the
+#'   selection probabilities from [udpinverse()]. Serves any \linkS4class{udp}
+#'   class without a closed form.
+#' @export
+setMethod("pcoincide", "udp", function(x) integrate_collision(x))
+
 # Normalise raw per-branch weights into a selection-probability matrix aligned
 # with a pre-image matrix. `w` holds 1 / |T'| at each pre-image (any value
 # where `present` is FALSE); `present` is `!is.na(<pre-image matrix>)`. Each row

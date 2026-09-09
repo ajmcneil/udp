@@ -450,21 +450,13 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
   }, stop("Not a plot method for v-transform."))
 })
 
-#' Compute coincidence probability for v-transform
-#'
-#' Computes the probability that if we v-transform a uniform
-#' random variable and then stochastically invert the
-#' v-transform, we get back to the original value.
-#'
-#' @param x an object of class \linkS4class{vtransform}.
-#'
-#' @return The probability of coincidence.
+#' @describeIn pcoincide The two branches of a v-transform carry probabilities
+#'   `p_down(v)` and `1 - p_down(v)`, so the collision integral is
+#'   `delta^2 + (1 - delta)^2 + 2 Var(p_down)` with `Var(p_down)` found by
+#'   numerical integration. The linear and symmetric v-transforms use their
+#'   closed forms (`p_down` is then constant or symmetric about `1/2`).
 #' @export
-#'
-#' @examples
-#' pcoincide(vlinear(delta = 0.4))
-#' pcoincide(v3p(delta = 0.45, kappa = 0.5, xi = 1.3))
-pcoincide <- function(x) {
+setMethod("pcoincide", "vtransform", function(x) {
   if (x@name == "vsymmetric") {
     return(0.5)
   }
@@ -476,7 +468,7 @@ pcoincide <- function(x) {
   integrand <- function(v) (vdownprob(x, v) - delta)^2
   varDelta <- integrate(integrand, 0, 1)$value
   unname(delta^2 + (1 - delta)^2 + 2 * varDelta)
-}
+})
 
 #' @describeIn vtransform Show method for vtransform class
 #'

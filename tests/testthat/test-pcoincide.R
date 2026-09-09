@@ -15,16 +15,6 @@ test_that("pcoincide() uses the closed form for the linear v-transform", {
   expect_equal(pcoincide(x), numeric, tolerance = 1e-8)
 })
 
-test_that("pcoincide() returns a single unnamed probability in (0, 1]", {
-  for (case in vtransform_list()) {
-    p <- pcoincide(case$x)
-    expect_length(p, 1)
-    expect_null(names(p))
-    expect_gt(p, 0)
-    expect_lte(p, 1)
-  }
-})
-
 test_that("pcoincide() matches a direct Monte Carlo estimate", {
   skip_on_cran()
   set.seed(2024)
@@ -38,4 +28,59 @@ test_that("pcoincide() matches a direct Monte Carlo estimate", {
   mc <- mean(abs(u_back - u) < 1e-6)
 
   expect_equal(pcoincide(x), mc, tolerance = 0.02)
+})
+
+test_that("pcoincide() is exactly 1 for a shuffle", {
+  expect_identical(pcoincide(shuffle(c(2, 1, 3))), 1)
+  expect_identical(pcoincide(shuffle(c(3, 1, 2), signs = c(1, -1, 1))), 1)
+})
+
+test_that("pcoincide() is exactly 1 / degree for a cosine udp transformation", {
+  for (k in 1:8) {
+    expect_identical(pcoincide(udpcosine(k)), 1 / k)
+  }
+})
+
+test_that("pcoincide() returns a single unnamed probability in (0, 1]", {
+  cases <- c(
+    lapply(vtransform_list(), `[[`, "x"),
+    list(shuffle(c(2, 1, 3)), udpcosine(4), udplegendre(3), udplegendre(6))
+  )
+  for (x in cases) {
+    p <- pcoincide(x)
+    expect_length(p, 1)
+    expect_null(names(p))
+    expect_gt(p, 0)
+    expect_lte(p, 1 + 1e-9)
+  }
+})
+
+test_that("the default udp method integrates to the closed forms", {
+  general <- selectMethod("pcoincide", "udp")
+  expect_equal(general(udpcosine(3)), 1 / 3, tolerance = 1e-6)
+  expect_equal(general(udpcosine(5)), 1 / 5, tolerance = 1e-6)
+  expect_equal(general(shuffle(c(3, 1, 2))), 1, tolerance = 1e-6)
+
+  x <- v2p(delta = 0.4, kappa = 1.3)
+  expect_equal(general(x), pcoincide(x), tolerance = 1e-4)
+})
+
+test_that("pcoincide() is 1 for degree 1 and 1/2 for degree 2 Legendre", {
+  expect_equal(pcoincide(udplegendre(1)), 1, tolerance = 1e-8)
+  expect_equal(pcoincide(udplegendre(2)), 0.5, tolerance = 1e-6)
+})
+
+test_that("pcoincide() for udplegendre matches a Monte Carlo estimate", {
+  skip_on_cran()
+  set.seed(2025)
+  for (j in c(3, 4, 6, 9)) {
+    x <- udplegendre(j)
+    u <- runif(3e5)
+    v <- udptrans(x, u)
+    u_back <- udpsi(x, v)
+    # the F_j^{-1} spline makes the round trip accurate only to ~1e-4,
+    # while distinct pre-images differ by O(1 / j)
+    mc <- mean(abs(u_back - u) < 1e-3)
+    expect_equal(pcoincide(x), mc, tolerance = 0.01)
+  }
 })
