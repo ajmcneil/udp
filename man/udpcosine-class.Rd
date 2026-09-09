@@ -15,6 +15,10 @@ A cosine udp transformation is the uniform-distribution-preserving map of
 \item{\code{degree}}{integer; the degree of the transformation (at least 1).}
 }}
 
+\references{
+McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
+}
 \seealso{
 \code{\link[=udpcosine]{udpcosine()}} to construct one, \code{\link[=udptrans]{udptrans()}} to evaluate it.
 }

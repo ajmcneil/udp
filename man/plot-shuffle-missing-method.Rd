@@ -4,7 +4,7 @@
 \alias{plot,shuffle,missing-method}
 \title{Plot method for the shuffle class}
 \usage{
-\S4method{plot}{shuffle,missing}(x, xlab = "u", ylab = "s(u)", ...)
+\S4method{plot}{shuffle,missing}(x, xlab = "u", ylab = "T(u)", ...)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{shuffle}.}

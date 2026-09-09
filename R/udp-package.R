@@ -1,4 +1,11 @@
 #' @keywords internal
+#'
+#' @references
+#' McNeil, A. J. (2021). Modelling volatile time series with v-transforms and
+#' copulas. *Risks*, **9**(1), 14. \doi{10.3390/risks9010014}
+#'
+#' McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+#' of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
 "_PACKAGE"
 
 ## usethis namespace: start
@@ -19,6 +26,10 @@ NULL
 #' interface for all of them.
 #'
 #' @seealso [udptrans()] to evaluate one, [udpsi()] to invert one.
+#'
+#' @references
+#' McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+#' of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
 #' @export
 setClass("udp", contains = "VIRTUAL")
 

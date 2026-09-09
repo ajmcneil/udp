@@ -27,6 +27,15 @@ library(udp)
 # TODO: add a short worked example
 ```
 
+## References
+
+- McNeil, A. J. (2021). Modelling volatile time series with v-transforms and
+  copulas. *Risks*, **9**(1), 14.
+  <https://doi.org/10.3390/risks9010014>
+- McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+  of non-monotonic dependence. arXiv:2512.10828.
+  <https://arxiv.org/abs/2512.10828>
+
 ## License
 
 MIT © Alexander J. McNeil

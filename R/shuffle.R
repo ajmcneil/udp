@@ -107,7 +107,7 @@ setMethod("pcoincide", "shuffle", function(x) 1)
 #' @examples
 #' plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)))
 setMethod("plot", c(x = "shuffle", y = "missing"),
-  function(x, xlab = "u", ylab = "s(u)", ...) {
+  function(x, xlab = "u", ylab = "T(u)", ...) {
     m <- length(x@perm)
     bounds <- (0:m) / m
 
