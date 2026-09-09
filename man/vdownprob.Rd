@@ -21,6 +21,4 @@ A vector or time series of values of gradient.
 \description{
 Calculate conditional down probability of v-transform
 }
-\examples{
-vdownprob(v2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
-}
+\keyword{internal}

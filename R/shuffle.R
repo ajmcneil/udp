@@ -68,21 +68,22 @@ setMethod("udptrans", "shuffle", function(x, u) {
 #' @param v a vector with values in `[0, 1]`.
 #'
 #' @return An object shaped like `v` with values in `[0, 1]`.
-#' @export
-#'
-#' @examples
-#' s <- shuffle(c(3, 1, 2), signs = c(1, -1, 1))
-#' shinverse(s, udptrans(s, c(0.1, 0.5, 0.9)))
+#' @keywords internal
 shinverse <- function(x, v) {
   o <- order(x@perm)
   udptrans(new("shuffle", perm = o, signs = x@signs[o]), v)
 }
 
-#' @describeIn udpsi Invert a shuffle. A shuffle is a bijection, so this is the
-#'   deterministic inverse [shinverse()] and `Z` is ignored.
+#' @describeIn udpinverse Pre-image of a shuffle: a one-column matrix holding
+#'   the single pre-image [shinverse()] of each `v`. With `prob = TRUE` the
+#'   `"prob"` attribute is identically `1`.
 #' @export
-setMethod("udpsi", "shuffle", function(x, v, Z = runif(length(v)), ...) {
-  shinverse(x, v)
+setMethod("udpinverse", "shuffle", function(x, v, prob = FALSE, ...) {
+  M <- matrix(shinverse(x, as.numeric(v)), ncol = 1L)
+  if (prob) {
+    attr(M, "prob") <- finalise_prob(matrix(1, nrow(M), 1L), !is.na(M))
+  }
+  M
 })
 
 #' Plot method for the shuffle class

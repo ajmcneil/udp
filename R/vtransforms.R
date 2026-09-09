@@ -295,12 +295,7 @@ vgradient <- function(x, u) {
 #'
 #' @return An object shaped like `v` with values in `[0, delta]`. Positions
 #' where `v` is `NA` or otherwise non-finite are returned as `NA`.
-#' @export
-#'
-#' @examples
-#' vinverse(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
-#' vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2))
-#' vinverse(v2p(delta = 0.4, kappa = 1.3), seq(0.1, 0.9, by = 0.2), method = "spline")
+#' @keywords internal
 vinverse <- function(x, v, method = c("newton", "spline"),
                      tol = .Machine$double.eps^0.5, ngrid = 1000L) {
   method <- match.arg(method)
@@ -380,31 +375,30 @@ vinverse <- function(x, v, method = c("newton", "spline"),
 #' @param ... further arguments passed to [vinverse()], such as `method`.
 #'
 #' @return A vector or time series of values of gradient.
-#' @export
-#'
-#' @examples
-#' vdownprob(v2p(delta = 0.55, kappa = 1.2), c(0, 0.25, 0.5, 0.75, 1))
+#' @keywords internal
 vdownprob <- function(x, v, tol = .Machine$double.eps^0.5, ...) {
   -1 / vgradient(x, vinverse(x, v, tol = tol, ...))
 }
 
-#' @describeIn udpsi Stochastic inverse of a v-transform. Accepts `tol` and
-#'   further arguments of [vinverse()] (such as `method`).
+#' @describeIn udpinverse Pre-images of a v-transform: a two-column matrix with
+#'   the lower-branch pre-image [vinverse()] in column 1 and `v` plus that in
+#'   column 2 (the two coincide at `v = 0` and `v = 1`). With `prob = TRUE`,
+#'   column 1 of the `"prob"` attribute is the conditional down-probability
+#'   [vdownprob()]. Accepts `tol` and further arguments of [vinverse()].
 #' @export
-setMethod("udpsi", "vtransform", function(x, v, Z = runif(length(v)),
-                                          tol = .Machine$double.eps^0.5, ...) {
-  if (length(Z) != length(v)) {
-    stop("'Z' must have the same length as 'v'.")
+setMethod("udpinverse", "vtransform",
+  function(x, v, prob = FALSE, tol = .Machine$double.eps^0.5, ...) {
+    vv <- as.numeric(v)
+    lo <- vinverse(x, vv, tol = tol, ...)
+    # the two pre-images of v satisfy u2 = u1 + v, so vv + lo is the upper one
+    M <- unname(cbind(lo, vv + lo))
+    if (prob) {
+      pdown <- -1 / vgradient(x, lo)
+      attr(M, "prob") <- finalise_prob(cbind(pdown, 1 - pdown), !is.na(M))
+    }
+    M
   }
-  vinv <- vinverse(x, v, tol = tol, ...)
-  pdown <- -1 / vgradient(x, vinv)
-  # the two pre-images of v satisfy u2 = u1 + v, so v + vinv is the upper one
-  output <- ifelse(Z <= pdown, vinv, v + vinv)
-  if (!(is.null(attributes(v)))) {
-    attributes(output) <- attributes(v)
-  }
-  output
-})
+)
 
 #' Plot method for vtransform class
 #'

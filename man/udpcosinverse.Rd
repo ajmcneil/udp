@@ -21,6 +21,4 @@ value \code{v} in \verb{(0, 1)} has \code{degree} pre-images, one in each linear
 while \code{v = 0} and \code{v = 1} have fewer (the shared troughs and peaks
 respectively).
 }
-\examples{
-udpcosinverse(udpcosine(3), c(0, 0.4, 1))
-}
+\keyword{internal}

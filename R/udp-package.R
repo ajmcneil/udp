@@ -49,24 +49,23 @@ setGeneric("udptrans", function(x, u) standardGeneric("udptrans"))
 #' uniform on `[0, 1]` and `Z` is an independent uniform, then `udpsi(x, v, Z)`
 #' is uniform on `[0, 1]`. `Z` carries the randomisation.
 #'
-#' The choice of pre-image depends on the class of `x`:
-#' * \linkS4class{vtransform}: the lower pre-image (at or below the fulcrum) is
-#'   returned with probability equal to the conditional down-probability
-#'   [vdownprob()], the upper one otherwise.
-#' * \linkS4class{udpcosine}: one of the `degree` pre-images is returned, root
-#'   number `ceiling(Z * degree)` counting from the left.
-#' * \linkS4class{shuffle}: a shuffle is a bijection, so its inverse is
-#'   deterministic ([shinverse()]) and `Z` is ignored.
+#' For every \linkS4class{udp} class this is the same computation: [udpinverse()]
+#' enumerates the pre-images of each `v` together with their selection
+#' probabilities (`1 / |T'|` at each pre-image, normalised over the row), and
+#' `udpsi()` picks one pre-image per `v` by inverse-CDF sampling against `Z`.
+#' A \linkS4class{shuffle} has a single pre-image and `Z` is ignored;
+#' \linkS4class{udpcosine} weights its `degree` pre-images equally;
+#' \linkS4class{vtransform} splits between its two branches by the conditional
+#' down-probability [vdownprob()].
 #'
 #' @param x an object of class \linkS4class{udp}.
 #' @param v a vector, matrix or time series with values in `[0, 1]`.
 #' @param Z a vector of randomisers with values in `[0, 1]`, the same length as
 #'   `v`; defaults to a fresh draw from [stats::runif()]. Ignored when `x` is a
 #'   \linkS4class{shuffle}.
-#' @param tol for the \linkS4class{vtransform} method, the convergence tolerance
-#'   passed to [vinverse()].
-#' @param ... further arguments passed to methods; for \linkS4class{vtransform}
-#'   these are the arguments of [vinverse()], such as `method`.
+#' @param ... further arguments forwarded to [udpinverse()]; for
+#'   \linkS4class{vtransform} these are the arguments of [vinverse()], such as
+#'   `method`, `tol` and `ngrid`.
 #'
 #' @return An object shaped like `v` with values in `[0, 1]`.
 #' @export
@@ -79,4 +78,106 @@ setGeneric("udptrans", function(x, u) standardGeneric("udptrans"))
 #' udpsi(x, udptrans(x, runif(5)))
 setGeneric("udpsi", function(x, v, Z = runif(length(v)), ...) {
   standardGeneric("udpsi")
+})
+
+#' Enumerate the pre-images of a uniform-distribution-preserving transformation
+#'
+#' Returns every pre-image of each element of `v` under a [udptrans()] map,
+#' packed into a matrix. Because the map is in general many-to-one, each `v`
+#' may have several pre-images; `udpinverse()` returns them all.
+#'
+#' The number of pre-images depends on the class of `x`:
+#' * \linkS4class{shuffle}: exactly one (the map is a bijection).
+#' * \linkS4class{vtransform}: two -- the lower-branch pre-image ([vinverse()])
+#'   in column 1 and the upper-branch one in column 2. At `v` equal to `0` or
+#'   `1` the branches coincide and both columns hold the same value.
+#' * \linkS4class{udpcosine}: up to `degree`, one per linear piece; `v` equal
+#'   to `0` or `1` has fewer (the shared troughs and peaks).
+#'
+#' The result is a numeric matrix with `length(v)` rows and `k` columns, `k`
+#' being the largest number of pre-images any `v` can have for this `x`. Row
+#' `i` holds the pre-images of `v[i]` in its leading entries, sorted ascending,
+#' with `NA` in the trailing entries when `v[i]` has fewer than `k` of them.
+#' The count for row `i` is `sum(!is.na(result[i, ]))`.
+#'
+#' With `prob = TRUE` the result also carries an `n`-by-`k` `"prob"` attribute,
+#' aligned column-for-column with the matrix: `attr(., "prob")[i, j]` is the
+#' probability with which [udpsi()] selects pre-image `result[i, j]`, namely
+#' `1 / |T'|` at that pre-image normalised over the row (`NA` where the
+#' pre-image is `NA`). On the measure-zero set where `T'` is undefined at some
+#' pre-image the row falls back to equal probabilities.
+#'
+#' `v` is treated as a plain numeric vector; unlike [udptrans()] and [udpsi()],
+#' `udpinverse()` does not copy the attributes of `v` onto its result (the row
+#' dimension is `length(v)`, so it cannot).
+#'
+#' @param x an object of class \linkS4class{udp}.
+#' @param v a vector with values in `[0, 1]`.
+#' @param prob logical; if `TRUE`, attach the `"prob"` attribute described
+#'   above. [udpsi()] calls `udpinverse()` with `prob = TRUE`.
+#' @param tol for the \linkS4class{vtransform} method, the convergence tolerance
+#'   passed to [vinverse()].
+#' @param ... further arguments passed to methods; for \linkS4class{vtransform}
+#'   these are the arguments of [vinverse()], such as `method` and `ngrid`.
+#'
+#' @return A numeric matrix, `length(v)` by `k`, of pre-images: leading entries
+#'   filled, trailing entries `NA`, each row sorted ascending; optionally with
+#'   a `"prob"` attribute.
+#' @export
+#'
+#' @examples
+#' udpinverse(shuffle(c(2, 1, 3)), c(0.2, 0.5, 0.9))
+#' udpinverse(vsymmetric(), c(0, 0.25, 0.5, 0.75, 1))
+#' udpinverse(udpcosine(3), c(0, 0.4, 1))
+#' udpinverse(vlinear(0.4), c(0.2, 0.6), prob = TRUE)
+setGeneric("udpinverse", function(x, v, prob = FALSE, ...) {
+  standardGeneric("udpinverse")
+})
+
+# Normalise raw per-branch weights into a selection-probability matrix aligned
+# with a pre-image matrix. `w` holds 1 / |T'| at each pre-image (any value
+# where `present` is FALSE); `present` is `!is.na(<pre-image matrix>)`. Each row
+# is scaled to sum to 1. Rows whose weights are non-finite or fail to normalise
+# -- the measure-zero set where T' is undefined at some pre-image -- fall back
+# to equal probability over that row's pre-images.
+finalise_prob <- function(w, present) {
+  w[!present] <- 0
+  npt <- rowSums(present)
+  p <- w / rowSums(w)
+  rs <- rowSums(p)
+  bad <- !is.finite(rs) | abs(rs - 1) > 1e-6
+  if (any(bad)) {
+    p[bad, ] <- (present / npt)[bad, ]
+  }
+  p[!present] <- NA_real_
+  dimnames(p) <- NULL
+  p
+}
+
+#' @describeIn udpsi Draw one pre-image of each `v` by inverse-CDF sampling of
+#'   [udpinverse()] against `Z`. This one method serves every
+#'   \linkS4class{udp} class.
+#' @export
+setMethod("udpsi", "udp", function(x, v, Z = runif(length(v)), ...) {
+  n <- length(v)
+  M <- udpinverse(x, v, prob = TRUE, ...)
+  k <- ncol(M)
+
+  if (k == 1L) {
+    out <- if (n == 0L) numeric(0) else M[, 1L]
+  } else {
+    if (length(Z) != n) {
+      stop("'Z' must have the same length as 'v'.", call. = FALSE)
+    }
+    P <- attr(M, "prob")
+    P[is.na(P)] <- 0
+    cum <- P %*% upper.tri(matrix(0, k, k), diag = TRUE)
+    j <- pmin(rowSums(cum < as.numeric(Z)) + 1L, k)
+    out <- if (n == 0L) numeric(0) else M[cbind(seq_len(n), j)]
+  }
+
+  if (!is.null(attributes(v))) {
+    attributes(out) <- attributes(v)
+  }
+  out
 })

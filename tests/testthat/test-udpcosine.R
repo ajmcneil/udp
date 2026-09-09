@@ -143,10 +143,17 @@ test_that("udpsi() uses Z as a categorical quantile over the roots", {
   )
 })
 
-test_that("udpsi() returns 0 at v = 0 and v = 1", {
-  x <- udpcosine(4)
-  expect_identical(udpsi(x, c(0, 1), c(0.2, 0.8)), c(0, 0))
-  expect_identical(udpsi(x, c(0, 0.5, 1), c(0.1, 0.1, 0.1))[c(1, 3)], c(0, 0))
+test_that("udpsi() at v = 0 and v = 1 samples among the shared roots", {
+  set.seed(1)
+  for (d in 1:6) {
+    x <- udpcosine(d)
+    v <- rep(c(0, 1), each = 40)
+    u <- udpsi(x, v, runif(length(v)))
+    expect_true(all(u >= 0 & u <= 1))
+    expect_equal(udptrans(x, u), v, tolerance = 1e-9)
+    expect_true(all(u[v == 0] %in% udpcosinverse(x, 0)[[1]]))
+    expect_true(all(u[v == 1] %in% udpcosinverse(x, 1)[[1]]))
+  }
 })
 
 test_that("udpsi() validates its arguments and edge inputs", {
