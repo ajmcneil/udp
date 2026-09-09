@@ -388,23 +388,25 @@ vdownprob <- function(x, v, tol = .Machine$double.eps^0.5, ...) {
   -1 / vgradient(x, vinverse(x, v, tol = tol, ...))
 }
 
-#' @describeIn udpsi Stochastic inverse of a v-transform. Accepts `tol` and
-#'   further arguments of [vinverse()] (such as `method`).
+#' @describeIn udpinverse Pre-images of a v-transform: a two-column matrix with
+#'   the lower-branch pre-image [vinverse()] in column 1 and `v` plus that in
+#'   column 2 (the two coincide at `v = 0` and `v = 1`). With `prob = TRUE`,
+#'   column 1 of the `"prob"` attribute is the conditional down-probability
+#'   [vdownprob()]. Accepts `tol` and further arguments of [vinverse()].
 #' @export
-setMethod("udpsi", "vtransform", function(x, v, Z = runif(length(v)),
-                                          tol = .Machine$double.eps^0.5, ...) {
-  if (length(Z) != length(v)) {
-    stop("'Z' must have the same length as 'v'.")
+setMethod("udpinverse", "vtransform",
+  function(x, v, prob = FALSE, tol = .Machine$double.eps^0.5, ...) {
+    vv <- as.numeric(v)
+    lo <- vinverse(x, vv, tol = tol, ...)
+    # the two pre-images of v satisfy u2 = u1 + v, so vv + lo is the upper one
+    M <- unname(cbind(lo, vv + lo))
+    if (prob) {
+      pdown <- -1 / vgradient(x, lo)
+      attr(M, "prob") <- finalise_prob(cbind(pdown, 1 - pdown), !is.na(M))
+    }
+    M
   }
-  vinv <- vinverse(x, v, tol = tol, ...)
-  pdown <- -1 / vgradient(x, vinv)
-  # the two pre-images of v satisfy u2 = u1 + v, so v + vinv is the upper one
-  output <- ifelse(Z <= pdown, vinv, v + vinv)
-  if (!(is.null(attributes(v)))) {
-    attributes(output) <- attributes(v)
-  }
-  output
-})
+)
 
 #' Plot method for vtransform class
 #'

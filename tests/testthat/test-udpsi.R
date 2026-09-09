@@ -61,7 +61,7 @@ test_that("udpsi() on a shuffle does not consume the RNG stream", {
   expect_identical(r1, r2)
 })
 
-test_that("udpsi() dispatches to the cosine method", {
+test_that("udpsi() inverts a cosine udp transformation", {
   x <- udpcosine(3)
   set.seed(1)
   u <- runif(200)

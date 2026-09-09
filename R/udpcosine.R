@@ -70,36 +70,28 @@ udpcosinverse <- function(x, v) {
   })
 }
 
-#' @describeIn udpsi Stochastic inverse of a cosine udp transformation. For each
-#'   `v` in `(0, 1)`, [udpcosinverse()] returns `degree` pre-images and the
-#'   selected one is root number `ceiling(Z * degree)`; `v` equal to `0` or `1`
-#'   returns `0`.
+#' @describeIn udpinverse Pre-images of a cosine udp transformation: a matrix
+#'   with `degree` columns holding the roots [udpcosinverse()] of each `v`,
+#'   sorted ascending and left-packed, `NA`-padded where `v` equal to `0` or
+#'   `1` has fewer than `degree` roots. With `prob = TRUE` the `"prob"`
+#'   attribute is equal over each row's roots.
 #' @export
-setMethod("udpsi", "udpcosine", function(x, v, Z = runif(length(v)), ...) {
-  if (anyNA(v) || any(v < 0 | v > 1)) {
+setMethod("udpinverse", "udpcosine", function(x, v, prob = FALSE, ...) {
+  vv <- as.numeric(v)
+  if (anyNA(vv) || any(vv < 0 | vv > 1)) {
     stop("every element of 'v' must be in [0, 1].", call. = FALSE)
   }
-  if (length(Z) != length(v)) {
-    stop("'Z' must have the same length as 'v'.", call. = FALSE)
+  k <- x@degree
+  roots <- udpcosinverse(x, vv)
+  lens <- lengths(roots)
+  M <- matrix(NA_real_, length(vv), k)
+  M[cbind(rep(seq_along(roots), lens), sequence(lens))] <-
+    unlist(roots, use.names = FALSE)
+  if (prob) {
+    present <- !is.na(M)
+    attr(M, "prob") <- finalise_prob(present + 0, present)
   }
-  d <- x@degree
-  edge <- v <= 0 | v >= 1
-  vw <- v
-  vw[edge] <- 0.5 # working value with the full complement of degree roots
-  j <- pmin(pmax(ceiling(as.numeric(Z) * d), 1L), d)
-
-  if (length(v) == 0L) {
-    out <- numeric(0)
-  } else {
-    roots <- do.call(rbind, udpcosinverse(x, vw)) # length(v) x degree
-    out <- roots[cbind(seq_along(v), j)]
-  }
-  out[edge] <- 0
-
-  if (!is.null(attributes(v))) {
-    attributes(out) <- attributes(v)
-  }
-  out
+  M
 })
 
 #' Plot method for the udpcosine class
