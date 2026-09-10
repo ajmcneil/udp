@@ -416,6 +416,7 @@ setMethod("udpinverse", "vtransform",
 #' @param npoints number of plotting points along x-axis.
 #' @param lower the lower x-axis value for plotting.
 #' @param upper the upper x-axis value for plotting
+#' @param ... further graphical parameters passed to [graphics::plot()].
 #'
 #' @return No return value, generates plot.
 #' @export
@@ -428,33 +429,33 @@ setMethod("udpinverse", "vtransform",
 #' plot(v2p(delta = 0.45, kappa = 0.8), type = "gradient")
 setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transform",
                                                                embellish = c("colour", "bw", "none"),
-                                                               npoints = 200, lower = 0, upper = 1) {
+                                                               npoints = 200, lower = 0, upper = 1, ...) {
   emb <- plot_embellish(embellish)
   delta <- ifelse(is.element("delta", names(x@pars)), x@pars["delta"], 0.5)
   switch(type, inverse = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(vvals, vinverse(x, vvals),
       xlab = "v", ylab = "Vinv(v)", type = "l", lwd = 1.5,
-      xaxs = "i", yaxs = "i"
+      xaxs = "i", yaxs = "i", ...
     )
   }, gradient = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(uvals, vgradient(x, uvals),
       xlab = "u", ylab = "Vprime(u)", type = "l", lwd = 1.5,
-      xaxs = "i", yaxs = "i"
+      xaxs = "i", yaxs = "i", ...
     )
   }, pdown = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(vvals, vdownprob(x, vvals),
       xlab = "v", ylab = "Delta(v)", type = "l", lwd = 1.5,
-      xaxs = "i", yaxs = "i"
+      xaxs = "i", yaxs = "i", ...
     )
   }, transform = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     if ((delta > lower) & (delta < upper)) uvals <- sort(c(uvals, delta))
     plot(NA,
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
-      xlab = "u", ylab = "T(u)"
+      xlab = "u", ylab = "T(u)", ...
     )
     if (!is.null(emb)) {
       polygon(c(0, 0, delta), c(delta, 0, 0), col = emb$fill, border = NA)

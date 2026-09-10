@@ -16,6 +16,8 @@
   the v-transform inadmissible-zone shading: `"colour"` (default, red), `"bw"`
   (grey) or `"none"`. This replaces the `shading` argument of the
   `vtransform` method.
+* The `vtransform` `plot()` method gains `...`, forwarding further graphical
+  parameters to `graphics::plot()` as the other `plot()` methods already do.
 * Documentation switched to Oxford (`-ize`) spelling.
 * Added a worked example to the README and a package vignette,
   `vignette("udp")`.
