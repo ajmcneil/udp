@@ -1,0 +1,186 @@
+---
+title: "Uniform distribution preserving transformations"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Uniform distribution preserving transformations}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 5,
+  fig.height = 4,
+  fig.align = "center"
+)
+```
+
+```{r library}
+library(udp)
+```
+
+A map `T` of the unit interval to itself is **uniform distribution preserving**
+(udp) if `T(U)` is again uniform on `[0, 1]` whenever `U` is. Such a map is in
+general many-to-one: it folds the interval onto itself so that the pieces stack
+up to a flat density. This vignette tours the udp families in the package and
+finishes with a use of shuffles to uncover non-monotonic dependence.
+
+Throughout we work with a single uniform sample.
+
+```{r data}
+set.seed(1)
+n <- 1000
+U <- runif(n)
+```
+
+## A v-transform
+
+A v-transform has a single fulcrum `delta`: values below it are reflected
+upward, values above it are carried down, and the two branches are stretched so
+that uniformity is preserved. `v2p()` builds a smooth two-parameter version.
+
+```{r vtransform}
+T1 <- v2p(delta = 0.4, kappa = 0.8)
+plot(T1)
+```
+
+`udptrans()` applies the map. The transformed sample is still uniform:
+
+```{r vtransform-forward}
+V <- udptrans(T1, U)
+hist(V, main = "udptrans(T1, U)")
+```
+
+Because the map is two-to-one, it has no ordinary inverse. `udpsi()` instead
+draws one pre-image at random, in the proportion that keeps the uniform
+property running backwards: feed it a uniform `V` and an independent uniform
+`Z` and the result is uniform again.
+
+```{r vtransform-inverse}
+U2 <- udpsi(T1, V)
+hist(U2, main = "udpsi(T1, V)")
+```
+
+`U2` is a valid pre-image of `V`, but usually not the `U` we started from. The
+probability that stochastic inversion lands back on the original value is
+returned by `pcoincide()`.
+
+```{r vtransform-pcoincide}
+plot(U, U2, pch = 20, cex = 0.4)
+pcoincide(T1)
+```
+
+## A shuffle
+
+A shuffle cuts `[0, 1]` into `m` equal strips, permutes them, and optionally
+flips the slope on each. It is a piecewise-linear bijection, so it preserves
+uniformity exactly and `udpsi()` recovers the input.
+
+```{r shuffle}
+perm <- sample(1:20)
+signs <- rbinom(20, 1, 0.5) * 2 - 1
+T2 <- shuffle(perm, signs)
+plot(T2)
+
+hist(udptrans(T2, U), main = "udptrans(T2, U)")
+```
+
+## A udp function from a cosine curve
+
+`udpcosine(k)` is the degree-`k` triangle wave: `k` linear pieces of slope
+`±k` that fold the interval into `k` layers.
+
+```{r cosine}
+T3 <- udpcosine(6)
+plot(T3)
+
+V <- udptrans(T3, U)
+U2 <- udpsi(T3, V)
+pcoincide(T3)
+```
+
+The `k` pre-images are equally weighted, so `pcoincide()` is `1 / k`.
+
+## A udp function from a Legendre polynomial
+
+`udplegendre(j)` composes the shifted Legendre polynomial `L_j` with the
+distribution function of `L_j(U)`. It has up to `j` pre-images, weighted by
+`1 / |L_j'|`.
+
+```{r legendre}
+T4 <- udplegendre(5)
+plot(T4)
+
+V <- udptrans(T4, U)
+U2 <- udpsi(T4, V)
+pcoincide(T4)
+```
+
+## Uncovering non-monotonic dependence with shuffles
+
+Stochastic inversion lets us build a dataset with a deliberately awkward
+dependence structure. Start from a strongly dependent copula sample and pull
+each margin back through a udp function. This section uses the **copula**
+package.
+
+```{r ace-guard, include = FALSE}
+knitr::opts_chunk$set(eval = requireNamespace("copula", quietly = TRUE))
+```
+
+```{r ace-data}
+set.seed(1)
+GC <- copula::gumbelCopula(3)
+W <- copula::rCopula(n, GC)
+X <- cbind(udpsi(T4, W[, 1]), udpsi(T3, W[, 2]))
+plot(X, pch = 20, cex = 0.4, xlab = "X1", ylab = "X2")
+```
+
+The margins of `X` are uniform and their ordinary correlation is close to zero,
+yet they are far from independent. `aceshuffle()` searches, in the manner of
+alternating conditional expectations, for a shuffle of each margin that makes
+the transformed pair as linearly correlated as possible.
+
+```{r ace-fit}
+fit <- aceshuffle(X[, 1], X[, 2], m = 50)
+fit$iterations
+fit$correlation
+```
+
+The fitted shuffles approximate the udp functions we used to build the data.
+The fitted pair is unique only up to the joint reflection
+`(shuffle1, shuffle2) -> (1 - shuffle1, 1 - shuffle2)`, which leaves the
+correlation unchanged; `aceshuffle()` returns the orientation whose shuffles
+trend upward.
+
+```{r ace-shapes, fig.show = "hold", fig.width = 4}
+u <- seq(0, 1, length.out = 200)
+
+plot(fit$shuffle1)
+lines(u, udptrans(T4, u), col = 2, lwd = 2)
+
+plot(fit$shuffle2)
+lines(u, udptrans(T3, u), col = 2, lwd = 2)
+```
+
+When a generating transform is close to symmetric about the centre of the unit
+square (as `udpcosine(6)` is), the trend rule cannot pin the orientation from
+that shuffle alone; here the clear upward trend of the `udplegendre(5)` shuffle
+fixes the orientation of the pair. If an overlay comes out reflected, compare
+against `1 - udptrans(...)` instead.
+
+`fit$V` holds the shuffled data, `cbind(udptrans(shuffle1, X1),
+udptrans(shuffle2, X2))`. Its correlation matches the copula it came from.
+
+```{r ace-result}
+plot(fit$V, pch = 20, cex = 0.4)
+c(fitted = fit$correlation, original = cor(W)[1, 2])
+```
+
+## References
+
+- McNeil, A. J. (2021). Modelling volatile time series with v-transforms and
+  copulas. *Risks*, **9**(1), 14.
+- McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
+  of non-monotonic dependence. arXiv:2512.10828.
