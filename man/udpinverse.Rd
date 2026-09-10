@@ -63,7 +63,7 @@ The count for row \code{i} is \code{sum(!is.na(result[i, ]))}.
 With \code{prob = TRUE} the result also carries an \code{n}-by-\code{k} \code{"prob"} attribute,
 aligned column-for-column with the matrix: \code{attr(., "prob")[i, j]} is the
 probability with which \code{\link[=udpsi]{udpsi()}} selects pre-image \code{result[i, j]}, namely
-\verb{1 / |T'|} at that pre-image normalised over the row (\code{NA} where the
+\verb{1 / |T'|} at that pre-image normalized over the row (\code{NA} where the
 pre-image is \code{NA}). On the measure-zero set where \verb{T'} is undefined at some
 pre-image the row falls back to equal probabilities.
 
@@ -87,7 +87,7 @@ attribute is equal over each row's roots.
 a matrix with \code{degree} columns holding, for each \code{v}, the roots in
 \verb{[0, 1]} of \code{L_j(u) = F_j^{-1}(v)}, sorted ascending and left-packed with
 trailing \code{NA}. With \code{prob = TRUE} the \code{"prob"} attribute weights each root
-by \verb{1 / |L_j'(u)|}, normalised over the row.
+by \verb{1 / |L_j'(u)|}, normalized over the row.
 
 \item \code{udpinverse(vtransform)}: Pre-images of a v-transform: a two-column matrix with
 the lower-branch pre-image \code{\link[=vinverse]{vinverse()}} in column 1 and \code{v} plus that in

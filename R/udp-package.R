@@ -58,11 +58,11 @@ setGeneric("udptrans", function(x, u) standardGeneric("udptrans"))
 #' `udpsi()` returns a single pre-image of `v`, drawn so that the
 #' uniform-distribution-preserving property runs backwards too: if `v` is
 #' uniform on `[0, 1]` and `Z` is an independent uniform, then `udpsi(x, v, Z)`
-#' is uniform on `[0, 1]`. `Z` carries the randomisation.
+#' is uniform on `[0, 1]`. `Z` carries the randomization.
 #'
 #' For every \linkS4class{udp} class this is the same computation: [udpinverse()]
 #' enumerates the pre-images of each `v` together with their selection
-#' probabilities (`1 / |T'|` at each pre-image, normalised over the row), and
+#' probabilities (`1 / |T'|` at each pre-image, normalized over the row), and
 #' `udpsi()` picks one pre-image per `v` by inverse-CDF sampling against `Z`.
 #' A \linkS4class{shuffle} has a single pre-image and `Z` is ignored;
 #' \linkS4class{udpcosine} weights its `degree` pre-images equally;
@@ -71,7 +71,7 @@ setGeneric("udptrans", function(x, u) standardGeneric("udptrans"))
 #'
 #' @param x an object of class \linkS4class{udp}.
 #' @param v a vector, matrix or time series with values in `[0, 1]`.
-#' @param Z a vector of randomisers with values in `[0, 1]`, the same length as
+#' @param Z a vector of randomizers with values in `[0, 1]`, the same length as
 #'   `v`; defaults to a fresh draw from [stats::runif()]. Ignored when `x` is a
 #'   \linkS4class{shuffle}.
 #' @param ... further arguments forwarded to [udpinverse()]; for
@@ -114,7 +114,7 @@ setGeneric("udpsi", function(x, v, Z = runif(length(v)), ...) {
 #' With `prob = TRUE` the result also carries an `n`-by-`k` `"prob"` attribute,
 #' aligned column-for-column with the matrix: `attr(., "prob")[i, j]` is the
 #' probability with which [udpsi()] selects pre-image `result[i, j]`, namely
-#' `1 / |T'|` at that pre-image normalised over the row (`NA` where the
+#' `1 / |T'|` at that pre-image normalized over the row (`NA` where the
 #' pre-image is `NA`). On the measure-zero set where `T'` is undefined at some
 #' pre-image the row falls back to equal probabilities.
 #'
@@ -148,7 +148,7 @@ setGeneric("udpinverse", function(x, v, prob = FALSE, ...) {
 #' Probability that stochastic inversion recovers the original value
 #'
 #' Let `U` be uniform on `[0, 1]` and `V = udptrans(x, U)`. Feeding `V` back
-#' through [udpsi()] with an independent uniform randomiser returns *some*
+#' through [udpsi()] with an independent uniform randomizer returns *some*
 #' pre-image of `V`; `pcoincide()` is the probability that it is `U` itself,
 #' `P(udpsi(x, udptrans(x, U)) == U)`.
 #'
@@ -201,10 +201,10 @@ integrate_collision <- function(x, breaks = numeric(0)) {
 #' @export
 setMethod("pcoincide", "udp", function(x) integrate_collision(x))
 
-# Normalise raw per-branch weights into a selection-probability matrix aligned
+# Normalize raw per-branch weights into a selection-probability matrix aligned
 # with a pre-image matrix. `w` holds 1 / |T'| at each pre-image (any value
 # where `present` is FALSE); `present` is `!is.na(<pre-image matrix>)`. Each row
-# is scaled to sum to 1. Rows whose weights are non-finite or fail to normalise
+# is scaled to sum to 1. Rows whose weights are non-finite or fail to normalize
 # -- the measure-zero set where T' is undefined at some pre-image -- fall back
 # to equal probability over that row's pre-images.
 finalise_prob <- function(w, present) {

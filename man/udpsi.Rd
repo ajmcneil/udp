@@ -14,7 +14,7 @@ udpsi(x, v, Z = runif(length(v)), ...)
 
 \item{v}{a vector, matrix or time series with values in \verb{[0, 1]}.}
 
-\item{Z}{a vector of randomisers with values in \verb{[0, 1]}, the same length as
+\item{Z}{a vector of randomizers with values in \verb{[0, 1]}, the same length as
 \code{v}; defaults to a fresh draw from \code{\link[stats:runif]{stats::runif()}}. Ignored when \code{x} is a
 \linkS4class{shuffle}.}
 
@@ -30,12 +30,12 @@ A \code{\link[=udptrans]{udptrans()}} map is in general many-to-one, so it has n
 \code{udpsi()} returns a single pre-image of \code{v}, drawn so that the
 uniform-distribution-preserving property runs backwards too: if \code{v} is
 uniform on \verb{[0, 1]} and \code{Z} is an independent uniform, then \code{udpsi(x, v, Z)}
-is uniform on \verb{[0, 1]}. \code{Z} carries the randomisation.
+is uniform on \verb{[0, 1]}. \code{Z} carries the randomization.
 }
 \details{
 For every \linkS4class{udp} class this is the same computation: \code{\link[=udpinverse]{udpinverse()}}
 enumerates the pre-images of each \code{v} together with their selection
-probabilities (\verb{1 / |T'|} at each pre-image, normalised over the row), and
+probabilities (\verb{1 / |T'|} at each pre-image, normalized over the row), and
 \code{udpsi()} picks one pre-image per \code{v} by inverse-CDF sampling against \code{Z}.
 A \linkS4class{shuffle} has a single pre-image and \code{Z} is ignored;
 \linkS4class{udpcosine} weights its \code{degree} pre-images equally;

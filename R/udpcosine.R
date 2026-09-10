@@ -123,6 +123,6 @@ setMethod("plot", c(x = "udpcosine", y = "missing"),
       xlab = xlab, ylab = ylab, ...
     )
     abline(v = u, col = "red", lwd = 0.5)
-    lines(u, udptrans(x, u), lwd = 2)
+    lines(u, udptrans(x, u), lwd = 1.5)
   }
 )

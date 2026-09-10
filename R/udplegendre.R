@@ -5,7 +5,7 @@
 # composition T(u) = F_j(L_j(u)), which is uniform-distribution-preserving:
 # F_j is strictly increasing on the range of L_j, so T has exactly the (up to
 # j) pre-images of L_j, and the stochastic-inverse weights 1 / |T'| reduce to
-# 1 / |L_j'| after normalisation (the common F_j' factor cancels).
+# 1 / |L_j'| after normalization (the common F_j' factor cancels).
 
 # Ascending monomial coefficients of the shifted Legendre polynomial of the
 # given degree on [0, 1], from the three-term recurrence
@@ -123,10 +123,10 @@ legendre_measure <- function(coef, y, lbound) {
 #' `L_j(u) = y`) and stores spline interpolations, `Tfun` for `T` itself and
 #' `Qfun` for the quantile `F_j^{-1}`. `F_j` has a square-root branch point at
 #' every interior extreme value of `L_j`; the splines are built panel by panel
-#' between those values under the substitution that regularises them, so the
+#' between those values under the substitution that regularizes them, so the
 #' interpolation error stays near `1e-4` across the usable degree range.
 #' Pre-image finding in [udpinverse()] stays exact (polynomial root finding);
-#' only the `F_j` reparametrisation is interpolated.
+#' only the `F_j` reparametrization is interpolated.
 #'
 #' @slot degree integer; the degree of the transformation (at least 1).
 #' @slot cfs,cfsD ascending monomial coefficients of `L_j` and of its
@@ -202,7 +202,7 @@ udplegendre <- function(degree, ngrid = 257L) {
 
     # F_j has a square-root branch point at every interior extreme value of
     # L_j. On panel p = [a, b] between consecutive such values the substitution
-    # y = mid - half * cos(theta) regularises the sqrt(|y - a|) and
+    # y = mid - half * cos(theta) regularizes the sqrt(|y - a|) and
     # sqrt(|b - y|) behaviour at the two ends, so F_j is smooth in theta and a
     # modest monotone spline (and its inverse) capture it. udptrans() then
     # evaluates F_j(L_j(u)); udpinverse() evaluates F_j^{-1}.
@@ -269,7 +269,7 @@ setMethod("udptrans", "udplegendre", function(x, u) {
 #'   a matrix with `degree` columns holding, for each `v`, the roots in
 #'   `[0, 1]` of `L_j(u) = F_j^{-1}(v)`, sorted ascending and left-packed with
 #'   trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each root
-#'   by `1 / |L_j'(u)|`, normalised over the row.
+#'   by `1 / |L_j'(u)|`, normalized over the row.
 #' @export
 setMethod("udpinverse", "udplegendre", function(x, v, prob = FALSE, ...) {
   vv <- as.numeric(v)
@@ -333,6 +333,6 @@ setMethod("plot", c(x = "udplegendre", y = "missing"),
       xlab = xlab, ylab = ylab, ...
     )
     abline(v = tp, h = udptrans(x, tp), col = "red", lwd = 0.5)
-    lines(u, udptrans(x, u), lwd = 2)
+    lines(u, udptrans(x, u), lwd = 1.5)
   }
 )

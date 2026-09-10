@@ -277,7 +277,7 @@ vgradient <- function(x, u) {
 #' `inverse` slot is used and `method`, `tol` and `ngrid` are ignored.
 #' Otherwise the inverse is computed numerically, either with
 #'
-#' * `method = "newton"` (the default): a vectorised Newton iteration,
+#' * `method = "newton"` (the default): a vectorized Newton iteration,
 #'   safeguarded by bisection, that uses the analytic gradient of the
 #'   v-transform. Accurate to roughly `tol` and typically several times
 #'   faster than element-wise root finding.
@@ -430,19 +430,19 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
   switch(type, inverse = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(vvals, vinverse(x, vvals),
-      xlab = "v", ylab = "Vinv(v)", type = "l", lwd = 2,
+      xlab = "v", ylab = "Vinv(v)", type = "l", lwd = 1.5,
       xaxs = "i", yaxs = "i"
     )
   }, gradient = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(uvals, vgradient(x, uvals),
-      xlab = "u", ylab = "Vprime(u)", type = "l", lwd = 2,
+      xlab = "u", ylab = "Vprime(u)", type = "l", lwd = 1.5,
       xaxs = "i", yaxs = "i"
     )
   }, pdown = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(vvals, vdownprob(x, vvals),
-      xlab = "v", ylab = "Delta(v)", type = "l", lwd = 2,
+      xlab = "v", ylab = "Delta(v)", type = "l", lwd = 1.5,
       xaxs = "i", yaxs = "i"
     )
   }, transform = {
@@ -460,7 +460,7 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
       polygon(c(0, delta, delta), c(1, 1, 1 - delta), col = colchoice, border = NA)
       polygon(c(delta, delta, 1), c(delta, 1, 1), col = colchoice, border = NA)
     }
-    lines(uvals, udptrans(x, uvals), lwd = 2)
+    lines(uvals, udptrans(x, uvals), lwd = 1.5)
   }, stop("Not a plot method for v-transform."))
 })
 

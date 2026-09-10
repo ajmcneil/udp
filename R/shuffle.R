@@ -119,18 +119,40 @@ setMethod("plot", c(x = "shuffle", y = "missing"),
 
     y0 <- (x@perm - (x@signs > 0)) / m
     y1 <- (x@perm - (x@signs > 0) + x@signs) / m
-    segments((0:(m - 1)) / m, y0, (1:m) / m, y1, lwd = 2)
+    segments((0:(m - 1)) / m, y0, (1:m) / m, y1, lwd = 1.5)
   }
 )
+
+# The reflected shuffle u -> 1 - T(u): range strip perm[i] becomes m + 1 -
+# perm[i] and every slope flips. udptrans(shuffle_complement(x), u) equals
+# 1 - udptrans(x, u) exactly.
+shuffle_complement <- function(x) {
+  m <- length(x@perm)
+  new("shuffle", perm = m + 1L - x@perm, signs = -x@signs)
+}
+
+# E[T(U) | U > 1/2] - E[T(U) | U < 1/2] for U uniform on [0, 1]: how much
+# higher the shuffle sits on the right half of its domain than on the left. A
+# signed measure of upward (> 0) versus downward (< 0) trend that, unlike
+# cov(U, T(U)), is not thrown by steep behaviour near the endpoints. T is
+# piecewise linear, so its mean over a sub-interval that crosses no strip
+# boundary is its value at the sub-interval midpoint; 1/2 is added to the knots
+# so no sub-interval straddles it.
+shuffle_trend <- function(x) {
+  kn <- sort(unique(c((0:length(x@perm)) / length(x@perm), 0.5)))
+  mid <- (kn[-1] + kn[-length(kn)]) / 2
+  wT <- diff(kn) * udptrans(x, mid)
+  2 * (sum(wT[mid > 0.5]) - sum(wT[mid < 0.5]))
+}
 
 #' Alternating conditional expectation for shuffle transformations
 #'
 #' Given a paired sample of (approximately) uniform variables, `aceshuffle()`
-#' searches for a [shuffle()] of each margin that maximises the linear
+#' searches for a [shuffle()] of each margin that maximizes the linear
 #' correlation between the transformed variables.
 #'
 #' It alternates in the manner of alternating conditional expectations: with the
-#' shuffle of `U2` fixed it selects the shuffle of `U1` maximising the
+#' shuffle of `U2` fixed it selects the shuffle of `U1` maximizing the
 #' correlation, then with that new shuffle of `U1` fixed it selects the shuffle
 #' of `U2`, repeating until neither shuffle changes or `maxit` sweeps have been
 #' done.
@@ -141,16 +163,30 @@ setMethod("plot", c(x = "shuffle", y = "missing"),
 #' permutation follows from the rearrangement inequality. A sweep therefore
 #' costs `O(n + m log m)`.
 #'
+#' The fitted pair is unique only up to the joint reflection
+#' `(shuffle1, shuffle2) -> (1 - shuffle1, 1 - shuffle2)`, which leaves the
+#' correlation unchanged. `aceshuffle()` returns the orientation whose shuffles
+#' trend upward, measured for `U` uniform by
+#' `E[shuffle(U) | U > 1/2] - E[shuffle(U) | U < 1/2]` (how much higher the
+#' shuffle sits on the right half of its domain than the left). It keeps the
+#' orientation with the larger sum of that measure over `shuffle1` and
+#' `shuffle2`, breaking a tie (for instance under perfect negative dependence,
+#' where the two shuffles cannot both trend upward) on `shuffle1` then
+#' `shuffle2`. The measure is a plain trend, not a slope at `u = 1`: it does
+#' not force `shuffle1` to match a particular generating transform when that
+#' transform is close to symmetric about the centre of the unit square.
+#'
 #' @param U1,U2 numeric vectors of equal length with values in `[0, 1]`.
 #' @param m the common length of the two permutations (the number of strips).
 #' @param maxit maximum number of alternating sweeps.
 #' @param init1,init2 optional starting \linkS4class{shuffle} objects with
 #'   permutations of length `m`; the identity shuffle is used by default.
 #'
-#' @return A list with elements `data` (the `cbind(U1, U2)` matrix),
-#'   `shuffle1` and `shuffle2` (the fitted \linkS4class{shuffle} objects),
-#'   `correlation` (the achieved linear correlation) and `iterations` (the
-#'   number of sweeps performed).
+#' @return A list with elements `V` (a two-column matrix with
+#'   `udptrans(shuffle1, U1)` in column 1 and `udptrans(shuffle2, U2)` in
+#'   column 2), `shuffle1` and `shuffle2` (the fitted \linkS4class{shuffle}
+#'   objects), `correlation` (the achieved linear correlation) and `iterations`
+#'   (the number of sweeps performed).
 #' @export
 #'
 #' @examples
@@ -215,11 +251,24 @@ aceshuffle <- function(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL) {
     if (done || it >= maxit) break
   }
 
+  # resolve the joint reflection (s1, s2) vs (1 - s1, 1 - s2) in favour of the
+  # upward-trending orientation; keys compared lexicographically so a zero total
+  # trend falls back to s1, then s2
+  tr <- c(shuffle_trend(s1), shuffle_trend(s2))
+  keys <- c(sum(tr), tr)
+  decisive <- keys[abs(keys) > 1e-9]
+  if (length(decisive) && decisive[1] < 0) {
+    s1 <- shuffle_complement(s1)
+    s2 <- shuffle_complement(s2)
+  }
+
+  V1 <- udptrans(s1, U1)
+  V2 <- udptrans(s2, U2)
   list(
-    data = cbind(U1 = U1, U2 = U2),
+    V = cbind(V1 = V1, V2 = V2),
     shuffle1 = s1,
     shuffle2 = s2,
-    correlation = cor(udptrans(s1, U1), udptrans(s2, U2)),
+    correlation = cor(V1, V2),
     iterations = it
   )
 }

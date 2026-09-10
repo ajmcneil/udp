@@ -17,10 +17,10 @@ constructor evaluates \code{F_j} exactly on a grid once (from the real roots of
 \code{L_j(u) = y}) and stores spline interpolations, \code{Tfun} for \code{T} itself and
 \code{Qfun} for the quantile \code{F_j^{-1}}. \code{F_j} has a square-root branch point at
 every interior extreme value of \code{L_j}; the splines are built panel by panel
-between those values under the substitution that regularises them, so the
+between those values under the substitution that regularizes them, so the
 interpolation error stays near \code{1e-4} across the usable degree range.
 Pre-image finding in \code{\link[=udpinverse]{udpinverse()}} stays exact (polynomial root finding);
-only the \code{F_j} reparametrisation is interpolated.
+only the \code{F_j} reparametrization is interpolated.
 }
 \section{Slots}{
 

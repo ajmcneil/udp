@@ -17,19 +17,20 @@ aceshuffle(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL)
 permutations of length \code{m}; the identity shuffle is used by default.}
 }
 \value{
-A list with elements \code{data} (the \code{cbind(U1, U2)} matrix),
-\code{shuffle1} and \code{shuffle2} (the fitted \linkS4class{shuffle} objects),
-\code{correlation} (the achieved linear correlation) and \code{iterations} (the
-number of sweeps performed).
+A list with elements \code{V} (a two-column matrix with
+\code{udptrans(shuffle1, U1)} in column 1 and \code{udptrans(shuffle2, U2)} in
+column 2), \code{shuffle1} and \code{shuffle2} (the fitted \linkS4class{shuffle}
+objects), \code{correlation} (the achieved linear correlation) and \code{iterations}
+(the number of sweeps performed).
 }
 \description{
 Given a paired sample of (approximately) uniform variables, \code{aceshuffle()}
-searches for a \code{\link[=shuffle]{shuffle()}} of each margin that maximises the linear
+searches for a \code{\link[=shuffle]{shuffle()}} of each margin that maximizes the linear
 correlation between the transformed variables.
 }
 \details{
 It alternates in the manner of alternating conditional expectations: with the
-shuffle of \code{U2} fixed it selects the shuffle of \code{U1} maximising the
+shuffle of \code{U2} fixed it selects the shuffle of \code{U1} maximizing the
 correlation, then with that new shuffle of \code{U1} fixed it selects the shuffle
 of \code{U2}, repeating until neither shuffle changes or \code{maxit} sweeps have been
 done.
@@ -39,6 +40,19 @@ leaves the variance of uniform data essentially unchanged), the objective
 separates: the sign on each strip is chosen independently, and the
 permutation follows from the rearrangement inequality. A sweep therefore
 costs \verb{O(n + m log m)}.
+
+The fitted pair is unique only up to the joint reflection
+\verb{(shuffle1, shuffle2) -> (1 - shuffle1, 1 - shuffle2)}, which leaves the
+correlation unchanged. \code{aceshuffle()} returns the orientation whose shuffles
+trend upward, measured for \code{U} uniform by
+\code{E[shuffle(U) | U > 1/2] - E[shuffle(U) | U < 1/2]} (how much higher the
+shuffle sits on the right half of its domain than the left). It keeps the
+orientation with the larger sum of that measure over \code{shuffle1} and
+\code{shuffle2}, breaking a tie (for instance under perfect negative dependence,
+where the two shuffles cannot both trend upward) on \code{shuffle1} then
+\code{shuffle2}. The measure is a plain trend, not a slope at \code{u = 1}: it does
+not force \code{shuffle1} to match a particular generating transform when that
+transform is close to symmetric about the centre of the unit square.
 }
 \examples{
 set.seed(1)
