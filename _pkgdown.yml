@@ -1,0 +1,49 @@
+url: https://ajmcneil.github.io/udp/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: udp transformations
+  desc: >
+    Uniform distribution preserving maps of the unit interval: the virtual
+    superclass and its concrete families.
+  contents:
+  - udp-class
+  - shuffle
+  - shuffle-class
+  - udpcosine
+  - udpcosine-class
+  - udplegendre
+  - udplegendre-class
+
+- title: v-transforms
+  desc: Fulcrum-based folding maps and their constructors.
+  contents:
+  - vlinear
+  - v2p
+  - v3p
+  - v2b
+  - v3b
+  - vsymmetric
+  - vtransform-class
+  - vtransformi-class
+
+- title: Evaluation and inversion
+  desc: Generics shared by every udp class.
+  contents:
+  - udptrans
+  - udpsi
+  - udpinverse
+  - pcoincide
+
+- title: Fitting
+  contents:
+  - aceshuffle
+
+- title: Plot methods
+  contents:
+  - plot-shuffle-missing-method
+  - plot-udpcosine-missing-method
+  - plot-udplegendre-missing-method
+  - plot-vtransform-missing-method
