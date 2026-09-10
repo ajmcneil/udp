@@ -21,11 +21,47 @@ pak::pak("ajmcneil/udp")
 
 ## Example
 
+A uniform distribution preserving (udp) transformation folds the unit interval
+onto itself, so `T(U)` stays uniform when `U` is. The map is many-to-one:
+`udpsi()` inverts it stochastically, picking one pre-image at random in the
+proportion that keeps the uniform property running backwards.
+
 ``` r
 library(udp)
 
-# TODO: add a short worked example
+set.seed(1)
+U <- runif(1000)
+
+T4 <- udplegendre(5)      # a degree-5 shifted-Legendre udp function
+plot(T4)
+
+V <- udptrans(T4, U)      # still uniform
+U2 <- udpsi(T4, V)        # a random pre-image of V, also uniform
+
+pcoincide(T4)             # P(udpsi lands back on the original U)
+#> [1] 0.3390592
 ```
+
+Shuffles are piecewise-linear udp bijections built from a permutation and a
+vector of signs. `aceshuffle()` searches for a shuffle of each margin of a
+bivariate sample that maximises the linear correlation of the transformed
+pair, which can expose dependence that is invisible to the ordinary
+correlation:
+
+``` r
+GC <- copula::gumbelCopula(3)
+W <- copula::rCopula(1000, GC)
+X <- cbind(udpsi(T4, W[, 1]), udpsi(udpcosine(6), W[, 2]))
+
+cor(X)[1, 2]              # near zero
+#> [1] -0.01131886
+
+fit <- aceshuffle(X[, 1], X[, 2], m = 50)
+fit$correlation          # recovered
+#> [1] 0.7974555
+```
+
+See `vignette("udp")` for the full tour.
 
 ## References
 

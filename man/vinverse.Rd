@@ -37,7 +37,7 @@ For a \linkS4class{vtransformi} object the analytic inverse stored in the
 \code{inverse} slot is used and \code{method}, \code{tol} and \code{ngrid} are ignored.
 Otherwise the inverse is computed numerically, either with
 \itemize{
-\item \code{method = "newton"} (the default): a vectorised Newton iteration,
+\item \code{method = "newton"} (the default): a vectorized Newton iteration,
 safeguarded by bisection, that uses the analytic gradient of the
 v-transform. Accurate to roughly \code{tol} and typically several times
 faster than element-wise root finding.

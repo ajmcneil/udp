@@ -30,7 +30,7 @@ A single unnamed probability in \verb{(0, 1]}.
 }
 \description{
 Let \code{U} be uniform on \verb{[0, 1]} and \code{V = udptrans(x, U)}. Feeding \code{V} back
-through \code{\link[=udpsi]{udpsi()}} with an independent uniform randomiser returns \emph{some}
+through \code{\link[=udpsi]{udpsi()}} with an independent uniform randomizer returns \emph{some}
 pre-image of \code{V}; \code{pcoincide()} is the probability that it is \code{U} itself,
 \code{P(udpsi(x, udptrans(x, U)) == U)}.
 }

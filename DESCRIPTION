@@ -21,7 +21,11 @@ Imports:
     methods,
     stats
 Suggests:
+    copula,
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
+VignetteBuilder: knitr
 URL: https://github.com/ajmcneil/udp
 BugReports: https://github.com/ajmcneil/udp/issues
 Encoding: UTF-8
