@@ -19,6 +19,7 @@ of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.
 Useful links:
 \itemize{
   \item \url{https://github.com/ajmcneil/udp}
+  \item \url{https://ajmcneil.github.io/udp/}
   \item Report bugs at \url{https://github.com/ajmcneil/udp/issues}
 }
 

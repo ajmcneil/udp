@@ -122,7 +122,7 @@ setMethod("plot", c(x = "udpcosine", y = "missing"),
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
       xlab = xlab, ylab = ylab, ...
     )
-    abline(v = u, col = "red", lwd = 0.5)
+    segments(u, 0, u, 1, col = "red", lwd = 0.5)
     lines(u, udptrans(x, u), lwd = 1.5)
   }
 )
