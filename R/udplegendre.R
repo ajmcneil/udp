@@ -332,7 +332,9 @@ setMethod("plot", c(x = "udplegendre", y = "missing"),
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
       xlab = xlab, ylab = ylab, ...
     )
-    abline(v = tp, h = udptrans(x, tp), col = "red", lwd = 0.5)
+    tv <- udptrans(x, tp)
+    segments(tp, 0, tp, 1, col = "red", lwd = 0.5)
+    segments(0, tv, 1, tv, col = "red", lwd = 0.5)
     lines(u, udptrans(x, u), lwd = 1.5)
   }
 )

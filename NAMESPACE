@@ -29,7 +29,6 @@ exportMethods(udpsi)
 exportMethods(udptrans)
 import(methods)
 importFrom(graphics,
-  abline,
   lines,
   polygon,
   segments

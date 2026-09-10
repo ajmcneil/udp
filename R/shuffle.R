@@ -115,7 +115,8 @@ setMethod("plot", c(x = "shuffle", y = "missing"),
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
       xlab = xlab, ylab = ylab, ...
     )
-    abline(v = bounds, h = bounds, col = "red", lwd = 0.5)
+    segments(bounds, 0, bounds, 1, col = "red", lwd = 0.5)
+    segments(0, bounds, 1, bounds, col = "red", lwd = 0.5)
 
     y0 <- (x@perm - (x@signs > 0)) / m
     y1 <- (x@perm - (x@signs > 0) + x@signs) / m
