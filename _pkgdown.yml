@@ -43,7 +43,7 @@ reference:
 
 - title: Plot methods
   contents:
-  - plot-shuffle-missing-method
-  - plot-udpcosine-missing-method
-  - plot-udplegendre-missing-method
-  - plot-vtransform-missing-method
+  - "plot,shuffle,missing-method"
+  - "plot,udpcosine,missing-method"
+  - "plot,udplegendre,missing-method"
+  - "plot,vtransform,missing-method"

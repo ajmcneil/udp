@@ -1,12 +1,11 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+#
+# The site is built locally for now (pkgdown::build_site()); GitHub Pages is
+# not available on this private repo. To publish once the repo is public,
+# restore the push / pull_request / release triggers below and enable Pages
+# (gh-pages branch, / root).
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
-  release:
-    types: [published]
   workflow_dispatch:
 
 name: pkgdown.yaml
