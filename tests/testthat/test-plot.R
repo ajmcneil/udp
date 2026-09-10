@@ -11,7 +11,10 @@ test_that("plot() runs for every panel type", {
       expect_no_error(plot(x, type = type))
     }
   }
-  expect_no_error(plot(v3p(delta = 0.45, kappa = 0.8, xi = 1.2), shading = FALSE))
+  for (e in c("colour", "bw", "none")) {
+    expect_no_error(plot(v3p(delta = 0.45, kappa = 0.8, xi = 1.2), embellish = e))
+  }
+  expect_error(plot(vsymmetric(), embellish = "grey"), "should be one of")
 })
 
 test_that("gridlines stay within the unit square", {
@@ -42,6 +45,15 @@ test_that("gridlines stay within the unit square", {
     expect_true(all(is.finite(coords)))
     expect_gte(min(coords), 0)
     expect_lte(max(coords), 1)
+
+    # "none" draws no gridlines (the curve's own segments, if any, still count
+    # for the shuffle, so only assert the count drops)
+    seg <- list()
+    plot(x, embellish = "none")
+    n_none <- length(seg)
+    seg <- list()
+    plot(x, embellish = "colour")
+    expect_gt(length(seg), n_none)
   }
 })
 

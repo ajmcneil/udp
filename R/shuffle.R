@@ -94,11 +94,12 @@ setMethod("pcoincide", "shuffle", function(x) 1)
 #' Plot method for the shuffle class
 #'
 #' Draws the graph of the shuffle as one thick black line segment per strip,
-#' over thin red gridlines at the boundaries of the vertical and horizontal
-#' strips.
+#' over thin gridlines at the boundaries of the vertical and horizontal strips.
 #'
 #' @param x an object of class \linkS4class{shuffle}.
 #' @param xlab,ylab axis labels.
+#' @param embellish style of the strip-boundary gridlines: `"colour"` (the
+#'   default) for red, `"bw"` for grey, or `"none"` to omit them.
 #' @param ... further graphical parameters passed to [graphics::plot()].
 #'
 #' @return No return value, generates a plot.
@@ -106,8 +107,11 @@ setMethod("pcoincide", "shuffle", function(x) 1)
 #'
 #' @examples
 #' plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)))
+#' plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)), embellish = "none")
 setMethod("plot", c(x = "shuffle", y = "missing"),
-  function(x, xlab = "u", ylab = "T(u)", ...) {
+  function(x, xlab = "u", ylab = "T(u)", embellish = c("colour", "bw", "none"),
+           ...) {
+    emb <- plot_embellish(embellish)
     m <- length(x@perm)
     bounds <- (0:m) / m
 
@@ -115,8 +119,10 @@ setMethod("plot", c(x = "shuffle", y = "missing"),
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
       xlab = xlab, ylab = ylab, ...
     )
-    segments(bounds, 0, bounds, 1, col = "red", lwd = 0.5)
-    segments(0, bounds, 1, bounds, col = "red", lwd = 0.5)
+    if (!is.null(emb)) {
+      segments(bounds, 0, bounds, 1, col = emb$grid, lwd = 0.5)
+      segments(0, bounds, 1, bounds, col = emb$grid, lwd = 0.5)
+    }
 
     y0 <- (x@perm - (x@signs > 0)) / m
     y1 <- (x@perm - (x@signs > 0) + x@signs) / m

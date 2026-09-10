@@ -410,8 +410,9 @@ setMethod("udpinverse", "vtransform",
 #' @param x an object of class \linkS4class{vtransform}.
 #' @param type type of plot: 'transform' for plot of transform, 'inverse' for plot of inverse,
 #' 'gradient' for plot of gradient or 'pdown' for plot of conditional probability.
-#' @param shading logical variable specifying whether inadmissible zone for v-transform
-#' should be shaded
+#' @param embellish style of the shading of the inadmissible zone (drawn only
+#' for `type = "transform"`): `"colour"` (the default) for a light red fill,
+#' `"bw"` for a grey fill, or `"none"` for no shading.
 #' @param npoints number of plotting points along x-axis.
 #' @param lower the lower x-axis value for plotting.
 #' @param upper the upper x-axis value for plotting
@@ -422,10 +423,13 @@ setMethod("udpinverse", "vtransform",
 #'
 #' @examples
 #' plot(vsymmetric())
+#' plot(vsymmetric(), embellish = "none")
 #' plot(v2p(delta = 0.45, kappa = 0.8), type = "inverse")
 #' plot(v2p(delta = 0.45, kappa = 0.8), type = "gradient")
 setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transform",
-                                                               shading = TRUE, npoints = 200, lower = 0, upper = 1) {
+                                                               embellish = c("colour", "bw", "none"),
+                                                               npoints = 200, lower = 0, upper = 1) {
+  emb <- plot_embellish(embellish)
   delta <- ifelse(is.element("delta", names(x@pars)), x@pars["delta"], 0.5)
   switch(type, inverse = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
@@ -452,13 +456,11 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
       xlab = "u", ylab = "T(u)"
     )
-    if (shading) {
-      # colchoice = 'gray97'
-      colchoice <- "gray90"
-      polygon(c(0, 0, delta), c(delta, 0, 0), col = colchoice, border = NA)
-      polygon(c(delta, 1, 1), c(0, 0, 1 - delta), col = colchoice, border = NA)
-      polygon(c(0, delta, delta), c(1, 1, 1 - delta), col = colchoice, border = NA)
-      polygon(c(delta, delta, 1), c(delta, 1, 1), col = colchoice, border = NA)
+    if (!is.null(emb)) {
+      polygon(c(0, 0, delta), c(delta, 0, 0), col = emb$fill, border = NA)
+      polygon(c(delta, 1, 1), c(0, 0, 1 - delta), col = emb$fill, border = NA)
+      polygon(c(0, delta, delta), c(1, 1, 1 - delta), col = emb$fill, border = NA)
+      polygon(c(delta, delta, 1), c(delta, 1, 1), col = emb$fill, border = NA)
     }
     lines(uvals, udptrans(x, uvals), lwd = 1.5)
   }, stop("Not a plot method for v-transform."))

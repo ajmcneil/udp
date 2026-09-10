@@ -4,7 +4,14 @@
 \alias{plot,udplegendre,missing-method}
 \title{Plot method for the udplegendre class}
 \usage{
-\S4method{plot}{udplegendre,missing}(x, n = 500L, xlab = "u", ylab = "T(u)", ...)
+\S4method{plot}{udplegendre,missing}(
+  x,
+  n = 500L,
+  xlab = "u",
+  ylab = "T(u)",
+  embellish = c("colour", "bw", "none"),
+  ...
+)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{udplegendre}.}
@@ -13,18 +20,21 @@
 
 \item{xlab, ylab}{axis labels.}
 
+\item{embellish}{style of the turning-point gridlines: \code{"colour"} (the
+default) for red, \code{"bw"} for grey, or \code{"none"} to omit them.}
+
 \item{...}{further graphical parameters passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
 \value{
 No return value, generates a plot.
 }
 \description{
-Draws the graph of the shifted-Legendre udp transformation over thin red
+Draws the graph of the shifted-Legendre udp transformation over thin
 gridlines: vertical at the turning points of \code{L_j} (which are also the
 turning points of \code{T}) and horizontal at the transformed turning-point
 values \code{T(tp)}.
 }
 \examples{
 plot(udplegendre(4))
-plot(udplegendre(7))
+plot(udplegendre(7), embellish = "none")
 }

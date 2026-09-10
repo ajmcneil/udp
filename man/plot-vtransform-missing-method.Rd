@@ -7,7 +7,7 @@
 \S4method{plot}{vtransform,missing}(
   x,
   type = "transform",
-  shading = TRUE,
+  embellish = c("colour", "bw", "none"),
   npoints = 200,
   lower = 0,
   upper = 1
@@ -19,8 +19,9 @@
 \item{type}{type of plot: 'transform' for plot of transform, 'inverse' for plot of inverse,
 'gradient' for plot of gradient or 'pdown' for plot of conditional probability.}
 
-\item{shading}{logical variable specifying whether inadmissible zone for v-transform
-should be shaded}
+\item{embellish}{style of the shading of the inadmissible zone (drawn only
+for \code{type = "transform"}): \code{"colour"} (the default) for a light red fill,
+\code{"bw"} for a grey fill, or \code{"none"} for no shading.}
 
 \item{npoints}{number of plotting points along x-axis.}
 
@@ -38,6 +39,7 @@ given volatility PIT value v.
 }
 \examples{
 plot(vsymmetric())
+plot(vsymmetric(), embellish = "none")
 plot(v2p(delta = 0.45, kappa = 0.8), type = "inverse")
 plot(v2p(delta = 0.45, kappa = 0.8), type = "gradient")
 }
