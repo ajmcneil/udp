@@ -102,11 +102,13 @@ setMethod("pcoincide", "udpcosine", function(x) 1 / x@degree)
 
 #' Plot method for the udpcosine class
 #'
-#' Draws the graph of the cosine udp transformation over thin red gridlines at
-#' the boundaries of its `degree` linear pieces.
+#' Draws the graph of the cosine udp transformation over thin gridlines at the
+#' boundaries of its `degree` linear pieces.
 #'
 #' @param x an object of class \linkS4class{udpcosine}.
 #' @param xlab,ylab axis labels.
+#' @param embellish style of the kink gridlines: `"colour"` (the default) for
+#'   red, `"bw"` for grey, or `"none"` to omit them.
 #' @param ... further graphical parameters passed to [graphics::plot()].
 #'
 #' @return No return value, generates a plot.
@@ -114,15 +116,17 @@ setMethod("pcoincide", "udpcosine", function(x) 1 / x@degree)
 #'
 #' @examples
 #' plot(udpcosine(3))
-#' plot(udpcosine(4))
+#' plot(udpcosine(4), embellish = "bw")
 setMethod("plot", c(x = "udpcosine", y = "missing"),
-  function(x, xlab = "u", ylab = "T(u)", ...) {
+  function(x, xlab = "u", ylab = "T(u)", embellish = c("colour", "bw", "none"),
+           ...) {
+    emb <- plot_embellish(embellish)
     u <- (0:x@degree) / x@degree
     plot(NA,
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
       xlab = xlab, ylab = ylab, ...
     )
-    segments(u, 0, u, 1, col = "red", lwd = 0.5)
+    if (!is.null(emb)) segments(u, 0, u, 1, col = emb$grid, lwd = 0.5)
     lines(u, udptrans(x, u), lwd = 1.5)
   }
 )

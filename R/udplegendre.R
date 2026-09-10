@@ -308,7 +308,7 @@ setMethod("pcoincide", "udplegendre", function(x) {
 
 #' Plot method for the udplegendre class
 #'
-#' Draws the graph of the shifted-Legendre udp transformation over thin red
+#' Draws the graph of the shifted-Legendre udp transformation over thin
 #' gridlines: vertical at the turning points of `L_j` (which are also the
 #' turning points of `T`) and horizontal at the transformed turning-point
 #' values `T(tp)`.
@@ -316,6 +316,8 @@ setMethod("pcoincide", "udplegendre", function(x) {
 #' @param x an object of class \linkS4class{udplegendre}.
 #' @param n number of points at which to evaluate the transformation.
 #' @param xlab,ylab axis labels.
+#' @param embellish style of the turning-point gridlines: `"colour"` (the
+#'   default) for red, `"bw"` for grey, or `"none"` to omit them.
 #' @param ... further graphical parameters passed to [graphics::plot()].
 #'
 #' @return No return value, generates a plot.
@@ -323,18 +325,22 @@ setMethod("pcoincide", "udplegendre", function(x) {
 #'
 #' @examples
 #' plot(udplegendre(4))
-#' plot(udplegendre(7))
+#' plot(udplegendre(7), embellish = "none")
 setMethod("plot", c(x = "udplegendre", y = "missing"),
-  function(x, n = 500L, xlab = "u", ylab = "T(u)", ...) {
+  function(x, n = 500L, xlab = "u", ylab = "T(u)",
+           embellish = c("colour", "bw", "none"), ...) {
+    emb <- plot_embellish(embellish)
     tp <- legendre_turnpoints(x@cfsD)
     u <- sort(unique(c(seq(0, 1, length.out = n), tp)))
     plot(NA,
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
       xlab = xlab, ylab = ylab, ...
     )
-    tv <- udptrans(x, tp)
-    segments(tp, 0, tp, 1, col = "red", lwd = 0.5)
-    segments(0, tv, 1, tv, col = "red", lwd = 0.5)
+    if (!is.null(emb)) {
+      tv <- udptrans(x, tp)
+      segments(tp, 0, tp, 1, col = emb$grid, lwd = 0.5)
+      segments(0, tv, 1, tv, col = emb$grid, lwd = 0.5)
+    }
     lines(u, udptrans(x, u), lwd = 1.5)
   }
 )

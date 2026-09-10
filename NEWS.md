@@ -9,6 +9,13 @@
   `E[shuffle(U) | U > 1/2] - E[shuffle(U) | U < 1/2]` summed over the pair.
 * The transformation curve in every udp `plot()` method is drawn at line width
   1.5 (was 2).
+* `plot()` gridlines for the `shuffle`, `udpcosine` and `udplegendre` classes
+  are drawn with `segments()` rather than `abline()`, so they no longer extend
+  past the panel under `par()` multi-panel layouts.
+* `plot()` methods gain an `embellish` argument controlling the gridlines and
+  the v-transform inadmissible-zone shading: `"colour"` (default, red), `"bw"`
+  (grey) or `"none"`. This replaces the `shading` argument of the
+  `vtransform` method.
 * Documentation switched to Oxford (`-ize`) spelling.
 * Added a worked example to the README and a package vignette,
   `vignette("udp")`.

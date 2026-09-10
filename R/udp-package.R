@@ -221,6 +221,17 @@ finalise_prob <- function(w, present) {
   p
 }
 
+# Resolve the `embellish` argument shared by the plot() methods. Returns a list
+# with `grid` (colour for turning-point / kink gridlines) and `fill` (colour
+# for the v-transform inadmissible-zone shading), or NULL for "none".
+plot_embellish <- function(embellish = c("colour", "bw", "none")) {
+  switch(match.arg(embellish),
+    colour = list(grid = "red", fill = "mistyrose"),
+    bw = list(grid = "grey55", fill = "grey90"),
+    none = NULL
+  )
+}
+
 #' @describeIn udpsi Draw one pre-image of each `v` by inverse-CDF sampling of
 #'   [udpinverse()] against `Z`. This one method serves every
 #'   \linkS4class{udp} class.
