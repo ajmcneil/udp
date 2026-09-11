@@ -10,7 +10,8 @@
   embellish = c("colour", "bw", "none"),
   npoints = 200,
   lower = 0,
-  upper = 1
+  upper = 1,
+  ...
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ for \code{type = "transform"}): \code{"colour"} (the default) for a light red fi
 \item{lower}{the lower x-axis value for plotting.}
 
 \item{upper}{the upper x-axis value for plotting}
+
+\item{...}{further graphical parameters passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
 \value{
 No return value, generates plot.

@@ -145,6 +145,45 @@ setGeneric("udpinverse", function(x, v, prob = FALSE, ...) {
   standardGeneric("udpinverse")
 })
 
+#' Derivative of a uniform-distribution-preserving transformation
+#'
+#' Returns `T'(u)` for the [udptrans()] map of `x`, at every point where `T` is
+#' differentiable. Every \linkS4class{udp} class in this package is piecewise
+#' smooth with finitely many exceptional points; at those, `udpderiv()` returns
+#' the *left* derivative (the one-sided limit from below), except at `u = 0`,
+#' where only the right derivative exists and is returned instead.
+#'
+#' The construction depends on the class of `x`:
+#' * \linkS4class{shuffle}: the slope `signs[i]` of the strip containing `u`
+#'   (`1` or `-1`), taking the left strip at a strip boundary.
+#' * \linkS4class{udpcosine}: `degree` or `-degree`, the sign matching the
+#'   direction of the linear piece containing `u`, taking the left piece at a
+#'   kink.
+#' * \linkS4class{vtransform}: the analytic gradient already used internally
+#'   by [vinverse()] and [vdownprob()]; it returns the lower-branch value at
+#'   the fulcrum `delta`.
+#' * \linkS4class{udplegendre}: `T'(u) = f_j(L_j(u)) * L_j'(u)`, where `f_j`
+#'   is the density of `L_j(U)` written as `sum(1 / abs(L_j'(u_i)))` over the
+#'   pre-images of `L_j(u)` -- computed from the same exact polynomial roots
+#'   used by [udpinverse()]. At a turning point of `L_j` this is `0 * Inf` and
+#'   is replaced by the exact left derivative, which is always `2` or `-2`. At
+#'   any other pre-image of a turning-point value, `T` has a one-sided
+#'   vertical tangent; the formula already returns that as `Inf` or `-Inf`
+#'   without a special case.
+#'
+#' @param x an object of class \linkS4class{udp}.
+#' @param u a vector, matrix or time series with values in `[0, 1]`.
+#'
+#' @return An object shaped like `u` giving `T'(u)`.
+#' @export
+#'
+#' @examples
+#' udpderiv(shuffle(c(3, 1, 2), signs = c(1, -1, 1)), c(0.1, 0.34, 0.9))
+#' udpderiv(udpcosine(3), c(0.1, 0.3, 0.9))
+#' udpderiv(vsymmetric(), c(0.25, 0.5, 0.75))
+#' udpderiv(udplegendre(3), c(0.1, 0.3, 0.5))
+setGeneric("udpderiv", function(x, u) standardGeneric("udpderiv"))
+
 #' Probability that stochastic inversion recovers the original value
 #'
 #' Let `U` be uniform on `[0, 1]` and `V = udptrans(x, U)`. Feeding `V` back
@@ -193,6 +232,27 @@ integrate_collision <- function(x, breaks = numeric(0)) {
     total <- total + integrate(g, cuts[i], cuts[i + 1L])$value
   }
   total
+}
+
+# P(udpsi(x, v) <= b) for each v in `v` and each b in `breaks`: the running
+# sum, over the ascending-sorted pre-images of v, of the udpinverse() selection
+# probabilities not exceeding b. Equivalently, the CDF of udpsi(x, v) -- given
+# V = v -- evaluated at each of `breaks`. `breaks` is any vector of query
+# points in [0, 1], typically udpbreaks(x) but not required to be. Internal --
+# not exported -- for future features that need the pre-image distribution
+# broken out piece by piece rather than pre-image by pre-image.
+#
+# Returns a length(v)-by-length(breaks) matrix. Column length(breaks) is all
+# 1 when `breaks` includes 1 (every pre-image is in [0, 1]).
+udpbreakcdf <- function(x, v, breaks) {
+  vv <- as.numeric(v)
+  M <- udpinverse(x, vv, prob = TRUE)
+  P <- attr(M, "prob")
+  out <- matrix(0, nrow = length(vv), ncol = length(breaks))
+  for (j in seq_along(breaks)) {
+    out[, j] <- rowSums(P * (M <= breaks[j]), na.rm = TRUE)
+  }
+  out
 }
 
 #' @describeIn pcoincide Numerically integrate `sum_j p_j(v)^2` using the
@@ -259,3 +319,15 @@ setMethod("udpsi", "udp", function(x, v, Z = runif(length(v)), ...) {
   }
   out
 })
+
+# Breakpoints of the partition of [0, 1] on which a udp transformation is
+# piecewise continuously differentiable: the sorted points, including 0 and 1,
+# at which udpderiv() departs from the ordinary two-sided derivative (a corner
+# or a vertical tangent). Internal -- not exported -- for features that need to
+# know where T stops being smooth (piecewise plotting or integration, for
+# instance) without re-deriving it from udpderiv() themselves.
+setGeneric("udpbreaks", function(x) standardGeneric("udpbreaks"))
+
+# Default: no class-specific break points are known, so T is taken to be
+# smooth on all of [0, 1].
+setMethod("udpbreaks", "udp", function(x) c(0, 1))

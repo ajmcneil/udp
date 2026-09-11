@@ -95,6 +95,28 @@ setMethod("udpinverse", "udpcosine", function(x, v, prob = FALSE, ...) {
   M
 })
 
+#' @describeIn udpderiv `degree` or `-degree`, the sign matching the direction
+#'   of the linear piece containing `u`, taking the left piece at a kink and
+#'   the right piece at `u = 0`, where there is no left piece.
+#' @export
+setMethod("udpderiv", "udpcosine", function(x, u) {
+  d <- x@degree
+  uu <- as.numeric(u)
+  k <- as.integer(floor(uu * d - 1e-9)) + 1L
+  k <- pmin(pmax(k, 1L), d)
+  increasing <- (k %% 2L) == (d %% 2L)
+  out <- ifelse(increasing, d, -d)
+  if (!is.null(attributes(u))) {
+    attributes(out) <- attributes(u)
+  }
+  out
+})
+
+# Breakpoints: the degree kink points, where the slope switches sign.
+setMethod("udpbreaks", "udpcosine", function(x) {
+  (0:x@degree) / x@degree
+})
+
 #' @describeIn pcoincide The degree-`k` triangle wave has `k` equally weighted
 #'   pre-images at almost every `v`, so the probability is `1 / k`.
 #' @export

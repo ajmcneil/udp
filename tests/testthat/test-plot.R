@@ -15,6 +15,11 @@ test_that("plot() runs for every panel type", {
     expect_no_error(plot(v3p(delta = 0.45, kappa = 0.8, xi = 1.2), embellish = e))
   }
   expect_error(plot(vsymmetric(), embellish = "grey"), "should be one of")
+
+  # `...` forwards graphical params to plot() for every type
+  for (type in c("transform", "inverse", "gradient", "pdown")) {
+    expect_no_error(plot(vsymmetric(), type = type, main = "title", col.axis = "grey"))
+  }
 })
 
 test_that("gridlines stay within the unit square", {

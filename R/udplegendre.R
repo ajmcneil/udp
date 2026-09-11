@@ -295,6 +295,82 @@ setMethod("udpinverse", "udplegendre", function(x, v, prob = FALSE, ...) {
   M
 })
 
+#' @describeIn udpderiv `T'(u) = f_j(L_j(u)) * L_j'(u)`, where `f_j` is the
+#'   density of `L_j(U)`, `sum(1 / abs(L_j'(u_i)))` over the pre-images of
+#'   `L_j(u)` found by the same root-finding as [udpinverse()]. At a turning
+#'   point of `L_j` this is `0 * Inf`; it is replaced there by the exact left
+#'   derivative, `2 * m` or `-2 * m` according to the sign of `L_j''`, where
+#'   `m` is the number of turning points sharing that critical value (usually
+#'   `1`; shifted-Legendre polynomials of even degree are symmetric about
+#'   `u = 1/2`, so their turning points other than the centre come in mirror
+#'   pairs `m = 2` with the same critical value). At any other pre-image of a
+#'   turning-point value `T` has a one-sided vertical tangent, which the
+#'   formula already returns as `Inf` or `-Inf` without a special case.
+#' @export
+setMethod("udpderiv", "udplegendre", function(x, u) {
+  uu <- pmin(pmax(as.numeric(u), 0), 1)
+  cfs <- x@cfs
+  cfsD <- x@cfsD
+  tp <- legendre_turnpoints(cfsD)
+  cfsDD <- if (length(tp)) poly_deriv_coef(cfsD) else numeric(0)
+  # turning points that share a critical value (mirror pairs under even
+  # degree's u -> 1 - u symmetry) feed the same F_j singularity, so the corner
+  # slope there scales with how many of them coincide
+  tpval <- if (length(tp)) polyval(cfs, tp) else numeric(0)
+  mult <- vapply(tpval, function(v) sum(abs(tpval - v) < 1e-6), integer(1))
+  tol <- 1e-5
+  out <- vapply(uu, function(ui) {
+    if (length(tp)) {
+      j <- which.min(abs(ui - tp))
+      if (abs(ui - tp[j]) < tol) {
+        return(-2 * mult[j] * sign(polyval(cfsDD, tp[j])))
+      }
+    }
+    y <- polyval(cfs, ui)
+    r <- legendre_realroots(cfs, y)
+    fY <- sum(1 / abs(polyval(cfsD, r)))
+    fY * polyval(cfsD, ui)
+  }, numeric(1))
+  if (!is.null(attributes(u))) {
+    attributes(out) <- attributes(u)
+  }
+  out
+})
+
+# Breakpoints: 0, 1, and every non-smooth point of T -- the corners at the
+# turning points of L_j plus the transversal pre-images of the critical values
+# those turning points attain (see udpderiv() for why both kinds are non-smooth).
+# Turning points sharing a critical value (mirror pairs under even degree's
+# symmetry) need their pre-images collected only once.
+#
+# L_j(u) - y has a double root exactly at a turning point attaining y, and
+# polyroot() is ill-conditioned on double roots: from around degree 7 up it
+# can return two numerically distinct approximations of the same turning
+# point (a gap as large as ~3e-6 at degree 12) rather than the single merged
+# root legendre_realroots() intends. The turning points themselves come from
+# a separate, well-conditioned root-finding (simple roots of L_j'), so any
+# root within `tol` of a known turning point is treated as that turning
+# point rather than trusted as its own value; `tol` sits comfortably between
+# that noise and the smallest genuine gap between distinct break points
+# across the class's documented usable degree range (<= 12).
+setMethod("udpbreaks", "udplegendre", function(x) {
+  cfs <- x@cfs
+  cfsD <- x@cfsD
+  tp <- legendre_turnpoints(cfsD)
+  if (!length(tp)) {
+    return(c(0, 1))
+  }
+  tol <- 5e-5
+  yv <- sort(polyval(cfs, tp))
+  yv <- yv[c(TRUE, diff(yv) > 1e-7)]
+  cross <- unlist(lapply(yv, function(y) {
+    r <- legendre_realroots(cfs, y)
+    r[vapply(r, function(ri) all(abs(ri - tp) > tol), logical(1))]
+  }))
+  pts <- sort(c(0, 1, tp, cross))
+  pts[c(TRUE, diff(pts) > tol)]
+})
+
 #' @describeIn pcoincide Integrate `sum_j p_j(v)^2` as in the default method,
 #'   but split the range at the images of the turning points of `L_j`, where
 #'   the integrand has a corner, so each piece is smooth. Accuracy is bounded
