@@ -1,5 +1,9 @@
 # udp 0.1.1
 
+* Added an internal (unexported) `udpbreakcdf()`: for a set of query points
+  (typically `udpbreaks(x)`), the probability that `udpsi()` selects a
+  pre-image at or below each one -- the running sum of `udpinverse()`'s
+  selection probabilities over the pre-images not exceeding it.
 * Added an internal (unexported) `udpbreaks()` generic returning the
   partition of `[0, 1]`, including `0` and `1`, on which a udp
   transformation is piecewise continuously differentiable. For

@@ -234,6 +234,27 @@ integrate_collision <- function(x, breaks = numeric(0)) {
   total
 }
 
+# P(udpsi(x, v) <= b) for each v in `v` and each b in `breaks`: the running
+# sum, over the ascending-sorted pre-images of v, of the udpinverse() selection
+# probabilities not exceeding b. Equivalently, the CDF of udpsi(x, v) -- given
+# V = v -- evaluated at each of `breaks`. `breaks` is any vector of query
+# points in [0, 1], typically udpbreaks(x) but not required to be. Internal --
+# not exported -- for future features that need the pre-image distribution
+# broken out piece by piece rather than pre-image by pre-image.
+#
+# Returns a length(v)-by-length(breaks) matrix. Column length(breaks) is all
+# 1 when `breaks` includes 1 (every pre-image is in [0, 1]).
+udpbreakcdf <- function(x, v, breaks) {
+  vv <- as.numeric(v)
+  M <- udpinverse(x, vv, prob = TRUE)
+  P <- attr(M, "prob")
+  out <- matrix(0, nrow = length(vv), ncol = length(breaks))
+  for (j in seq_along(breaks)) {
+    out[, j] <- rowSums(P * (M <= breaks[j]), na.rm = TRUE)
+  }
+  out
+}
+
 #' @describeIn pcoincide Numerically integrate `sum_j p_j(v)^2` using the
 #'   selection probabilities from [udpinverse()]. Serves any \linkS4class{udp}
 #'   class without a closed form.
