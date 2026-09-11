@@ -274,6 +274,14 @@ vgradient <- function(x, u) {
 #' @export
 setMethod("udpderiv", "vtransform", function(x, u) vgradient(x, u))
 
+# Breakpoints: the fulcrum is the only corner; vsymmetric() does not store
+# delta in `pars`, so it falls back to its implicit 0.5 (as the plot method
+# already does for the same reason).
+setMethod("udpbreaks", "vtransform", function(x) {
+  delta <- if (is.element("delta", names(x@pars))) unname(x@pars["delta"]) else 0.5
+  c(0, delta, 1)
+})
+
 #' Calculate the lower-branch inverse of a v-transform
 #'
 #' Returns the pre-image at or below the fulcrum: the value `u` in

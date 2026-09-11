@@ -1,5 +1,12 @@
 # udp 0.1.1
 
+* Added an internal (unexported) `udpbreaks()` generic returning the
+  partition of `[0, 1]`, including `0` and `1`, on which a udp
+  transformation is piecewise continuously differentiable. For
+  `udplegendre` this is the turning points of the underlying
+  shifted-Legendre polynomial together with the transversal pre-images
+  of their critical values -- matches the known piece counts for degree
+  2 to 6 (2, 5, 6, 13, 12).
 * Added `udpderiv()`, the derivative `T'(u)` of a udp transformation, as a
   generic over every class. At the finitely many points where `T` is not
   differentiable it returns the left derivative (the right derivative at

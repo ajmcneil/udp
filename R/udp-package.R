@@ -298,3 +298,15 @@ setMethod("udpsi", "udp", function(x, v, Z = runif(length(v)), ...) {
   }
   out
 })
+
+# Breakpoints of the partition of [0, 1] on which a udp transformation is
+# piecewise continuously differentiable: the sorted points, including 0 and 1,
+# at which udpderiv() departs from the ordinary two-sided derivative (a corner
+# or a vertical tangent). Internal -- not exported -- for features that need to
+# know where T stops being smooth (piecewise plotting or integration, for
+# instance) without re-deriving it from udpderiv() themselves.
+setGeneric("udpbreaks", function(x) standardGeneric("udpbreaks"))
+
+# Default: no class-specific break points are known, so T is taken to be
+# smooth on all of [0, 1].
+setMethod("udpbreaks", "udp", function(x) c(0, 1))

@@ -112,6 +112,11 @@ setMethod("udpderiv", "udpcosine", function(x, u) {
   out
 })
 
+# Breakpoints: the degree kink points, where the slope switches sign.
+setMethod("udpbreaks", "udpcosine", function(x) {
+  (0:x@degree) / x@degree
+})
+
 #' @describeIn pcoincide The degree-`k` triangle wave has `k` equally weighted
 #'   pre-images at almost every `v`, so the probability is `1 / k`.
 #' @export

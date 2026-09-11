@@ -337,6 +337,40 @@ setMethod("udpderiv", "udplegendre", function(x, u) {
   out
 })
 
+# Breakpoints: 0, 1, and every non-smooth point of T -- the corners at the
+# turning points of L_j plus the transversal pre-images of the critical values
+# those turning points attain (see udpderiv() for why both kinds are non-smooth).
+# Turning points sharing a critical value (mirror pairs under even degree's
+# symmetry) need their pre-images collected only once.
+#
+# L_j(u) - y has a double root exactly at a turning point attaining y, and
+# polyroot() is ill-conditioned on double roots: from around degree 7 up it
+# can return two numerically distinct approximations of the same turning
+# point (a gap as large as ~3e-6 at degree 12) rather than the single merged
+# root legendre_realroots() intends. The turning points themselves come from
+# a separate, well-conditioned root-finding (simple roots of L_j'), so any
+# root within `tol` of a known turning point is treated as that turning
+# point rather than trusted as its own value; `tol` sits comfortably between
+# that noise and the smallest genuine gap between distinct break points
+# across the class's documented usable degree range (<= 12).
+setMethod("udpbreaks", "udplegendre", function(x) {
+  cfs <- x@cfs
+  cfsD <- x@cfsD
+  tp <- legendre_turnpoints(cfsD)
+  if (!length(tp)) {
+    return(c(0, 1))
+  }
+  tol <- 5e-5
+  yv <- sort(polyval(cfs, tp))
+  yv <- yv[c(TRUE, diff(yv) > 1e-7)]
+  cross <- unlist(lapply(yv, function(y) {
+    r <- legendre_realroots(cfs, y)
+    r[vapply(r, function(ri) all(abs(ri - tp) > tol), logical(1))]
+  }))
+  pts <- sort(c(0, 1, tp, cross))
+  pts[c(TRUE, diff(pts) > tol)]
+})
+
 #' @describeIn pcoincide Integrate `sum_j p_j(v)^2` as in the default method,
 #'   but split the range at the images of the turning points of `L_j`, where
 #'   the integrand has a corner, so each piece is smooth. Accuracy is bounded

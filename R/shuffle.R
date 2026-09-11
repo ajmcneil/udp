@@ -102,6 +102,11 @@ setMethod("udpderiv", "shuffle", function(x, u) {
   out
 })
 
+# Breakpoints: the m strip boundaries, where the slope can switch sign.
+setMethod("udpbreaks", "shuffle", function(x) {
+  (0:length(x@perm)) / length(x@perm)
+})
+
 #' @describeIn pcoincide A shuffle is a bijection, so stochastic inversion
 #'   always recovers the original value: the probability is `1`.
 #' @export
