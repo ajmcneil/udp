@@ -35,6 +35,7 @@ reference:
   - udptrans
   - udpsi
   - udpinverse
+  - udpderiv
   - pcoincide
 
 - title: Fitting

@@ -295,6 +295,48 @@ setMethod("udpinverse", "udplegendre", function(x, v, prob = FALSE, ...) {
   M
 })
 
+#' @describeIn udpderiv `T'(u) = f_j(L_j(u)) * L_j'(u)`, where `f_j` is the
+#'   density of `L_j(U)`, `sum(1 / abs(L_j'(u_i)))` over the pre-images of
+#'   `L_j(u)` found by the same root-finding as [udpinverse()]. At a turning
+#'   point of `L_j` this is `0 * Inf`; it is replaced there by the exact left
+#'   derivative, `2 * m` or `-2 * m` according to the sign of `L_j''`, where
+#'   `m` is the number of turning points sharing that critical value (usually
+#'   `1`; shifted-Legendre polynomials of even degree are symmetric about
+#'   `u = 1/2`, so their turning points other than the centre come in mirror
+#'   pairs `m = 2` with the same critical value). At any other pre-image of a
+#'   turning-point value `T` has a one-sided vertical tangent, which the
+#'   formula already returns as `Inf` or `-Inf` without a special case.
+#' @export
+setMethod("udpderiv", "udplegendre", function(x, u) {
+  uu <- pmin(pmax(as.numeric(u), 0), 1)
+  cfs <- x@cfs
+  cfsD <- x@cfsD
+  tp <- legendre_turnpoints(cfsD)
+  cfsDD <- if (length(tp)) poly_deriv_coef(cfsD) else numeric(0)
+  # turning points that share a critical value (mirror pairs under even
+  # degree's u -> 1 - u symmetry) feed the same F_j singularity, so the corner
+  # slope there scales with how many of them coincide
+  tpval <- if (length(tp)) polyval(cfs, tp) else numeric(0)
+  mult <- vapply(tpval, function(v) sum(abs(tpval - v) < 1e-6), integer(1))
+  tol <- 1e-5
+  out <- vapply(uu, function(ui) {
+    if (length(tp)) {
+      j <- which.min(abs(ui - tp))
+      if (abs(ui - tp[j]) < tol) {
+        return(-2 * mult[j] * sign(polyval(cfsDD, tp[j])))
+      }
+    }
+    y <- polyval(cfs, ui)
+    r <- legendre_realroots(cfs, y)
+    fY <- sum(1 / abs(polyval(cfsD, r)))
+    fY * polyval(cfsD, ui)
+  }, numeric(1))
+  if (!is.null(attributes(u))) {
+    attributes(out) <- attributes(u)
+  }
+  out
+})
+
 #' @describeIn pcoincide Integrate `sum_j p_j(v)^2` as in the default method,
 #'   but split the range at the images of the turning points of `L_j`, where
 #'   the integrand has a corner, so each piece is smooth. Accuracy is bounded

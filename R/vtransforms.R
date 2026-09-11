@@ -268,6 +268,12 @@ vgradient <- function(x, u) {
   g
 }
 
+#' @describeIn udpderiv The analytic gradient stored in the vtransform's
+#'   `gradient` slot; already returns the lower-branch value at the fulcrum
+#'   `delta`.
+#' @export
+setMethod("udpderiv", "vtransform", function(x, u) vgradient(x, u))
+
 #' Calculate the lower-branch inverse of a v-transform
 #'
 #' Returns the pre-image at or below the fulcrum: the value `u` in

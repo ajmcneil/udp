@@ -86,6 +86,22 @@ setMethod("udpinverse", "shuffle", function(x, v, prob = FALSE, ...) {
   M
 })
 
+#' @describeIn udpderiv The slope `signs[i]` of the strip containing `u`
+#'   (`1` or `-1`), taking the left strip at a strip boundary and the right
+#'   strip at `u = 0`, where there is no left strip.
+#' @export
+setMethod("udpderiv", "shuffle", function(x, u) {
+  m <- length(x@perm)
+  uu <- as.numeric(u)
+  i <- as.integer(floor(uu * m - 1e-9)) + 1L
+  i <- pmin(pmax(i, 1L), m)
+  out <- x@signs[i]
+  if (!is.null(attributes(u))) {
+    attributes(out) <- attributes(u)
+  }
+  out
+})
+
 #' @describeIn pcoincide A shuffle is a bijection, so stochastic inversion
 #'   always recovers the original value: the probability is `1`.
 #' @export

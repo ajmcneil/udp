@@ -1,5 +1,13 @@
 # udp 0.1.1
 
+* Added `udpderiv()`, the derivative `T'(u)` of a udp transformation, as a
+  generic over every class. At the finitely many points where `T` is not
+  differentiable it returns the left derivative (the right derivative at
+  `u = 0`). For `udplegendre`, `T'` is computed from the same exact polynomial
+  root-finding as `udpinverse()`; at a turning point of the underlying
+  shifted-Legendre polynomial the one-sided slope is `2` or `-2` times the
+  number of turning points sharing that critical value (mirror pairs under
+  the symmetry of even degree contribute together).
 * `aceshuffle()` now returns `V`, a two-column matrix of the shuffled data
   (`udptrans(shuffle1, U1)`, `udptrans(shuffle2, U2)`), in place of the echoed
   input.
