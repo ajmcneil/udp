@@ -44,6 +44,6 @@ behave like one-sided turning points -- see the file header), so they are
 handled separately in each role.
 }
 \examples{
-plot(udpcosine_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+plot(udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 plot(udpcosine_sum(c(0, 0.6, 0, -0.4)), embellish = "bw")
 }

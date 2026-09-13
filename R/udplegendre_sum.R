@@ -139,8 +139,8 @@ setClass("udplegendre_sum",
 #' @export
 #'
 #' @examples
-#' udplegendre_sum(c(0.7, -0.35, 0, 0.5, -0.25))
-#' plot(udplegendre_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+#' udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+#' plot(udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 udplegendre_sum <- function(coef, ngrid = 513L) {
   if (!is.numeric(coef) || length(coef) < 1L || anyNA(coef)) {
     stop("'coef' must be a numeric vector with no missing values.", call. = FALSE)
@@ -319,9 +319,15 @@ setMethod("udpderiv", "udplegendre_sum", function(x, u) {
   out
 })
 
-# Breakpoints: 0, 1, and every non-smooth point of T. Identical in method to
-# udplegendre's method (see there for the reasoning); no dependency on
-# lbound/ubound.
+# Breakpoints: 0, 1, and every non-smooth point of T. Similar in method to
+# udplegendre's method, but the set of critical values whose other pre-images
+# also need finding is bigger here: not just the turning-point values, but
+# also g(0) and g(1) -- unlike a pure L_j, a general combination can have
+# some OTHER u where g(u) = g(0) or g(u) = g(1) exactly (an ordinary point of
+# g, but T inherits F's kink at that shared value all the same, exactly as
+# it does at u = 0/1 themselves). If tp is empty, g is injective (no turning
+# point means no repeated value by Rolle's theorem), so no cross points of
+# either kind are possible and the early return is still exact.
 setMethod("udpbreaks", "udplegendre_sum", function(x) {
   cfs <- x@cfs
   cfsD <- x@cfsD
@@ -330,13 +336,14 @@ setMethod("udpbreaks", "udplegendre_sum", function(x) {
     return(c(0, 1))
   }
   tol <- 5e-5
-  yv <- sort(polyval(cfs, tp))
+  yv <- sort(c(polyval(cfs, tp), polyval(cfs, c(0, 1))))
   yv <- yv[c(TRUE, diff(yv) > 1e-7)]
+  base <- c(0, 1, tp)
   cross <- unlist(lapply(yv, function(y) {
     r <- legendre_realroots(cfs, y)
-    r[vapply(r, function(ri) all(abs(ri - tp) > tol), logical(1))]
+    r[vapply(r, function(ri) all(abs(ri - base) > tol), logical(1))]
   }))
-  pts <- sort(c(0, 1, tp, cross))
+  pts <- sort(c(base, cross))
   pts[c(TRUE, diff(pts) > tol)]
 })
 
@@ -375,7 +382,7 @@ setMethod("pcoincide", "udplegendre_sum", function(x) {
 #' @export
 #'
 #' @examples
-#' plot(udplegendre_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+#' plot(udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 #' plot(udplegendre_sum(c(0, 0.6, 0, -0.4)), embellish = "bw")
 setMethod("plot", c(x = "udplegendre_sum", y = "missing"),
   function(x, n = 500L, xlab = "u", ylab = "T(u)",

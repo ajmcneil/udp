@@ -29,6 +29,6 @@ exactly, up to the \code{1 / sqrt(2)} rescaling needed to undo the orthonormal
 the sign of every entry of \code{coef} replaces \code{T} with its complement, \code{1 - T}.
 }
 \examples{
-udpcosine_sum(c(0.7, -0.35, 0, 0.5, -0.25))
-plot(udpcosine_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+plot(udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 }

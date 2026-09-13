@@ -220,8 +220,8 @@ setClass("udpcosine_sum",
 #' @export
 #'
 #' @examples
-#' udpcosine_sum(c(0.7, -0.35, 0, 0.5, -0.25))
-#' plot(udpcosine_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+#' udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+#' plot(udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 udpcosine_sum <- function(coef, ngrid = 513L) {
   if (!is.numeric(coef) || length(coef) < 1L || anyNA(coef)) {
     stop("'coef' must be a numeric vector with no missing values.", call. = FALSE)
@@ -410,9 +410,13 @@ setMethod("udpderiv", "udpcosine_sum", function(x, u) {
   out
 })
 
-# Breakpoints: 0, 1, and every non-smooth point of T. Identical in method to
-# udplegendre_sum's (see there for the reasoning); u = 0 and u = 1 are always
-# included regardless (they always are, unconditionally, for this class).
+# Breakpoints: 0, 1, and every non-smooth point of T. Similar in method to
+# udplegendre_sum's, but with the same broadened critical-value set (see
+# there): also search for other pre-images of g(0) = h(1) and g(1) = h(-1),
+# not just of the turning-point values. u = 0 and u = 1 are always included
+# regardless (they always are, unconditionally, for this class); if tp_x is
+# empty, g is injective (no turning point means no repeated value), so no
+# cross points of either kind are possible and the early return is exact.
 setMethod("udpbreaks", "udpcosine_sum", function(x) {
   cfs <- x@cfs
   cfsD <- x@cfsD
@@ -422,14 +426,15 @@ setMethod("udpbreaks", "udpcosine_sum", function(x) {
   }
   tol <- 5e-5
   tp_u <- sort(acos(pmin(pmax(tp_x, -1), 1)) / pi)
-  yv <- sort(polyval(cfs, tp_x))
+  yv <- sort(c(polyval(cfs, tp_x), polyval(cfs, c(-1, 1))))
   yv <- yv[c(TRUE, diff(yv) > 1e-7)]
+  base <- c(0, 1, tp_u)
   cross <- unlist(lapply(yv, function(y) {
     rx <- chebyshev_realroots(cfs, y)
     ru <- acos(pmin(pmax(rx, -1), 1)) / pi
-    ru[vapply(ru, function(ri) all(abs(ri - tp_u) > tol), logical(1))]
+    ru[vapply(ru, function(ri) all(abs(ri - base) > tol), logical(1))]
   }))
-  pts <- sort(c(0, 1, tp_u, cross))
+  pts <- sort(c(base, cross))
   pts[c(TRUE, diff(pts) > tol)]
 })
 
@@ -471,7 +476,7 @@ setMethod("pcoincide", "udpcosine_sum", function(x) {
 #' @export
 #'
 #' @examples
-#' plot(udpcosine_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+#' plot(udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 #' plot(udpcosine_sum(c(0, 0.6, 0, -0.4)), embellish = "bw")
 setMethod("plot", c(x = "udpcosine_sum", y = "missing"),
   function(x, n = 500L, xlab = "u", ylab = "T(u)",

@@ -186,6 +186,23 @@ test_that("pcoincide() lies in (0, 1] and agrees with the default integrator", {
   expect_equal(p, integrate_collision(x), tolerance = 1e-4)
 })
 
+test_that("udpbreaks() finds other pre-images of g(0)/g(1), not just of turning points", {
+  # g(u) = g(1) has a second real root at u ~ 0.4196 besides the trivial
+  # u = 1 itself; T genuinely has a kink there (it inherits F's kink at the
+  # shared value), but nothing about u = 0.4196 makes it a turning point or
+  # a pre-image of one, so only searching turning-point critical values
+  # misses it.
+  x <- udpcosine_sum(c(0.3, -0.2))
+  b <- udpbreaks(x)
+  expect_true(any(abs(b - 0.4195694) < 1e-4))
+
+  # and this doesn't change the distinct T-partition values: T() at the new
+  # point equals T(1) exactly, by construction
+  tv <- sort(udptrans(x, b))
+  tv <- tv[c(TRUE, diff(tv) > 1e-5)]
+  expect_equal(length(tv), 3L) # 0, ~T(1), 1
+})
+
 test_that("plot() runs, including for a degree with no turning points", {
   f <- tempfile(fileext = ".pdf")
   pdf(f)

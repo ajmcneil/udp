@@ -42,6 +42,6 @@ and \code{u = 1} are always A-partition members but need not be trivial
 T-partition values, so they are handled separately in each role.
 }
 \examples{
-plot(udplegendre_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+plot(udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 plot(udplegendre_sum(c(0, 0.6, 0, -0.4)), embellish = "bw")
 }

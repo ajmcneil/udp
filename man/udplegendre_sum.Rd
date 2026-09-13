@@ -46,6 +46,6 @@ panel there, rather than asking one spline to interpolate through the
 kink, is what keeps accuracy close to \linkS4class{udplegendre}'s.
 }
 \examples{
-udplegendre_sum(c(0.7, -0.35, 0, 0.5, -0.25))
-plot(udplegendre_sum(c(0.7, -0.35, 0, 0.5, -0.25)), embellish = "colour")
+udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+plot(udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
 }
