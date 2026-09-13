@@ -1,0 +1,110 @@
+---
+title: "Finite orthogonal-series udp transformations"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Finite orthogonal-series udp transformations}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 5,
+  fig.height = 4,
+  fig.align = "center"
+)
+```
+
+```{r library}
+library(udp)
+```
+
+`udplegendre(j)` and `udpcosine(j)` each build a udp transformation from a
+single degree-`j` term of an orthonormal basis on `[0, 1]` -- shifted
+Legendre polynomials for one, cosines for the other. `udplegendre_sum()` and
+`udpcosine_sum()` generalize both to a finite weighted *sum* of terms,
+`g(u) = sum_j coef[j] * basis_j(u)`. The construction is otherwise the same
+as for the single-term classes -- `T(u) = F(g(u))` for `F` the distribution
+function of `g(U)` -- but a sum can have as many turning points as its
+effective degree allows, and its range need not be symmetric, giving access
+to shapes a single term cannot produce.
+
+Throughout we work with a single uniform sample.
+
+```{r data}
+set.seed(1)
+n <- 1000
+U <- runif(n)
+```
+
+## A sum of Legendre polynomials
+
+`udplegendre_sum()` takes a vector of weights on the orthonormal shifted
+Legendre polynomials. A one-term vector reproduces `udplegendre()` exactly;
+combining several terms produces a curve with more turning points and a less
+regular shape than any single degree could.
+
+```{r legendre-sum}
+T1 <- udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+plot(T1, embellish = "colour")
+```
+
+`udptrans()` applies the map; the transformed sample is still uniform.
+
+```{r legendre-sum-forward}
+V <- udptrans(T1, U)
+hist(V, main = "udptrans(T1, U)")
+```
+
+The map is many-to-one, so it has no ordinary inverse. `udpsi()` draws one
+pre-image at random, in the proportion that keeps the uniform property
+running backwards.
+
+```{r legendre-sum-inverse}
+U2 <- udpsi(T1, V)
+hist(U2, main = "udpsi(T1, V)")
+```
+
+`pcoincide()` gives the probability that stochastic inversion lands back on
+the original value.
+
+```{r legendre-sum-pcoincide}
+plot(U, U2, pch = 20, cex = 0.4)
+pcoincide(T1)
+```
+
+## A sum of cosine functions
+
+`udpcosine_sum()` is built the same way from the orthonormal cosine
+functions. Internally it works with the Chebyshev polynomial that
+`g(u) = h(cos(pi * u))` reduces to, but the interface -- construction, plot,
+`udptrans()`, `udpsi()`, `pcoincide()` -- is identical to
+`udplegendre_sum()`.
+
+```{r cosine-sum}
+T2 <- udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+plot(T2, embellish = "colour")
+
+V <- udptrans(T2, U)
+U2 <- udpsi(T2, V)
+pcoincide(T2)
+```
+
+## The same weights, two different shapes
+
+Passed the same coefficients, the two constructions give visibly different
+curves -- one built from a polynomial, the other from a trigonometric sum --
+despite sharing an orthonormal-expansion origin, a stochastic inverse, and
+the uniform-distribution-preserving property itself.
+
+```{r compare, fig.show = "hold", fig.width = 4}
+plot(T1, main = "udplegendre_sum", embellish = "colour")
+plot(T2, main = "udpcosine_sum", embellish = "colour")
+```
+
+## References
+
+- McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and
+  models of non-monotonic dependence. arXiv:2512.10828.

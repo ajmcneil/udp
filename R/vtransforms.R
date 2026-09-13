@@ -425,8 +425,8 @@ setMethod("udpinverse", "vtransform",
 #' @param type type of plot: 'transform' for plot of transform, 'inverse' for plot of inverse,
 #' 'gradient' for plot of gradient or 'pdown' for plot of conditional probability.
 #' @param embellish style of the shading of the inadmissible zone (drawn only
-#' for `type = "transform"`): `"colour"` (the default) for a light red fill,
-#' `"bw"` for a grey fill, or `"none"` for no shading.
+#' for `type = "transform"`): `"none"` (the default) for no shading,
+#' `"colour"` for a light red fill, or `"bw"` for a grey fill.
 #' @param npoints number of plotting points along x-axis.
 #' @param lower the lower x-axis value for plotting.
 #' @param upper the upper x-axis value for plotting
@@ -437,12 +437,12 @@ setMethod("udpinverse", "vtransform",
 #'
 #'
 #' @examples
-#' plot(vsymmetric())
+#' plot(vsymmetric(), embellish = "colour")
 #' plot(vsymmetric(), embellish = "none")
 #' plot(v2p(delta = 0.45, kappa = 0.8), type = "inverse")
 #' plot(v2p(delta = 0.45, kappa = 0.8), type = "gradient")
 setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transform",
-                                                               embellish = c("colour", "bw", "none"),
+                                                               embellish = c("none", "colour", "bw"),
                                                                npoints = 200, lower = 0, upper = 1, ...) {
   emb <- plot_embellish(embellish)
   delta <- ifelse(is.element("delta", names(x@pars)), x@pars["delta"], 0.5)

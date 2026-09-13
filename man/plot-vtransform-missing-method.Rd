@@ -7,7 +7,7 @@
 \S4method{plot}{vtransform,missing}(
   x,
   type = "transform",
-  embellish = c("colour", "bw", "none"),
+  embellish = c("none", "colour", "bw"),
   npoints = 200,
   lower = 0,
   upper = 1,
@@ -21,8 +21,8 @@
 'gradient' for plot of gradient or 'pdown' for plot of conditional probability.}
 
 \item{embellish}{style of the shading of the inadmissible zone (drawn only
-for \code{type = "transform"}): \code{"colour"} (the default) for a light red fill,
-\code{"bw"} for a grey fill, or \code{"none"} for no shading.}
+for \code{type = "transform"}): \code{"none"} (the default) for no shading,
+\code{"colour"} for a light red fill, or \code{"bw"} for a grey fill.}
 
 \item{npoints}{number of plotting points along x-axis.}
 
@@ -41,7 +41,7 @@ conditional probability that a series PIT falls below the fulcrum for a
 given volatility PIT value v.
 }
 \examples{
-plot(vsymmetric())
+plot(vsymmetric(), embellish = "colour")
 plot(vsymmetric(), embellish = "none")
 plot(v2p(delta = 0.45, kappa = 0.8), type = "inverse")
 plot(v2p(delta = 0.45, kappa = 0.8), type = "gradient")

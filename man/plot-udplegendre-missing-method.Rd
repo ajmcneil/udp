@@ -9,7 +9,7 @@
   n = 500L,
   xlab = "u",
   ylab = "T(u)",
-  embellish = c("colour", "bw", "none"),
+  embellish = c("none", "colour", "bw"),
   ...
 )
 }
@@ -20,8 +20,8 @@
 
 \item{xlab, ylab}{axis labels.}
 
-\item{embellish}{style of the turning-point gridlines: \code{"colour"} (the
-default) for red, \code{"bw"} for grey, or \code{"none"} to omit them.}
+\item{embellish}{style of the gridlines: \code{"none"} (the default) to omit
+them, \code{"colour"} for red, or \code{"bw"} for grey.}
 
 \item{...}{further graphical parameters passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
@@ -30,11 +30,18 @@ No return value, generates a plot.
 }
 \description{
 Draws the graph of the shifted-Legendre udp transformation over thin
-gridlines: vertical at the turning points of \code{L_j} (which are also the
-turning points of \code{T}) and horizontal at the transformed turning-point
-values \code{T(tp)}.
+gridlines marking its A-partition and T-partition: vertical lines at the
+points of \code{udpbreaks()} (the A-partition, \code{0} and \code{1} excluded as
+redundant with the plot's own border), the coarsest partition of
+\verb{[0, 1]} into intervals on which \code{T} is continuously differentiable;
+horizontal lines at the distinct values \code{T} takes at those points (the
+T-partition), \code{0} and \code{1} again excluded. A point with a one-sided
+vertical tangent but no fold (a pre-image of a turning point's critical
+value that is not itself a turning point) reaches the same \code{T} value as
+that turning point, so it contributes a vertical line without adding a
+new horizontal one.
 }
 \examples{
-plot(udplegendre(4))
+plot(udplegendre(4), embellish = "colour")
 plot(udplegendre(7), embellish = "none")
 }

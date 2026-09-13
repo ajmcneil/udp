@@ -60,5 +60,5 @@ u1 <- runif(2000)
 u2 <- (u1 + 0.5) \%\% 1
 fit <- aceshuffle(u1, u2, m = 4)
 fit$correlation
-plot(fit$shuffle1)
+plot(fit$shuffle1, embellish = "colour")
 }

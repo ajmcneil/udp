@@ -284,7 +284,7 @@ finalise_prob <- function(w, present) {
 # Resolve the `embellish` argument shared by the plot() methods. Returns a list
 # with `grid` (colour for turning-point / kink gridlines) and `fill` (colour
 # for the v-transform inadmissible-zone shading), or NULL for "none".
-plot_embellish <- function(embellish = c("colour", "bw", "none")) {
+plot_embellish <- function(embellish = c("none", "colour", "bw")) {
   switch(match.arg(embellish),
     colour = list(grid = "red", fill = "mistyrose"),
     bw = list(grid = "grey55", fill = "grey90"),

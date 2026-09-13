@@ -119,18 +119,18 @@ setMethod("pcoincide", "shuffle", function(x) 1)
 #'
 #' @param x an object of class \linkS4class{shuffle}.
 #' @param xlab,ylab axis labels.
-#' @param embellish style of the strip-boundary gridlines: `"colour"` (the
-#'   default) for red, `"bw"` for grey, or `"none"` to omit them.
+#' @param embellish style of the strip-boundary gridlines: `"none"` (the
+#'   default) to omit them, `"colour"` for red, or `"bw"` for grey.
 #' @param ... further graphical parameters passed to [graphics::plot()].
 #'
 #' @return No return value, generates a plot.
 #' @export
 #'
 #' @examples
-#' plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)))
+#' plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)), embellish = "colour")
 #' plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)), embellish = "none")
 setMethod("plot", c(x = "shuffle", y = "missing"),
-  function(x, xlab = "u", ylab = "T(u)", embellish = c("colour", "bw", "none"),
+  function(x, xlab = "u", ylab = "T(u)", embellish = c("none", "colour", "bw"),
            ...) {
     emb <- plot_embellish(embellish)
     m <- length(x@perm)
@@ -223,7 +223,7 @@ shuffle_trend <- function(x) {
 #' u2 <- (u1 + 0.5) %% 1
 #' fit <- aceshuffle(u1, u2, m = 4)
 #' fit$correlation
-#' plot(fit$shuffle1)
+#' plot(fit$shuffle1, embellish = "colour")
 aceshuffle <- function(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL) {
   n <- length(U1)
   if (!is.numeric(U1) || !is.numeric(U2) || length(U2) != n || n < 2L) {

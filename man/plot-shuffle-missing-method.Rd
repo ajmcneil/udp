@@ -4,15 +4,15 @@
 \alias{plot,shuffle,missing-method}
 \title{Plot method for the shuffle class}
 \usage{
-\S4method{plot}{shuffle,missing}(x, xlab = "u", ylab = "T(u)", embellish = c("colour", "bw", "none"), ...)
+\S4method{plot}{shuffle,missing}(x, xlab = "u", ylab = "T(u)", embellish = c("none", "colour", "bw"), ...)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{shuffle}.}
 
 \item{xlab, ylab}{axis labels.}
 
-\item{embellish}{style of the strip-boundary gridlines: \code{"colour"} (the
-default) for red, \code{"bw"} for grey, or \code{"none"} to omit them.}
+\item{embellish}{style of the strip-boundary gridlines: \code{"none"} (the
+default) to omit them, \code{"colour"} for red, or \code{"bw"} for grey.}
 
 \item{...}{further graphical parameters passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
@@ -24,6 +24,6 @@ Draws the graph of the shuffle as one thick black line segment per strip,
 over thin gridlines at the boundaries of the vertical and horizontal strips.
 }
 \examples{
-plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)))
+plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)), embellish = "colour")
 plot(shuffle(c(3, 1, 2), signs = c(1, -1, 1)), embellish = "none")
 }

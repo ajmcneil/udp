@@ -43,7 +43,7 @@ that uniformity is preserved. `v2p()` builds a smooth two-parameter version.
 
 ```{r vtransform}
 T1 <- v2p(delta = 0.4, kappa = 0.8)
-plot(T1)
+plot(T1, embellish = "colour")
 ```
 
 `udptrans()` applies the map. The transformed sample is still uniform:
@@ -82,7 +82,7 @@ uniformity exactly and `udpsi()` recovers the input.
 perm <- sample(1:20)
 signs <- rbinom(20, 1, 0.5) * 2 - 1
 T2 <- shuffle(perm, signs)
-plot(T2)
+plot(T2, embellish = "colour")
 
 hist(udptrans(T2, U), main = "udptrans(T2, U)")
 ```
@@ -94,7 +94,7 @@ hist(udptrans(T2, U), main = "udptrans(T2, U)")
 
 ```{r cosine}
 T3 <- udpcosine(6)
-plot(T3)
+plot(T3, embellish = "colour")
 
 V <- udptrans(T3, U)
 U2 <- udpsi(T3, V)
@@ -110,8 +110,8 @@ distribution function of `L_j(U)`. It has up to `j` pre-images, weighted by
 `1 / |L_j'|`.
 
 ```{r legendre}
-T4 <- udplegendre(5)
-plot(T4)
+T4 <- udplegendre(4)
+plot(T4, embellish = "colour")
 
 V <- udptrans(T4, U)
 U2 <- udpsi(T4, V)
@@ -130,10 +130,15 @@ knitr::opts_chunk$set(eval = requireNamespace("copula", quietly = TRUE))
 ```
 
 ```{r ace-data}
+# odd degree, unlike T4: its shape isn't close to symmetric about the centre
+# of the unit square, which matters below when aceshuffle() has to pick an
+# orientation
+T5 <- udplegendre(5)
+
 set.seed(1)
 GC <- copula::gumbelCopula(3)
 W <- copula::rCopula(n, GC)
-X <- cbind(udpsi(T4, W[, 1]), udpsi(T3, W[, 2]))
+X <- cbind(udpsi(T5, W[, 1]), udpsi(T3, W[, 2]))
 plot(X, pch = 20, cex = 0.4, xlab = "X1", ylab = "X2")
 ```
 
@@ -157,10 +162,10 @@ trend upward.
 ```{r ace-shapes, fig.show = "hold", fig.width = 4}
 u <- seq(0, 1, length.out = 200)
 
-plot(fit$shuffle1)
-lines(u, udptrans(T4, u), col = 2, lwd = 2)
+plot(fit$shuffle1, embellish = "colour")
+lines(u, udptrans(T5, u), col = 2, lwd = 2)
 
-plot(fit$shuffle2)
+plot(fit$shuffle2, embellish = "colour")
 lines(u, udptrans(T3, u), col = 2, lwd = 2)
 ```
 

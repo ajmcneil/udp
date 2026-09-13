@@ -37,4 +37,6 @@ Collate:
     'shuffle.R'
     'udpcosine.R'
     'udplegendre.R'
+    'udpcosine_sum.R'
+    'udplegendre_sum.R'
     'vtransforms.R'

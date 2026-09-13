@@ -161,3 +161,37 @@ test_that("plot() runs for a udplegendre", {
   }
   expect_no_error(plot(udplegendre(5), n = 200, main = "degree 5", ylab = "y"))
 })
+
+test_that("plot() draws the full A-partition, but the T-partition stays turning-point-only", {
+  # udplegendre(5) has 4 turning points but 12 udpbreaks() interior points
+  # (8 extra pre-images of turning-point critical values); the vertical
+  # gridlines should reflect the full A-partition, while T(0)/T(1) are always
+  # trivial for a pure single-term udplegendre, so the horizontal gridlines
+  # stay exactly at the 4 turning-point values.
+  x <- udplegendre(5)
+  tp <- legendre_turnpoints(x@cfsD)
+  b <- udpbreaks(x)
+  bu <- b[b > 0 & b < 1]
+  expect_gt(length(bu), length(tp))
+  expect_equal(length(bu), 12L)
+
+  f <- tempfile(fileext = ".pdf")
+  pdf(f)
+  on.exit({
+    dev.off()
+    unlink(f)
+  })
+  vlines <- numeric(0)
+  hlines <- numeric(0)
+  local_mocked_bindings(
+    segments = function(x0, y0, x1, y1, ...) {
+      if (identical(y0, 0) && identical(y1, 1)) vlines <<- c(vlines, x0)
+      if (identical(x0, 0) && identical(x1, 1)) hlines <<- c(hlines, y0)
+      invisible(NULL)
+    },
+    .package = "udp"
+  )
+  plot(x, embellish = "colour")
+  expect_equal(sort(vlines), sort(bu), tolerance = 1e-6)
+  expect_equal(length(unique(round(hlines, 4))), length(unique(round(udptrans(x, tp), 4))))
+})

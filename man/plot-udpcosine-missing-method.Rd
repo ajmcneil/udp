@@ -4,15 +4,15 @@
 \alias{plot,udpcosine,missing-method}
 \title{Plot method for the udpcosine class}
 \usage{
-\S4method{plot}{udpcosine,missing}(x, xlab = "u", ylab = "T(u)", embellish = c("colour", "bw", "none"), ...)
+\S4method{plot}{udpcosine,missing}(x, xlab = "u", ylab = "T(u)", embellish = c("none", "colour", "bw"), ...)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{udpcosine}.}
 
 \item{xlab, ylab}{axis labels.}
 
-\item{embellish}{style of the kink gridlines: \code{"colour"} (the default) for
-red, \code{"bw"} for grey, or \code{"none"} to omit them.}
+\item{embellish}{style of the kink gridlines: \code{"none"} (the default) to
+omit them, \code{"colour"} for red, or \code{"bw"} for grey.}
 
 \item{...}{further graphical parameters passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
@@ -24,6 +24,6 @@ Draws the graph of the cosine udp transformation over thin gridlines at the
 boundaries of its \code{degree} linear pieces.
 }
 \examples{
-plot(udpcosine(3))
+plot(udpcosine(3), embellish = "colour")
 plot(udpcosine(4), embellish = "bw")
 }

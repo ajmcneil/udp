@@ -129,18 +129,18 @@ setMethod("pcoincide", "udpcosine", function(x) 1 / x@degree)
 #'
 #' @param x an object of class \linkS4class{udpcosine}.
 #' @param xlab,ylab axis labels.
-#' @param embellish style of the kink gridlines: `"colour"` (the default) for
-#'   red, `"bw"` for grey, or `"none"` to omit them.
+#' @param embellish style of the kink gridlines: `"none"` (the default) to
+#'   omit them, `"colour"` for red, or `"bw"` for grey.
 #' @param ... further graphical parameters passed to [graphics::plot()].
 #'
 #' @return No return value, generates a plot.
 #' @export
 #'
 #' @examples
-#' plot(udpcosine(3))
+#' plot(udpcosine(3), embellish = "colour")
 #' plot(udpcosine(4), embellish = "bw")
 setMethod("plot", c(x = "udpcosine", y = "missing"),
-  function(x, xlab = "u", ylab = "T(u)", embellish = c("colour", "bw", "none"),
+  function(x, xlab = "u", ylab = "T(u)", embellish = c("none", "colour", "bw"),
            ...) {
     emb <- plot_embellish(embellish)
     u <- (0:x@degree) / x@degree

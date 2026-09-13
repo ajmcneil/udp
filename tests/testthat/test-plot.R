@@ -44,20 +44,22 @@ test_that("gridlines stay within the unit square", {
 
   for (x in list(shuffle(c(3, 1, 2), signs = c(1, -1, 1)), udpcosine(5),
     udplegendre(6))) {
+    # the default is "none": no explicit embellish draws no gridlines
     seg <- list()
     plot(x)
+    n_default <- length(seg)
+
+    seg <- list()
+    plot(x, embellish = "none")
+    n_none <- length(seg)
+    expect_identical(n_default, n_none)
+
+    seg <- list()
+    plot(x, embellish = "colour")
     coords <- unlist(seg)
     expect_true(all(is.finite(coords)))
     expect_gte(min(coords), 0)
     expect_lte(max(coords), 1)
-
-    # "none" draws no gridlines (the curve's own segments, if any, still count
-    # for the shuffle, so only assert the count drops)
-    seg <- list()
-    plot(x, embellish = "none")
-    n_none <- length(seg)
-    seg <- list()
-    plot(x, embellish = "colour")
     expect_gt(length(seg), n_none)
   }
 })
