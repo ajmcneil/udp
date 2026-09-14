@@ -32,7 +32,9 @@ derivative.}
 
 \item{\code{lbound}}{lower end of the range of \code{L_j} on \verb{[0, 1]}.}
 
-\item{\code{Tfun,Qfun}}{functions evaluating \code{T} and \code{F_j^{-1}}.}
+\item{\code{Tfun,Ffun,Qfun}}{functions evaluating \code{T}, \code{F_j} and \code{F_j^{-1}}; see
+\code{\link[=udpcdf]{udpcdf()}} and \code{\link[=udpquantile]{udpquantile()}} for the public interface to \code{Ffun} and
+\code{Qfun}.}
 }}
 
 \references{

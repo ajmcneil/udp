@@ -1,5 +1,18 @@
 # udp 0.1.1
 
+* Added `udpcdf()` and `udpquantile()`, exposing `F` and `F^{-1}` directly
+  for udp classes built as `T(u) = F(g(u))` (currently `udplegendre`; `F` was
+  previously only reachable composed with `g`, via `udptrans()`). Supports
+  computing quantities of `g(U)` itself, such as the maximal/minimal
+  correlation attainable between two shifted-Legendre polynomials of a
+  comonotonic/countermonotonic pair.
+* Added `boundaryadjust()`, a general-purpose utility that nudges values
+  exactly at `0` or `1` strictly inside `(0, 1)` -- useful for the output of
+  `udptrans()` or of any other fitted transformation that should lie in the
+  open unit interval but can attain the closed boundary exactly. The default
+  tolerance is `1 / (2 * n)`, where `n` is the number of rows for a matrix
+  (one tolerance per observation, however many columns) and `length(u)`
+  otherwise.
 * Added an internal (unexported) `udpbreakcdf()`: for a set of query points
   (typically `udpbreaks(x)`), the probability that `udpsi()` selects a
   pre-image at or below each one -- the running sum of `udpinverse()`'s

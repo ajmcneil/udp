@@ -39,4 +39,5 @@ Collate:
     'udplegendre.R'
     'udpcosine_sum.R'
     'udplegendre_sum.R'
+    'utils.R'
     'vtransforms.R'

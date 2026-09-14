@@ -184,6 +184,44 @@ setGeneric("udpinverse", function(x, v, prob = FALSE, ...) {
 #' udpderiv(udplegendre(3), c(0.1, 0.3, 0.5))
 setGeneric("udpderiv", function(x, u) standardGeneric("udpderiv"))
 
+#' Distribution function of the underlying variable of a udp transformation
+#'
+#' Some \linkS4class{udp} transformations are built as a composition `T(u) =
+#' F(g(u))` of an underlying function `g` (for instance a polynomial) with the
+#' distribution function `F` of `g(U)` for `U` uniform on `[0, 1]` -- see
+#' \linkS4class{udplegendre}. `udpcdf()` evaluates that `F` directly, at raw
+#' values in the range of `g`, rather than composed with `g` the way
+#' [udptrans()] evaluates `T`. Only classes built this way have a method; it
+#' is not meaningful for every \linkS4class{udp} class (a \linkS4class{shuffle},
+#' for instance, has no such decomposition).
+#'
+#' @param x an object of class \linkS4class{udp}.
+#' @param y a numeric vector, raw values in the range of `g`.
+#'
+#' @return A numeric vector of probabilities in `[0, 1]`, the same length as `y`.
+#' @export
+#'
+#' @examples
+#' udpcdf(udplegendre(3), c(-0.5, 0, 0.5))
+setGeneric("udpcdf", function(x, y) standardGeneric("udpcdf"))
+
+#' Quantile function of the underlying variable of a udp transformation
+#'
+#' The inverse of [udpcdf()]: for a udp transformation built as `T(u) =
+#' F(g(u))`, `udpquantile()` evaluates `F^{-1}`, the quantile function of
+#' `g(U)` for `U` uniform on `[0, 1]`. As with [udpcdf()], only classes built
+#' this way have a method.
+#'
+#' @param x an object of class \linkS4class{udp}.
+#' @param v a numeric vector with values in `[0, 1]`.
+#'
+#' @return A numeric vector, the same length as `v`, of values in the range of `g`.
+#' @export
+#'
+#' @examples
+#' udpquantile(udplegendre(3), c(0.1, 0.5, 0.9))
+setGeneric("udpquantile", function(x, v) standardGeneric("udpquantile"))
+
 #' Probability that stochastic inversion recovers the original value
 #'
 #' Let `U` be uniform on `[0, 1]` and `V = udptrans(x, U)`. Feeding `V` back

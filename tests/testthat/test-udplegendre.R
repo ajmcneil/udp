@@ -59,6 +59,35 @@ test_that("udptrans() maps [0, 1] into [0, 1] and matches exact F_j(L_j(u))", {
   }
 })
 
+test_that("udpcdf() matches the exact F_j(y) computed straight from the definition", {
+  for (d in 1:9) {
+    x <- udplegendre(d)
+    y <- seq(x@lbound, 1, length.out = 101)
+    expect_equal(udpcdf(x, y), leg_cdf_exact(d, y), tolerance = 2e-3)
+  }
+})
+
+test_that("udpcdf() is 0 below lbound and 1 above 1", {
+  x <- udplegendre(4)
+  expect_equal(udpcdf(x, x@lbound - 1), 0)
+  expect_equal(udpcdf(x, 2), 1)
+})
+
+test_that("udpquantile() is the inverse of udpcdf() to panel-spline accuracy", {
+  for (d in 1:9) {
+    x <- udplegendre(d)
+    v <- seq(0.02, 0.98, length.out = 51)
+    y <- udpquantile(x, v)
+    expect_true(all(y >= x@lbound & y <= 1))
+    expect_equal(udpcdf(x, y), v, tolerance = 2e-3)
+  }
+})
+
+test_that("udpquantile() validates v", {
+  expect_error(udpquantile(udplegendre(3), c(0.5, 1.2)), "\\[0, 1\\]")
+  expect_error(udpquantile(udplegendre(3), c(0.5, NA)), "\\[0, 1\\]")
+})
+
 test_that("udptrans() preserves the shape and attributes of u", {
   u <- ts(seq(0.02, 0.98, length.out = 24), frequency = 4)
   y <- udptrans(udplegendre(5), u)

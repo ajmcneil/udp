@@ -132,7 +132,9 @@ legendre_measure <- function(coef, y, lbound) {
 #' @slot cfs,cfsD ascending monomial coefficients of `L_j` and of its
 #'   derivative.
 #' @slot lbound lower end of the range of `L_j` on `[0, 1]`.
-#' @slot Tfun,Qfun functions evaluating `T` and `F_j^{-1}`.
+#' @slot Tfun,Ffun,Qfun functions evaluating `T`, `F_j` and `F_j^{-1}`; see
+#'   [udpcdf()] and [udpquantile()] for the public interface to `Ffun` and
+#'   `Qfun`.
 #'
 #' @seealso [udplegendre()] to construct one, [udptrans()] to evaluate it.
 #' @include udp-package.R
@@ -145,7 +147,7 @@ setClass("udplegendre",
   contains = "udp",
   slots = list(
     degree = "integer", cfs = "numeric", cfsD = "numeric",
-    lbound = "numeric", Tfun = "function", Qfun = "function"
+    lbound = "numeric", Tfun = "function", Ffun = "function", Qfun = "function"
   )
 )
 
@@ -181,10 +183,12 @@ udplegendre <- function(degree, ngrid = 257L) {
   if (degree == 1L) {
     lbound <- -1
     Tfun <- function(u) u
+    Ffun <- function(y) pmin(pmax((y + 1) / 2, 0), 1)
     Qfun <- function(v) 2 * v - 1
   } else if (degree == 2L) {
     lbound <- -0.5
     Tfun <- function(u) abs(2 * u - 1)
+    Ffun <- function(y) pmin(pmax(sqrt(pmax((2 * y + 1) / 3, 0)), 0), 1)
     Qfun <- function(v) (3 * v^2 - 1) / 2
   } else {
     if (!is.numeric(ngrid) || length(ngrid) != 1L || is.na(ngrid) || ngrid < 3) {
@@ -251,7 +255,7 @@ udplegendre <- function(degree, ngrid = 257L) {
 
   new("udplegendre",
     degree = degree, cfs = cfs, cfsD = cfsD, lbound = lbound,
-    Tfun = Tfun, Qfun = Qfun
+    Tfun = Tfun, Ffun = Ffun, Qfun = Qfun
   )
 }
 
@@ -261,6 +265,30 @@ setMethod("udptrans", "udplegendre", function(x, u) {
   out <- pmin(pmax(x@Tfun(pmin(pmax(as.numeric(u), 0), 1)), 0), 1)
   if (!is.null(attributes(u))) {
     attributes(out) <- attributes(u)
+  }
+  out
+})
+
+#' @describeIn udpcdf `F_j`, the distribution function of `L_j(U)`.
+#' @export
+setMethod("udpcdf", "udplegendre", function(x, y) {
+  out <- x@Ffun(as.numeric(y))
+  if (!is.null(attributes(y))) {
+    attributes(out) <- attributes(y)
+  }
+  out
+})
+
+#' @describeIn udpquantile `F_j^{-1}`, the quantile function of `L_j(U)`.
+#' @export
+setMethod("udpquantile", "udplegendre", function(x, v) {
+  vv <- as.numeric(v)
+  if (anyNA(vv) || any(vv < 0 | vv > 1)) {
+    stop("every element of 'v' must be in [0, 1].", call. = FALSE)
+  }
+  out <- x@Qfun(vv)
+  if (!is.null(attributes(v))) {
+    attributes(out) <- attributes(v)
   }
   out
 })
