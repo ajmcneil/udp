@@ -1,5 +1,10 @@
 # udp 0.1.1
 
+* Every `plot()` method whose axes are both `[0, 1]` (`shuffle`, `udpcosine`,
+  `udpcosine_sum`, `udplegendre`, `udplegendre_sum`, and the `vtransform`
+  `"transform"`/`"inverse"`/`"pdown"` panels) now draws with `asp = 1`, so
+  the unit square renders as an actual square rather than being stretched
+  to the plotting device's own aspect ratio.
 * Added `udpcdf()` and `udpquantile()`, exposing `F` and `F^{-1}` directly
   for udp classes built as `T(u) = F(g(u))` (currently `udplegendre`; `F` was
   previously only reachable composed with `g`, via `udptrans()`). Supports

@@ -145,7 +145,7 @@ setMethod("plot", c(x = "udpcosine", y = "missing"),
     emb <- plot_embellish(embellish)
     u <- (0:x@degree) / x@degree
     plot(NA,
-      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
+      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i", asp = 1,
       xlab = xlab, ylab = ylab, ...
     )
     if (!is.null(emb)) segments(u, 0, u, 1, col = emb$grid, lwd = 0.5)

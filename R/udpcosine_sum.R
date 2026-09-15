@@ -485,7 +485,7 @@ setMethod("plot", c(x = "udpcosine_sum", y = "missing"),
     b <- udpbreaks(x)
     u <- sort(unique(c(seq(0, 1, length.out = n), b)))
     plot(NA,
-      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
+      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i", asp = 1,
       xlab = xlab, ylab = ylab, ...
     )
     if (!is.null(emb)) {

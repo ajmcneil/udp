@@ -450,7 +450,7 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(vvals, vinverse(x, vvals),
       xlab = "v", ylab = "Vinv(v)", type = "l", lwd = 1.5,
-      xaxs = "i", yaxs = "i", ...
+      xaxs = "i", yaxs = "i", asp = 1, ...
     )
   }, gradient = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
@@ -462,13 +462,13 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     plot(vvals, vdownprob(x, vvals),
       xlab = "v", ylab = "Delta(v)", type = "l", lwd = 1.5,
-      xaxs = "i", yaxs = "i", ...
+      xaxs = "i", yaxs = "i", asp = 1, ...
     )
   }, transform = {
     uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
     if ((delta > lower) & (delta < upper)) uvals <- sort(c(uvals, delta))
     plot(NA,
-      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i",
+      xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i", asp = 1,
       xlab = "u", ylab = "T(u)", ...
     )
     if (!is.null(emb)) {
