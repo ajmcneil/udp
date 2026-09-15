@@ -1,5 +1,7 @@
 # udp 0.1.1
 
+* License changed from MIT to GPL-3, matching `basiscor`, which depends on
+  `udp`.
 * Every `plot()` method whose axes are both `[0, 1]` (`shuffle`, `udpcosine`,
   `udpcosine_sum`, `udplegendre`, `udplegendre_sum`, and the `vtransform`
   `"transform"`/`"inverse"`/`"pdown"` panels) now draws with `asp = 1`, so

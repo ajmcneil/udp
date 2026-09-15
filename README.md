@@ -74,4 +74,4 @@ See `vignette("udp")` for the full tour.
 
 ## License
 
-MIT © Alexander J. McNeil
+GPL-3 © Alexander J. McNeil
