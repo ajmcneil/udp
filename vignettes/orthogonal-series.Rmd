@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 4.5,
+  fig.width = 3.9,
   fig.height = 4.5,
   fig.align = "center"
 )
@@ -71,7 +71,7 @@ hist(U2, main = "udpsi(T1, V)")
 the original value.
 
 ```{r legendre-sum-pcoincide}
-plot(U, U2, pch = 20, cex = 0.4, asp = 1)
+plot(U, U2, pch = 20, cex = 0.4, asp = 1, xaxs = "i", yaxs = "i")
 pcoincide(T1)
 ```
 
@@ -99,7 +99,7 @@ curves -- one built from a polynomial, the other from a trigonometric sum --
 despite sharing an orthonormal-expansion origin, a stochastic inverse, and
 the uniform-distribution-preserving property itself.
 
-```{r compare, fig.show = "hold", fig.width = 4.5}
+```{r compare, fig.show = "hold", fig.width = 3.9}
 plot(T1, main = "udplegendre_sum", embellish = "colour")
 plot(T2, main = "udpcosine_sum", embellish = "colour")
 ```
