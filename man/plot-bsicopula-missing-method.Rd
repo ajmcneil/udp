@@ -69,6 +69,12 @@ color scale is spread evenly across the whole plot instead of collapsing
 into a few small high-density patches against an undifferentiated
 background. The trade-off is that the fill color is ordinal, not a
 literal density scale -- the contour lines carry the actual values.
+Before ranking, every value below the lowest contour \code{level} is floored
+to that level, so they all tie for the same (lowest) rank: without this,
+near-degenerate copulas (correlation close to \code{-1} or \code{1}, say) can leave
+a speckle of tiny but numerically nonzero density values scattered across
+what should be a uniform background, which \code{rank()} -- having no notion
+of "negligible" -- would otherwise render as visible texture.
 }
 \examples{
 if (requireNamespace("rvinecopulib", quietly = TRUE)) {

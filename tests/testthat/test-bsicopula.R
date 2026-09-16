@@ -471,6 +471,54 @@ test_that("plot(type = \"contour\") fills by the rank-transformed density, not t
   # rank(), not the raw density, so the fill is spread across ~the full [0, 1]
   # range regardless of the density's own skew (ties -- e.g. from udpcosine's
   # structural symmetry -- are fine; rank() averages them)
-  expect_lt(min(captured), 0.1)
   expect_equal(max(captured), 1)
+  # values are floored to the lowest contour level before ranking (see next
+  # test), so the minimum captured value reflects that tie, not raw density
+  # spread near 0
+  expect_gt(min(captured), 0.1)
+})
+
+test_that("plot(type = \"contour\") floors density below the lowest level before ranking, so the background ties to one colour", {
+  skip_if_not_installed("rvinecopulib")
+  f <- tempfile(fileext = ".pdf")
+  pdf(f)
+  on.exit({
+    dev.off()
+    unlink(f)
+  })
+  # a near-degenerate vmixture: comonotonic/countermonotonic components,
+  # like the "regime-switching" vignette example, which leaves a speckle of
+  # tiny but numerically nonzero density values in what should be a
+  # perfectly uniform "background" region -- exactly what the floor should
+  # absorb
+  vm <- vmixture(
+    rvinecopulib::bicop_dist("gaussian", parameters = 1),
+    rvinecopulib::bicop_dist("gaussian", parameters = -1),
+    selector = function(v1, v2) pmax(v1, v2) > 0.6
+  )
+  bc <- bsicopula(rvinecopulib::bicop_dist("gaussian", parameters = 0.85), vsymmetric(), vsymmetric(),
+    randomizermod = vm
+  )
+
+  captured <- NULL
+  local_mocked_bindings(
+    image = function(x, y, z, ...) {
+      captured <<- z
+      graphics::plot.new()
+      graphics::plot.window(range(x), range(y))
+      invisible(NULL)
+    },
+    .package = "udp"
+  )
+  n <- 60
+  plot(bc, n = n)
+
+  grid <- (seq_len(n) - 0.5) / n
+  U <- expand.grid(u1 = grid, u2 = grid)
+  dens <- matrix(dbsicopula(U$u1, U$u2, bc), n, n)
+  levels <- sort(unique(stats::quantile(dens, c(seq(0.5, 0.9, 0.1), 0.95, 0.99, 0.999))))
+
+  below <- dens < min(levels)
+  expect_gt(sum(below), 0) # sanity check the test setup actually has a "background"
+  expect_equal(length(unique(as.vector(captured[below]))), 1L)
 })

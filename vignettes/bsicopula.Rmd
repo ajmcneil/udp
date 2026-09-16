@@ -11,8 +11,8 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 4.6,
-  fig.height = 4.6,
+  fig.width = 3.9,
+  fig.height = 4.5,
   fig.align = "center"
 )
 ```

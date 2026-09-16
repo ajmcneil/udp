@@ -549,6 +549,12 @@ dbsicopula <- function(u1, u2, object) {
 #' into a few small high-density patches against an undifferentiated
 #' background. The trade-off is that the fill color is ordinal, not a
 #' literal density scale -- the contour lines carry the actual values.
+#' Before ranking, every value below the lowest contour `level` is floored
+#' to that level, so they all tie for the same (lowest) rank: without this,
+#' near-degenerate copulas (correlation close to `-1` or `1`, say) can leave
+#' a speckle of tiny but numerically nonzero density values scattered across
+#' what should be a uniform background, which `rank()` -- having no notion
+#' of "negligible" -- would otherwise render as visible texture.
 #'
 #' @param x an object of class \linkS4class{bsicopula}.
 #' @param type `"contour"` (the default) or `"persp"`.
@@ -593,7 +599,17 @@ setMethod("plot", c(x = "bsicopula", y = "missing"),
       if (is.null(levels)) {
         levels <- sort(unique(stats::quantile(dens, probs)))
       }
-      rankdens <- matrix(rank(dens) / length(dens), n, n)
+      # Rank-transform for the fill colour (see Details), but first floor
+      # every value below the lowest drawn contour level to that level, so
+      # they all tie for the same (lowest) rank/colour. Without this,
+      # everything below the lowest level is nominally uniform "background"
+      # but the raw density there often isn't identically 0 -- near-
+      # degenerate copulas in particular (e.g. correlation close to +-1)
+      # leave a speckle of tiny, numerically noisy nonzero values -- and
+      # rank() has no notion of "negligible", so those specks get
+      # perceptibly different colours from an otherwise flat background.
+      dens_for_rank <- pmax(dens, min(levels))
+      rankdens <- matrix(rank(dens_for_rank) / length(dens_for_rank), n, n)
       dots <- list(...)
       if (is.null(dots$asp)) dots$asp <- 1
       if (is.null(dots$xaxs)) dots$xaxs <- "i"
