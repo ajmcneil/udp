@@ -4,7 +4,18 @@
 \alias{plot,bsicopula,missing-method}
 \title{Plot method for the bsicopula class}
 \usage{
-\S4method{plot}{bsicopula,missing}(x, type = c("contour", "persp"), n = 100, xlab = "u1", ylab = "u2", ...)
+\S4method{plot}{bsicopula,missing}(
+  x,
+  type = c("contour", "persp"),
+  n = 100,
+  xlab = "u1",
+  ylab = "u2",
+  probs = c(seq(0.5, 0.9, 0.1), 0.95, 0.99, 0.999),
+  levels = NULL,
+  col = grDevices::hcl.colors(100, "YlOrRd", rev = TRUE),
+  drawlabels = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{an object of class \linkS4class{bsicopula}.}
@@ -18,16 +29,24 @@ density has a jump discontinuity there.}
 
 \item{xlab, ylab}{axis labels.}
 
-\item{...}{further graphical parameters passed to \code{\link[graphics:contour]{graphics::contour()}}
-(\code{type = "contour"}) or \code{\link[graphics:persp]{graphics::persp()}} (\code{type = "persp"}), such as
-\code{levels} to override the default contour levels. Densities built from
-tail-dependent copulas or many-branch \code{udp1}/\code{udp2} transforms are
-often extremely right-skewed (a small high-density region against a
-large near-zero one), so \code{type = "contour"} defaults to the deciles of
-the evaluated density (\code{quantile(dens, seq(0.1, 0.9, by = 0.1))})
-rather than \code{\link[graphics:contour]{graphics::contour()}}'s own evenly spaced \code{pretty()}
-levels, which tend to fall almost entirely above the bulk of the mass
-in that case and leave the plot looking empty.}
+\item{probs}{for \code{type = "contour"}: probabilities passed to
+\code{\link[stats:quantile]{stats::quantile()}} on the evaluated density to give the default
+contour \code{levels}. Ignored if \code{levels} is supplied directly.}
+
+\item{levels}{for \code{type = "contour"}: contour levels, overriding the
+\code{probs}-based default.}
+
+\item{col}{for \code{type = "contour"}: the fill color palette, recycled
+across the rank-transformed density (see Details); passed to
+\code{\link[graphics:image]{graphics::image()}} as \code{col}.}
+
+\item{drawlabels}{for \code{type = "contour"}: whether to label the contour
+lines with their level. Default \code{FALSE}, since the \code{probs}-based
+levels are typically numerous enough that labels overlap and clutter
+the plot.}
+
+\item{...}{further graphical parameters passed to \code{\link[graphics:image]{graphics::image()}}
+(\code{type = "contour"}) or \code{\link[graphics:persp]{graphics::persp()}} (\code{type = "persp"}).}
 }
 \value{
 No return value, generates a plot.
@@ -35,6 +54,21 @@ No return value, generates a plot.
 \description{
 Draws the bivariate density of a \linkS4class{bsicopula} object
 (\code{\link[=dbsicopula]{dbsicopula()}}) over a regular grid, as a contour plot (\code{type = "contour"}, the default) or a perspective plot (\code{type = "persp"}).
+}
+\details{
+Densities built from tail-dependent copulas or many-branch \code{udp1}/\code{udp2}
+transforms are often extremely right-skewed (a small high-density region
+against a large near-zero one). \code{type = "contour"} handles this in two
+ways: contour \code{levels} default to \code{quantile(dens, probs)} -- by default
+the median and up -- rather than \code{\link[graphics:contour]{graphics::contour()}}'s own evenly
+spaced \code{pretty()} levels, which would fall almost entirely above the
+bulk of the mass and leave the plot looking empty; and the filled
+background is colored by each grid point's own rank among all evaluated
+density values (\code{rank(dens) / length(dens)}), not its raw value, so the
+color scale is spread evenly across the whole plot instead of collapsing
+into a few small high-density patches against an undifferentiated
+background. The trade-off is that the fill color is ordinal, not a
+literal density scale -- the contour lines carry the actual values.
 }
 \examples{
 if (requireNamespace("rvinecopulib", quietly = TRUE)) {

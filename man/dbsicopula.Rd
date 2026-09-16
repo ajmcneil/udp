@@ -25,14 +25,14 @@ the \verb{1 / |T'|} pre-image selection probability, since a
 to \code{1} at every \code{v} by construction.
 }
 \details{
-When \code{randomizermod} is an \linkS4class{sdvine}, that cancellation is no
-longer exact -- \code{Z1} now depends on \code{V2} (and vice versa) through the
-D-vine, not just on its own \code{V_i} -- and an extra multiplicative weight
-\code{w(u1, u2)} corrects for it: the ratio of the probability that the joint
-stochastic inverse lands in the same pair of pre-image branches as
-\verb{(u1, u2)}, given \verb{(V1, V2)}, under \code{randomizermod}, to the same
-probability under independent randomizers. \code{w} is \code{1} identically when
-\code{randomizermod} is \code{NULL}.
+When \code{randomizermod} is an \linkS4class{sdvine} or a
+\linkS4class{vmixture}, that cancellation is no longer exact -- \code{Z1} now
+depends on \code{V2} (and vice versa), not just on its own \code{V_i} -- and an
+extra multiplicative weight \code{w(u1, u2)} corrects for it: the ratio of
+the probability that the joint stochastic inverse lands in the same
+pair of pre-image branches as \verb{(u1, u2)}, given \verb{(V1, V2)}, under
+\code{randomizermod}, to the same probability under independent randomizers.
+\code{w} is \code{1} identically when \code{randomizermod} is \code{NULL}.
 
 \code{udp1} and \code{udp2} are each piecewise smooth with finitely many
 breakpoints; at a breakpoint of either, the number of

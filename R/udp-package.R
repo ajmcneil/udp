@@ -14,7 +14,7 @@
 
 ## usethis namespace: start
 #' @import methods
-#' @importFrom graphics contour lines persp polygon segments
+#' @importFrom graphics contour image lines persp polygon segments
 #' @importFrom stats coef cor dbeta integrate pbeta qbeta runif splinefun
 ## usethis namespace: end
 NULL

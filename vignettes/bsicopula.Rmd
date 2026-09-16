@@ -1,0 +1,186 @@
+---
+title: "Bivariate stochastic inversion copulas"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bivariate stochastic inversion copulas}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 4.6,
+  fig.height = 4.6,
+  fig.align = "center"
+)
+```
+
+```{r library}
+library(udp)
+```
+
+```{r guard, include = FALSE}
+knitr::opts_chunk$set(eval = requireNamespace("rvinecopulib", quietly = TRUE))
+```
+
+A `bsicopula` couples two `udp` transformations, `udp1` and `udp2`,
+through a copula on their "carrier" uniforms `(V1, V2)`. Margin `i`'s draw
+is `udpsi(udp_i, V_i, Z_i)`: `udpsi()` applied to `V_i`, with the
+pre-image selected by a randomizer `Z_i`. With independent randomizers,
+that pre-image selection is the only source of randomness beyond
+`basecopula` itself; a **randomizer model** -- an `sdvine` or a
+`vmixture` -- instead couples `Z1` and `Z2` (on `(V1, V2)` and on each
+other), injecting further dependence between the two margins.
+
+This vignette builds four `bsicopula` objects that share the same
+`basecopula` and the same margins (both `vsymmetric()`, the two-branch fold
+`T(u) = |2u - 1|`), differing only in their randomizer model, and finishes
+by uncovering something all four have in common despite looking
+completely different.
+
+```{r library2}
+library(rvinecopulib)
+```
+
+## Four ways to couple two v-transforms
+
+### Independent randomizers
+
+With `randomizermod` left at its default `NULL`, each margin's pre-image is
+selected independently -- the joint density is exactly `c_V(T1(u1),
+T2(u2))` for `c_V` the density of `basecopula` (see `dbsicopula()`).
+
+```{r case1}
+case1 <- bsicopula(bicop_dist("gauss", parameters = 0.85),
+  udp1 = vsymmetric(),
+  udp2 = vsymmetric()
+)
+plot(case1)
+```
+
+The four-petal shape is entirely inherited from `vsymmetric()` folding a
+Gaussian copula's own elliptical contours onto themselves; there is no
+extra coupling between `Z1` and `Z2` yet.
+
+### A single extra dependency
+
+An `sdvine` model's `copZ1Z2_V1V2` slot (its only required argument)
+couples `Z1` and `Z2` directly, given `(V1, V2)`.
+
+```{r case2}
+ranmodA <- sdvine(bicop_dist("gauss", parameters = 0.8))
+case2 <- bsicopula(bicop_dist("gauss", parameters = 0.85),
+  udp1 = vsymmetric(),
+  udp2 = vsymmetric(),
+  randomizermod = ranmodA
+)
+plot(case2)
+```
+
+The central peak stretches along the main diagonal: with `Z1` and `Z2`
+now positively dependent, the same branch tends to get selected for both
+margins together, on top of the folding structure already present in
+`case1`.
+
+### A fuller D-vine
+
+`sdvine`'s other two slots add the remaining tree-2 edges, `Z1`-`V2` given
+`V1` and `V1`-`Z2` given `V2`, coupling each randomizer to the *other*
+margin's carrier uniform as well.
+
+```{r case3}
+ranmodB <- sdvine(
+  bicop_dist("gauss", parameters = 0.8),
+  bicop_dist("gauss", parameters = 0.7),
+  bicop_dist("gauss", parameters = 0.1)
+)
+case3 <- bsicopula(bicop_dist("gauss", parameters = 0.85),
+  udp1 = vsymmetric(),
+  udp2 = vsymmetric(),
+  randomizermod = ranmodB
+)
+plot(case3)
+```
+
+### Regime-switching dependence
+
+A `vmixture` model takes a different approach: rather than
+coupling `Z1` and `Z2` smoothly, it switches between two copulas
+altogether, chosen by a `selector(v1, v2)`. Here `Z1` and `Z2` are drawn
+comonotonically when `V1` or `V2` is large, and countermonotonically
+otherwise.
+
+```{r case4}
+ranmodC <- vmixture(
+  bicop_dist("gauss", parameters = 1),
+  bicop_dist("gauss", parameters = -1),
+  selector = function(v1, v2) pmax(v1, v2) > 0.6
+)
+case4 <- bsicopula(bicop_dist("gauss", parameters = 0.85),
+  udp1 = vsymmetric(),
+  udp2 = vsymmetric(),
+  randomizermod = ranmodC
+)
+plot(case4)
+```
+
+The abrupt regime switch leaves a visible seam in the density where
+`pmax(v1, v2)` crosses `0.6`, quite unlike the smooth reshaping in `case2`
+and `case3`.
+
+## An invariant hiding underneath
+
+These four densities look nothing alike, yet they share something exactly,
+not just approximately. `udpsi()` always returns a genuine pre-image of
+its input -- that is the whole point of stochastic inversion -- so
+`udptrans(udp_i, udpsi(udp_i, V_i, Z_i))` equals `V_i` *identically*,
+whatever `Z_i` turned out to be, chosen by any randomizer model at all
+(or none). Applying `udptrans(vsymmetric(), .)` to each margin of a
+`bsicopula` sample is therefore not a statistical recovery of `(V1, V2)`;
+it is an exact algebraic one, for every single draw.
+
+```{r invariant-exact}
+set.seed(1)
+V <- rbicop(10, case1@basecopula)
+Z1 <- runif(10) # any randomizer at all -- not even a valid one matters here
+Z2 <- runif(10)
+U1 <- udpsi(vsymmetric(), V[, 1], Z1)
+U2 <- udpsi(vsymmetric(), V[, 2], Z2)
+max(abs(udptrans(vsymmetric(), U1) - V[, 1]))
+max(abs(udptrans(vsymmetric(), U2) - V[, 2]))
+```
+
+Since `basecopula` is the *same* Gaussian copula in all four cases, this
+means `(udptrans(vsymmetric(), U1), udptrans(vsymmetric(), U2))` has
+exactly the same distribution for every one of them -- the correlation
+`0.85` of the shared `basecopula` -- no matter how different the raw
+`(U1, U2)` densities plotted above look.
+
+```{r invariant-distributional}
+set.seed(1)
+n <- 20000
+for (nm in c("case1", "case2", "case3", "case4")) {
+  bc <- get(nm)
+  U <- rbsicopula(n, bc)
+  V_recovered <- cbind(udptrans(vsymmetric(), U[, "U1"]), udptrans(vsymmetric(), U[, "U2"]))
+  cat(nm, ": cor(recovered V) =", cor(V_recovered)[1, 2], "\n")
+}
+```
+
+In other words, all four `bsicopula` objects here are different
+*refinements* of the very same coarse dependence structure on `(V1, V2)`.
+A randomizer model never touches that shared structure -- it only decides
+*which* pre-image `vsymmetric()`'s fold selects for each margin, and that
+selection is entirely where the visibly different dependence patterns
+above come from: linear correlation the base copula already carries in
+`case1`, extra diagonal stretching in `case2` and `case3`, or an outright
+regime switch in `case4`. Coarsen any of them back through `vsymmetric()`
+and that difference disappears completely.
+
+## References
+
+McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
+multivariate uniform-distribution-preserving transformations.
+arXiv:2607.07174.

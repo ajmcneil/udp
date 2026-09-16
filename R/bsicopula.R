@@ -90,6 +90,68 @@ sdvine <- function(copZ1Z2_V1V2,
   )
 }
 
+#' Class of mixture-of-copulas randomizer models
+#'
+#' A randomizer model for \linkS4class{bsicopula} that draws `(Z1, Z2)`
+#' given `(V1, V2)` from one of two copulas, `cop1` or `cop2`, chosen by a
+#' user-supplied `selector(v1, v2)`. Unlike \linkS4class{sdvine}, this needs
+#' no constraint on `selector` to keep `udpsi()`'s stochastic-inversion
+#' guarantee valid: whichever of `cop1`/`cop2` gets picked, it is still some
+#' copula, and every copula's own coordinate margins are uniform on
+#' `[0, 1]` by definition regardless of the other coordinate or the
+#' dependence parameter -- so `Z1 | V1 = v1, V2 = v2` is uniform on
+#' `[0, 1]` for every `(v1, v2)`, whatever `selector` does, which is
+#' exactly what `Z1` independent of `V1` requires.
+#'
+#' @slot cop1,cop2 parCopula objects (\pkg{copula}) or bicop_dist objects
+#'   (\pkg{rvinecopulib}), the two copulas of `(Z1, Z2)` to choose between.
+#' @slot selector a function `selector(v1, v2)` returning a logical vector
+#'   the same length as `v1`/`v2`: `TRUE` selects `cop1`, `FALSE` selects
+#'   `cop2`. Any further parameters (such as a threshold) should be
+#'   captured in `selector`'s closure rather than passed separately.
+#'
+#' @seealso [vmixture()] to construct one; \linkS4class{bsicopula} to use it.
+#' @export
+setClass("vmixture", slots = list(
+  cop1 = "ANY",
+  cop2 = "ANY",
+  selector = "function"
+))
+
+#' Construct a mixture-of-copulas randomizer model
+#'
+#' @param cop1,cop2 parCopula objects (\pkg{copula}) or bicop_dist objects
+#'   (\pkg{rvinecopulib}), the two copulas of `(Z1, Z2)` to choose between.
+#' @param selector a function `selector(v1, v2)` returning a logical vector
+#'   the same length as `v1`/`v2`: `TRUE` selects `cop1`, `FALSE` selects
+#'   `cop2`. Capture any further parameters in its closure, e.g.
+#'   `function(v1, v2) pmax(v1, v2) > 0.7`.
+#'
+#' @return An object of class \linkS4class{vmixture}.
+#' @export
+#'
+#' @examples
+#' if (requireNamespace("rvinecopulib", quietly = TRUE)) {
+#'   vmixture(
+#'     rvinecopulib::bicop_dist("gaussian", 0, 1),
+#'     rvinecopulib::bicop_dist("gaussian", 0, -1),
+#'     selector = function(v1, v2) pmax(v1, v2) > 0.7
+#'   )
+#' }
+vmixture <- function(cop1, cop2, selector) {
+  if (!(is_parCopula(cop1) || is_bicop_dist(cop1)) ||
+    !(is_parCopula(cop2) || is_bicop_dist(cop2))) {
+    stop(
+      "'cop1' and 'cop2' must each be a parCopula object (copula package) or a bicop_dist object (rvinecopulib).",
+      call. = FALSE
+    )
+  }
+  if (!is.function(selector)) {
+    stop("'selector' must be a function.", call. = FALSE)
+  }
+  new("vmixture", cop1 = cop1, cop2 = cop2, selector = selector)
+}
+
 #' Class of bivariate stochastic inversion copulas
 #'
 #' Couples two \linkS4class{udp} transformations through a copula on their
@@ -98,17 +160,17 @@ sdvine <- function(copZ1Z2_V1V2,
 #' selected by the randomizer `Z_i`. `Z_i` defaults to an independent
 #' uniform, giving margins that agree with `basecopula` up to the
 #' pre-image-selection randomness. When `randomizermod` is instead an
-#' \linkS4class{sdvine} model, `(Z1, Z2)` are drawn dependently -- on `(V1,
-#' V2)` and on each other -- injecting further dependence between the two
-#' margins, including non-monotonic dependence when `udp1`/`udp2` are
-#' many-to-one.
+#' \linkS4class{sdvine} or \linkS4class{vmixture} model, `(Z1, Z2)` are
+#' drawn dependently -- on `(V1, V2)` and on each other -- injecting
+#' further dependence between the two margins, including non-monotonic
+#' dependence when `udp1`/`udp2` are many-to-one.
 #'
 #' @slot basecopula a parCopula object (\pkg{copula}) or a bicop_dist object
 #'   (\pkg{rvinecopulib}), the copula of `(V1, V2)`.
 #' @slot udp1,udp2 objects of class \linkS4class{udp}, applied via
 #'   stochastic inversion ([udpsi()]) to `V1` and `V2` respectively.
-#' @slot randomizermod `NULL` (independent randomizers) or an
-#'   \linkS4class{sdvine} object.
+#' @slot randomizermod `NULL` (independent randomizers), an
+#'   \linkS4class{sdvine} object, or a \linkS4class{vmixture} object.
 #'
 #' @seealso [bsicopula()] to construct one; [rbsicopula()] to sample from one.
 #' @references
@@ -130,10 +192,13 @@ setClass("bsicopula", slots = list(
 #'   object (\pkg{rvinecopulib}), the copula of the two transformations'
 #'   carrier uniforms `(V1, V2)`.
 #' @param udp1,udp2 objects of class \linkS4class{udp}.
-#' @param randomizermod `NULL` (the default; independent randomizers) or an
-#'   \linkS4class{sdvine} object. When given, `basecopula` must be a
+#' @param randomizermod `NULL` (the default; independent randomizers), an
+#'   \linkS4class{sdvine} object, or a \linkS4class{vmixture} object. When
+#'   an \linkS4class{sdvine}, `basecopula` must additionally be a
 #'   bicop_dist object -- the D-vine sampling machinery uses
-#'   \pkg{rvinecopulib}'s h-functions throughout.
+#'   \pkg{rvinecopulib}'s h-functions throughout. A \linkS4class{vmixture}
+#'   has no such restriction: it only needs the realized `(V1, V2)` draw,
+#'   which either backend already provides.
 #'
 #' @return An object of class \linkS4class{bsicopula}.
 #' @export
@@ -153,10 +218,13 @@ bsicopula <- function(basecopula, udp1, udp2, randomizermod = NULL) {
     stop("'udp1' and 'udp2' must be objects of class 'udp'.", call. = FALSE)
   }
   if (!is.null(randomizermod)) {
-    if (!methods::is(randomizermod, "sdvine")) {
-      stop("'randomizermod' must be NULL or an object of class 'sdvine'.", call. = FALSE)
+    if (!methods::is(randomizermod, "sdvine") && !methods::is(randomizermod, "vmixture")) {
+      stop(
+        "'randomizermod' must be NULL, an object of class 'sdvine', or an object of class 'vmixture'.",
+        call. = FALSE
+      )
     }
-    if (!is_bicop_dist(basecopula)) {
+    if (methods::is(randomizermod, "sdvine") && !is_bicop_dist(basecopula)) {
       stop(
         "'basecopula' must be a bicop_dist object when 'randomizermod' is an 'sdvine'.",
         call. = FALSE
@@ -198,13 +266,46 @@ sdvine_sample <- function(V1, V2, basecopula, randomizermod) {
   cbind(Z1 = Z1, Z2 = Z2)
 }
 
+# (Z1, Z2) given (V1, V2) from a vmixture model: evaluate selector(V1, V2)
+# on the realized pair, then draw from cop1 where TRUE and cop2 where FALSE.
+# Z1 independent of V1 (and Z2 of V2) holds for any selector -- see
+# vmixture-class's documentation -- so unlike sdvine_sample() this needs no
+# h-function machinery, just an ordinary draw from whichever copula was
+# picked.
+vmixture_sample <- function(V1, V2, randomizermod) {
+  n <- length(V1)
+  sel <- randomizermod@selector(V1, V2)
+  if (!is.logical(sel) || length(sel) != n) {
+    stop(
+      "'selector' must return a logical vector the same length as 'v1'/'v2'.",
+      call. = FALSE
+    )
+  }
+  Z1 <- numeric(n)
+  Z2 <- numeric(n)
+  if (any(sel)) {
+    Z <- sample_basecopula(sum(sel), randomizermod@cop1)
+    Z1[sel] <- Z[, 1]
+    Z2[sel] <- Z[, 2]
+  }
+  if (any(!sel)) {
+    Z <- sample_basecopula(sum(!sel), randomizermod@cop2)
+    Z1[!sel] <- Z[, 1]
+    Z2[!sel] <- Z[, 2]
+  }
+  cbind(Z1 = Z1, Z2 = Z2)
+}
+
 #' Random sample from a bivariate stochastic inversion copula
 #'
 #' 1. Draws `(V1, V2)` from `basecopula`.
 #' 2. If `randomizermod` is `NULL`, returns `(udpsi(udp1, V1), udpsi(udp2,
 #'    V2))` -- each with its own fresh, independent randomizer -- and stops.
-#' 3. Otherwise draws `(Z1, Z2)` given `(V1, V2)` from the simplified D-vine
-#'    specified by `basecopula` (as `C_{V1,V2}`) and `randomizermod`.
+#' 3. Otherwise draws `(Z1, Z2)` given `(V1, V2)`: from the simplified
+#'    D-vine specified by `basecopula` (as `C_{V1,V2}`) and `randomizermod`
+#'    when it is an \linkS4class{sdvine}, or from `randomizermod@cop1` /
+#'    `cop2` according to `randomizermod@selector(V1, V2)` when it is a
+#'    \linkS4class{vmixture}.
 #' 4. Returns `(udpsi(udp1, V1, Z1), udpsi(udp2, V2, Z2))`.
 #'
 #' @param n number of draws.
@@ -232,7 +333,11 @@ rbsicopula <- function(n, object) {
     U1 <- udpsi(object@udp1, V1)
     U2 <- udpsi(object@udp2, V2)
   } else {
-    Z <- sdvine_sample(V1, V2, object@basecopula, object@randomizermod)
+    Z <- if (methods::is(object@randomizermod, "sdvine")) {
+      sdvine_sample(V1, V2, object@basecopula, object@randomizermod)
+    } else {
+      vmixture_sample(V1, V2, object@randomizermod)
+    }
     U1 <- udpsi(object@udp1, V1, Z[, "Z1"])
     U2 <- udpsi(object@udp2, V2, Z[, "Z2"])
   }
@@ -246,6 +351,16 @@ basecopula_density <- function(v1, v2, basecopula) {
     copula::dCopula(cbind(v1, v2), basecopula)
   } else {
     rvinecopulib::dbicop(cbind(v1, v2), basecopula)
+  }
+}
+
+# CDF of a base copula that is either a parCopula or a bicop_dist object,
+# dispatching to the matching package's own CDF function.
+basecopula_cdf <- function(v1, v2, basecopula) {
+  if (is_parCopula(basecopula)) {
+    copula::pCopula(cbind(v1, v2), basecopula)
+  } else {
+    rvinecopulib::pbicop(cbind(v1, v2), basecopula)
   }
 }
 
@@ -294,6 +409,23 @@ sdvine_cdf <- function(z1, z2, e21, e12, randomizermod) {
   rvinecopulib::pbicop(cbind(a, b), family = randomizermod@copZ1Z2_V1V2)
 }
 
+# Joint conditional CDF F(z1, z2 | V1 = v1, V2 = v2) implied by a vmixture
+# model: given the realized (v1, v2), selector(v1, v2) deterministically
+# picks cop1 or cop2, and (Z1, Z2) | that choice is an ordinary draw from
+# the picked copula -- so the conditional CDF is just that copula's own
+# CDF, no h-function composition needed (unlike sdvine_cdf()).
+vmixture_cdf <- function(z1, z2, v1, v2, randomizermod) {
+  sel <- randomizermod@selector(v1, v2)
+  out <- numeric(length(z1))
+  if (any(sel)) {
+    out[sel] <- basecopula_cdf(z1[sel], z2[sel], randomizermod@cop1)
+  }
+  if (any(!sel)) {
+    out[!sel] <- basecopula_cdf(z1[!sel], z2[!sel], randomizermod@cop2)
+  }
+  out
+}
+
 # w(u1, u2): the ratio of (1) the probability that the joint stochastic
 # inverse (udpsi(udp1, V1, Z1), udpsi(udp2, V2, Z2)) lands in the cell
 # containing (u1, u2), given V1 = v1, V2 = v2, under randomizermod, to (2)
@@ -316,13 +448,16 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
 
   denom <- P1[cbind(seq_along(u1), j1)] * P2[cbind(seq_along(u2), j2)]
 
-  e21 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 1, family = basecopula)
-  e12 <- rvinecopulib::hbicop(cbind(v2, v1), cond_var = 1, family = basecopula)
+  if (methods::is(randomizermod, "sdvine")) {
+    e21 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 1, family = basecopula)
+    e12 <- rvinecopulib::hbicop(cbind(v2, v1), cond_var = 1, family = basecopula)
+    joint_cdf <- function(z1, z2) sdvine_cdf(z1, z2, e21, e12, randomizermod)
+  } else {
+    joint_cdf <- function(z1, z2) vmixture_cdf(z1, z2, v1, v2, randomizermod)
+  }
 
-  numer <- sdvine_cdf(I1$b, I2$b, e21, e12, randomizermod) -
-    sdvine_cdf(I1$a, I2$b, e21, e12, randomizermod) -
-    sdvine_cdf(I1$b, I2$a, e21, e12, randomizermod) +
-    sdvine_cdf(I1$a, I2$a, e21, e12, randomizermod)
+  numer <- joint_cdf(I1$b, I2$b) - joint_cdf(I1$a, I2$b) -
+    joint_cdf(I1$b, I2$a) + joint_cdf(I1$a, I2$a)
 
   numer / denom
 }
@@ -338,14 +473,14 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
 #' \linkS4class{udp} transformation's pre-image selection probabilities sum
 #' to `1` at every `v` by construction.
 #'
-#' When `randomizermod` is an \linkS4class{sdvine}, that cancellation is no
-#' longer exact -- `Z1` now depends on `V2` (and vice versa) through the
-#' D-vine, not just on its own `V_i` -- and an extra multiplicative weight
-#' `w(u1, u2)` corrects for it: the ratio of the probability that the joint
-#' stochastic inverse lands in the same pair of pre-image branches as
-#' `(u1, u2)`, given `(V1, V2)`, under `randomizermod`, to the same
-#' probability under independent randomizers. `w` is `1` identically when
-#' `randomizermod` is `NULL`.
+#' When `randomizermod` is an \linkS4class{sdvine} or a
+#' \linkS4class{vmixture}, that cancellation is no longer exact -- `Z1` now
+#' depends on `V2` (and vice versa), not just on its own `V_i` -- and an
+#' extra multiplicative weight `w(u1, u2)` corrects for it: the ratio of
+#' the probability that the joint stochastic inverse lands in the same
+#' pair of pre-image branches as `(u1, u2)`, given `(V1, V2)`, under
+#' `randomizermod`, to the same probability under independent randomizers.
+#' `w` is `1` identically when `randomizermod` is `NULL`.
 #'
 #' `udp1` and `udp2` are each piecewise smooth with finitely many
 #' breakpoints; at a breakpoint of either, the number of
@@ -401,23 +536,41 @@ dbsicopula <- function(u1, u2, object) {
 #' ([dbsicopula()]) over a regular grid, as a contour plot (`type =
 #' "contour"`, the default) or a perspective plot (`type = "persp"`).
 #'
+#' Densities built from tail-dependent copulas or many-branch `udp1`/`udp2`
+#' transforms are often extremely right-skewed (a small high-density region
+#' against a large near-zero one). `type = "contour"` handles this in two
+#' ways: contour `levels` default to `quantile(dens, probs)` -- by default
+#' the median and up -- rather than [graphics::contour()]'s own evenly
+#' spaced `pretty()` levels, which would fall almost entirely above the
+#' bulk of the mass and leave the plot looking empty; and the filled
+#' background is colored by each grid point's own rank among all evaluated
+#' density values (`rank(dens) / length(dens)`), not its raw value, so the
+#' color scale is spread evenly across the whole plot instead of collapsing
+#' into a few small high-density patches against an undifferentiated
+#' background. The trade-off is that the fill color is ordinal, not a
+#' literal density scale -- the contour lines carry the actual values.
+#'
 #' @param x an object of class \linkS4class{bsicopula}.
 #' @param type `"contour"` (the default) or `"persp"`.
 #' @param n number of grid points per axis. The grid uses cell midpoints
 #'   `(i - 0.5) / n`, which generically avoids landing exactly on a
 #'   breakpoint of `udp1` or `udp2` -- see [dbsicopula()] for why the
 #'   density has a jump discontinuity there.
+#' @param probs for `type = "contour"`: probabilities passed to
+#'   [stats::quantile()] on the evaluated density to give the default
+#'   contour `levels`. Ignored if `levels` is supplied directly.
+#' @param levels for `type = "contour"`: contour levels, overriding the
+#'   `probs`-based default.
+#' @param col for `type = "contour"`: the fill color palette, recycled
+#'   across the rank-transformed density (see Details); passed to
+#'   [graphics::image()] as `col`.
+#' @param drawlabels for `type = "contour"`: whether to label the contour
+#'   lines with their level. Default `FALSE`, since the `probs`-based
+#'   levels are typically numerous enough that labels overlap and clutter
+#'   the plot.
 #' @param xlab,ylab axis labels.
-#' @param ... further graphical parameters passed to [graphics::contour()]
-#'   (`type = "contour"`) or [graphics::persp()] (`type = "persp"`), such as
-#'   `levels` to override the default contour levels. Densities built from
-#'   tail-dependent copulas or many-branch `udp1`/`udp2` transforms are
-#'   often extremely right-skewed (a small high-density region against a
-#'   large near-zero one), so `type = "contour"` defaults to the deciles of
-#'   the evaluated density (`quantile(dens, seq(0.1, 0.9, by = 0.1))`)
-#'   rather than [graphics::contour()]'s own evenly spaced `pretty()`
-#'   levels, which tend to fall almost entirely above the bulk of the mass
-#'   in that case and leave the plot looking empty.
+#' @param ... further graphical parameters passed to [graphics::image()]
+#'   (`type = "contour"`) or [graphics::persp()] (`type = "persp"`).
 #'
 #' @return No return value, generates a plot.
 #' @export
@@ -429,17 +582,26 @@ dbsicopula <- function(u1, u2, object) {
 #'   plot(bc, type = "persp")
 #' }
 setMethod("plot", c(x = "bsicopula", y = "missing"),
-  function(x, type = c("contour", "persp"), n = 100, xlab = "u1", ylab = "u2", ...) {
+  function(x, type = c("contour", "persp"), n = 100, xlab = "u1", ylab = "u2",
+           probs = c(seq(0.5, 0.9, 0.1), 0.95, 0.99, 0.999), levels = NULL,
+           col = grDevices::hcl.colors(100, "YlOrRd", rev = TRUE), drawlabels = FALSE, ...) {
     type <- match.arg(type)
     grid <- (seq_len(n) - 0.5) / n
     U <- expand.grid(u1 = grid, u2 = grid)
     dens <- matrix(dbsicopula(U$u1, U$u2, x), n, n)
     if (type == "contour") {
-      dots <- list(...)
-      if (is.null(dots$levels)) {
-        dots$levels <- sort(unique(stats::quantile(dens, probs = seq(0.1, 0.9, by = 0.1))))
+      if (is.null(levels)) {
+        levels <- sort(unique(stats::quantile(dens, probs)))
       }
-      do.call(contour, c(list(x = grid, y = grid, z = dens, xlab = xlab, ylab = ylab), dots))
+      rankdens <- matrix(rank(dens) / length(dens), n, n)
+      dots <- list(...)
+      if (is.null(dots$asp)) dots$asp <- 1
+      if (is.null(dots$xaxs)) dots$xaxs <- "i"
+      if (is.null(dots$yaxs)) dots$yaxs <- "i"
+      do.call(image, c(
+        list(x = grid, y = grid, z = rankdens, col = col, xlab = xlab, ylab = ylab), dots
+      ))
+      contour(grid, grid, dens, levels = levels, drawlabels = drawlabels, add = TRUE, col = "grey20")
     } else {
       persp(grid, grid, dens, xlab = xlab, ylab = ylab, zlab = "density", ...)
     }

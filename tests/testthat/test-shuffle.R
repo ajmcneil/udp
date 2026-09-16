@@ -195,3 +195,21 @@ test_that("aceshuffle() validates its arguments", {
     "permutations of length m"
   )
 })
+
+## udpid() / udpflip() --------------------------------------------------------
+
+test_that("udpid() is the identity, shuffle(1)", {
+  expect_identical(udpid(), shuffle(1))
+  u <- c(0, 0.1, 0.5, 0.9, 1)
+  expect_identical(udptrans(udpid(), u), u)
+  expect_identical(udpsi(udpid(), u), u)
+  expect_identical(pcoincide(udpid()), 1)
+})
+
+test_that("udpflip() is the reflection u -> 1 - u, shuffle(1, signs = -1)", {
+  expect_identical(udpflip(), shuffle(1, signs = -1))
+  u <- c(0, 0.1, 0.5, 0.9, 1)
+  expect_identical(udptrans(udpflip(), u), 1 - u)
+  expect_identical(udpsi(udpflip(), u), 1 - u)
+  expect_identical(pcoincide(udpflip()), 1)
+})

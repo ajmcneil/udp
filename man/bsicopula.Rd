@@ -13,10 +13,13 @@ carrier uniforms \verb{(V1, V2)}.}
 
 \item{udp1, udp2}{objects of class \linkS4class{udp}.}
 
-\item{randomizermod}{\code{NULL} (the default; independent randomizers) or an
-\linkS4class{sdvine} object. When given, \code{basecopula} must be a
+\item{randomizermod}{\code{NULL} (the default; independent randomizers), an
+\linkS4class{sdvine} object, or a \linkS4class{vmixture} object. When
+an \linkS4class{sdvine}, \code{basecopula} must additionally be a
 bicop_dist object -- the D-vine sampling machinery uses
-\pkg{rvinecopulib}'s h-functions throughout.}
+\pkg{rvinecopulib}'s h-functions throughout. A \linkS4class{vmixture}
+has no such restriction: it only needs the realized \verb{(V1, V2)} draw,
+which either backend already provides.}
 }
 \value{
 An object of class \linkS4class{bsicopula}.

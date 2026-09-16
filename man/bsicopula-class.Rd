@@ -10,9 +10,10 @@ Couples two \linkS4class{udp} transformations through a copula on their
 selected by the randomizer \code{Z_i}. \code{Z_i} defaults to an independent
 uniform, giving margins that agree with \code{basecopula} up to the
 pre-image-selection randomness. When \code{randomizermod} is instead an
-\linkS4class{sdvine} model, \verb{(Z1, Z2)} are drawn dependently -- on \verb{(V1, V2)} and on each other -- injecting further dependence between the two
-margins, including non-monotonic dependence when \code{udp1}/\code{udp2} are
-many-to-one.
+\linkS4class{sdvine} or \linkS4class{vmixture} model, \verb{(Z1, Z2)} are
+drawn dependently -- on \verb{(V1, V2)} and on each other -- injecting
+further dependence between the two margins, including non-monotonic
+dependence when \code{udp1}/\code{udp2} are many-to-one.
 }
 \section{Slots}{
 
@@ -23,8 +24,8 @@ many-to-one.
 \item{\code{udp1,udp2}}{objects of class \linkS4class{udp}, applied via
 stochastic inversion (\code{\link[=udpsi]{udpsi()}}) to \code{V1} and \code{V2} respectively.}
 
-\item{\code{randomizermod}}{\code{NULL} (independent randomizers) or an
-\linkS4class{sdvine} object.}
+\item{\code{randomizermod}}{\code{NULL} (independent randomizers), an
+\linkS4class{sdvine} object, or a \linkS4class{vmixture} object.}
 }}
 
 \references{

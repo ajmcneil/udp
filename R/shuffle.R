@@ -45,6 +45,36 @@ shuffle <- function(perm, signs = rep(1, length(perm))) {
   new("shuffle", perm = perm, signs = as.numeric(signs))
 }
 
+#' Constructor function for the identity transformation
+#'
+#' The identity map `T(u) = u`, i.e. `shuffle(1)`: a single strip spanning
+#' the whole domain, mapped onto itself with slope `1`.
+#'
+#' @return An object of class \linkS4class{shuffle}.
+#' @export
+#'
+#' @examples
+#' udpid()
+#' udptrans(udpid(), c(0, 0.25, 0.5, 0.75, 1))
+udpid <- function() {
+  shuffle(1)
+}
+
+#' Constructor function for the reflection transformation
+#'
+#' The reflection `T(u) = 1 - u`, i.e. `shuffle(1, signs = -1)`: a single
+#' strip spanning the whole domain, mapped onto itself with slope `-1`.
+#'
+#' @return An object of class \linkS4class{shuffle}.
+#' @export
+#'
+#' @examples
+#' udpflip()
+#' udptrans(udpflip(), c(0, 0.25, 0.5, 0.75, 1))
+udpflip <- function() {
+  shuffle(1, signs = -1)
+}
+
 #' @describeIn udptrans Evaluate a shuffle.
 #' @export
 setMethod("udptrans", "shuffle", function(x, u) {
