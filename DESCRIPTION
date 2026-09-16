@@ -24,6 +24,7 @@ Suggests:
     copula,
     knitr,
     rmarkdown,
+    rvinecopulib,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 URL: https://github.com/ajmcneil/udp, https://ajmcneil.github.io/udp/
@@ -34,6 +35,7 @@ Config/roxygen2/version: 8.1.0
 Config/testthat/edition: 3
 Collate:
     'udp-package.R'
+    'bsicopula.R'
     'shuffle.R'
     'udpcosine.R'
     'udplegendre.R'
