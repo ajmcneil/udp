@@ -27,6 +27,11 @@ pair-copula of \code{Z1} and \code{Z2} given \verb{(V1, V2)}.}
 \code{Z2} given \code{V2}.}
 }}
 
+\references{
+McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
+multivariate uniform-distribution-preserving transformations.
+\href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
+}
 \seealso{
 \code{\link[=sdvine]{sdvine()}} to construct one; \linkS4class{bsicopula} to use it.
 }

@@ -14,6 +14,10 @@ copulas. \emph{Risks}, \strong{9}(1), 14. \doi{10.3390/risks9010014}
 
 McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
 of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
+
+McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
+multivariate uniform-distribution-preserving transformations.
+\href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
 }
 \seealso{
 Useful links:

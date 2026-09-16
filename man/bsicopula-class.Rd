@@ -27,6 +27,11 @@ stochastic inversion (\code{\link[=udpsi]{udpsi()}}) to \code{V1} and \code{V2} 
 \linkS4class{sdvine} object.}
 }}
 
+\references{
+McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
+multivariate uniform-distribution-preserving transformations.
+\href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
+}
 \seealso{
 \code{\link[=bsicopula]{bsicopula()}} to construct one; \code{\link[=rbsicopula]{rbsicopula()}} to sample from one.
 }

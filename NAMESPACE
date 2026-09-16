@@ -3,6 +3,7 @@
 export(aceshuffle)
 export(boundaryadjust)
 export(bsicopula)
+export(dbsicopula)
 export(pcoincide)
 export(rbsicopula)
 export(sdvine)
@@ -45,7 +46,9 @@ exportMethods(udpsi)
 exportMethods(udptrans)
 import(methods)
 importFrom(graphics,
+  contour,
   lines,
+  persp,
   polygon,
   segments
 )
