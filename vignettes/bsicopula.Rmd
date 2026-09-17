@@ -30,8 +30,8 @@ through a copula on their "carrier" uniforms `(V1, V2)`. Margin `i`'s draw
 is `udpsi(udp_i, V_i, Z_i)`: `udpsi()` applied to `V_i`, with the
 pre-image selected by a randomizer `Z_i`. With independent randomizers,
 that pre-image selection is the only source of randomness beyond
-`basecopula` itself; a **randomizer model** -- an `sdvine` or a
-`vmixture` -- instead couples `Z1` and `Z2` (on `(V1, V2)` and on each
+`basecopula` itself; a **randomizer model** -- a `randsdvine` or a
+`randmixture` -- instead couples `Z1` and `Z2` (on `(V1, V2)` and on each
 other), injecting further dependence between the two margins.
 
 This vignette builds four `bsicopula` objects that share the same
@@ -66,11 +66,11 @@ extra coupling between `Z1` and `Z2` yet.
 
 ### A single extra dependency
 
-An `sdvine` model's `copZ1Z2_V1V2` slot (its only required argument)
+A `randsdvine` model's `copZ1Z2_V1V2` slot (its only required argument)
 couples `Z1` and `Z2` directly, given `(V1, V2)`.
 
 ```{r case2}
-ranmodA <- sdvine(bicop_dist("gauss", parameters = 0.8))
+ranmodA <- randsdvine(bicop_dist("gauss", parameters = 0.8))
 case2 <- bsicopula(bicop_dist("gauss", parameters = 0.85),
   udp1 = vsymmetric(),
   udp2 = vsymmetric(),
@@ -86,12 +86,12 @@ margins together, on top of the folding structure already present in
 
 ### A fuller D-vine
 
-`sdvine`'s other two slots add the remaining tree-2 edges, `Z1`-`V2` given
+`randsdvine`'s other two slots add the remaining tree-2 edges, `Z1`-`V2` given
 `V1` and `V1`-`Z2` given `V2`, coupling each randomizer to the *other*
 margin's carrier uniform as well.
 
 ```{r case3}
-ranmodB <- sdvine(
+ranmodB <- randsdvine(
   bicop_dist("gauss", parameters = 0.8),
   bicop_dist("gauss", parameters = 0.7),
   bicop_dist("gauss", parameters = 0.1)
@@ -106,14 +106,14 @@ plot(case3)
 
 ### Regime-switching dependence
 
-A `vmixture` model takes a different approach: rather than
+A `randmixture` model takes a different approach: rather than
 coupling `Z1` and `Z2` smoothly, it switches between two copulas
 altogether, chosen by a `selector(v1, v2)`. Here `Z1` and `Z2` are drawn
 comonotonically when `V1` or `V2` is large, and countermonotonically
 otherwise.
 
 ```{r case4}
-ranmodC <- vmixture(
+ranmodC <- randmixture(
   bicop_dist("gauss", parameters = 1),
   bicop_dist("gauss", parameters = -1),
   selector = function(v1, v2) pmax(v1, v2) > 0.6

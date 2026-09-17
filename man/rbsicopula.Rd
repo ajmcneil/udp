@@ -21,9 +21,9 @@ marginally uniform on \verb{[0, 1]}.
 \item If \code{randomizermod} is \code{NULL}, returns \verb{(udpsi(udp1, V1), udpsi(udp2, V2))} -- each with its own fresh, independent randomizer -- and stops.
 \item Otherwise draws \verb{(Z1, Z2)} given \verb{(V1, V2)}: from the simplified
 D-vine specified by \code{basecopula} (as \verb{C_\{V1,V2\}}) and \code{randomizermod}
-when it is an \linkS4class{sdvine}, or from \code{randomizermod@cop1} /
+when it is a \linkS4class{randsdvine}, or from \code{randomizermod@cop1} /
 \code{cop2} according to \code{randomizermod@selector(V1, V2)} when it is a
-\linkS4class{vmixture}.
+\linkS4class{randmixture}.
 \item Returns \verb{(udpsi(udp1, V1, Z1), udpsi(udp2, V2, Z2))}.
 }
 }

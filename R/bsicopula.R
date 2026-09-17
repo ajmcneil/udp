@@ -44,13 +44,13 @@ sample_basecopula <- function(n, basecopula) {
 #' @slot copV1Z2_V2 a bicop_dist object, the tree-2 pair-copula of `V1` and
 #'   `Z2` given `V2`.
 #'
-#' @seealso [sdvine()] to construct one; \linkS4class{bsicopula} to use it.
+#' @seealso [randsdvine()] to construct one; \linkS4class{bsicopula} to use it.
 #' @references
 #' McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
 #' multivariate uniform-distribution-preserving transformations.
 #' \href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
 #' @export
-setClass("sdvine", slots = list(
+setClass("randsdvine", slots = list(
   copZ1Z2_V1V2 = "ANY",
   copZ1V2_V1   = "ANY",
   copV1Z2_V2   = "ANY"
@@ -64,18 +64,18 @@ setClass("sdvine", slots = list(
 #'   pair-copulas. Default to `rvinecopulib::bicop_dist()`, the independence
 #'   copula.
 #'
-#' @return An object of class \linkS4class{sdvine}.
+#' @return An object of class \linkS4class{randsdvine}.
 #' @export
 #'
 #' @examples
 #' if (requireNamespace("rvinecopulib", quietly = TRUE)) {
-#'   sdvine(rvinecopulib::bicop_dist("gaussian", 0, 0.4))
+#'   randsdvine(rvinecopulib::bicop_dist("gaussian", 0, 0.4))
 #' }
-sdvine <- function(copZ1Z2_V1V2,
+randsdvine <- function(copZ1Z2_V1V2,
                     copZ1V2_V1 = rvinecopulib::bicop_dist(),
                     copV1Z2_V2 = rvinecopulib::bicop_dist()) {
   if (!requireNamespace("rvinecopulib", quietly = TRUE)) {
-    stop("Package 'rvinecopulib' is required to construct an 'sdvine' object.",
+    stop("Package 'rvinecopulib' is required to construct a 'randsdvine' object.",
       call. = FALSE
     )
   }
@@ -85,7 +85,7 @@ sdvine <- function(copZ1Z2_V1V2,
       call. = FALSE
     )
   }
-  new("sdvine",
+  new("randsdvine",
     copZ1Z2_V1V2 = copZ1Z2_V1V2, copZ1V2_V1 = copZ1V2_V1, copV1Z2_V2 = copV1Z2_V2
   )
 }
@@ -94,7 +94,7 @@ sdvine <- function(copZ1Z2_V1V2,
 #'
 #' A randomizer model for \linkS4class{bsicopula} that draws `(Z1, Z2)`
 #' given `(V1, V2)` from one of two copulas, `cop1` or `cop2`, chosen by a
-#' user-supplied `selector(v1, v2)`. Unlike \linkS4class{sdvine}, this needs
+#' user-supplied `selector(v1, v2)`. Unlike \linkS4class{randsdvine}, this needs
 #' no constraint on `selector` to keep `udpsi()`'s stochastic-inversion
 #' guarantee valid: whichever of `cop1`/`cop2` gets picked, it is still some
 #' copula, and every copula's own coordinate margins are uniform on
@@ -110,9 +110,9 @@ sdvine <- function(copZ1Z2_V1V2,
 #'   `cop2`. Any further parameters (such as a threshold) should be
 #'   captured in `selector`'s closure rather than passed separately.
 #'
-#' @seealso [vmixture()] to construct one; \linkS4class{bsicopula} to use it.
+#' @seealso [randmixture()] to construct one; \linkS4class{bsicopula} to use it.
 #' @export
-setClass("vmixture", slots = list(
+setClass("randmixture", slots = list(
   cop1 = "ANY",
   cop2 = "ANY",
   selector = "function"
@@ -127,18 +127,18 @@ setClass("vmixture", slots = list(
 #'   `cop2`. Capture any further parameters in its closure, e.g.
 #'   `function(v1, v2) pmax(v1, v2) > 0.7`.
 #'
-#' @return An object of class \linkS4class{vmixture}.
+#' @return An object of class \linkS4class{randmixture}.
 #' @export
 #'
 #' @examples
 #' if (requireNamespace("rvinecopulib", quietly = TRUE)) {
-#'   vmixture(
+#'   randmixture(
 #'     rvinecopulib::bicop_dist("gaussian", 0, 1),
 #'     rvinecopulib::bicop_dist("gaussian", 0, -1),
 #'     selector = function(v1, v2) pmax(v1, v2) > 0.7
 #'   )
 #' }
-vmixture <- function(cop1, cop2, selector) {
+randmixture <- function(cop1, cop2, selector) {
   if (!(is_parCopula(cop1) || is_bicop_dist(cop1)) ||
     !(is_parCopula(cop2) || is_bicop_dist(cop2))) {
     stop(
@@ -149,7 +149,7 @@ vmixture <- function(cop1, cop2, selector) {
   if (!is.function(selector)) {
     stop("'selector' must be a function.", call. = FALSE)
   }
-  new("vmixture", cop1 = cop1, cop2 = cop2, selector = selector)
+  new("randmixture", cop1 = cop1, cop2 = cop2, selector = selector)
 }
 
 #' Class of bivariate stochastic inversion copulas
@@ -160,7 +160,7 @@ vmixture <- function(cop1, cop2, selector) {
 #' selected by the randomizer `Z_i`. `Z_i` defaults to an independent
 #' uniform, giving margins that agree with `basecopula` up to the
 #' pre-image-selection randomness. When `randomizermod` is instead an
-#' \linkS4class{sdvine} or \linkS4class{vmixture} model, `(Z1, Z2)` are
+#' \linkS4class{randsdvine} or \linkS4class{randmixture} model, `(Z1, Z2)` are
 #' drawn dependently -- on `(V1, V2)` and on each other -- injecting
 #' further dependence between the two margins, including non-monotonic
 #' dependence when `udp1`/`udp2` are many-to-one.
@@ -170,7 +170,7 @@ vmixture <- function(cop1, cop2, selector) {
 #' @slot udp1,udp2 objects of class \linkS4class{udp}, applied via
 #'   stochastic inversion ([udpsi()]) to `V1` and `V2` respectively.
 #' @slot randomizermod `NULL` (independent randomizers), an
-#'   \linkS4class{sdvine} object, or a \linkS4class{vmixture} object.
+#'   \linkS4class{randsdvine} object, or a \linkS4class{randmixture} object.
 #'
 #' @seealso [bsicopula()] to construct one; [rbsicopula()] to sample from one.
 #' @references
@@ -193,10 +193,10 @@ setClass("bsicopula", slots = list(
 #'   carrier uniforms `(V1, V2)`.
 #' @param udp1,udp2 objects of class \linkS4class{udp}.
 #' @param randomizermod `NULL` (the default; independent randomizers), an
-#'   \linkS4class{sdvine} object, or a \linkS4class{vmixture} object. When
-#'   an \linkS4class{sdvine}, `basecopula` must additionally be a
+#'   \linkS4class{randsdvine} object, or a \linkS4class{randmixture} object. When
+#'   a \linkS4class{randsdvine}, `basecopula` must additionally be a
 #'   bicop_dist object -- the D-vine sampling machinery uses
-#'   \pkg{rvinecopulib}'s h-functions throughout. A \linkS4class{vmixture}
+#'   \pkg{rvinecopulib}'s h-functions throughout. A \linkS4class{randmixture}
 #'   has no such restriction: it only needs the realized `(V1, V2)` draw,
 #'   which either backend already provides.
 #'
@@ -218,15 +218,15 @@ bsicopula <- function(basecopula, udp1, udp2, randomizermod = NULL) {
     stop("'udp1' and 'udp2' must be objects of class 'udp'.", call. = FALSE)
   }
   if (!is.null(randomizermod)) {
-    if (!methods::is(randomizermod, "sdvine") && !methods::is(randomizermod, "vmixture")) {
+    if (!methods::is(randomizermod, "randsdvine") && !methods::is(randomizermod, "randmixture")) {
       stop(
-        "'randomizermod' must be NULL, an object of class 'sdvine', or an object of class 'vmixture'.",
+        "'randomizermod' must be NULL, an object of class 'randsdvine', or an object of class 'randmixture'.",
         call. = FALSE
       )
     }
-    if (methods::is(randomizermod, "sdvine") && !is_bicop_dist(basecopula)) {
+    if (methods::is(randomizermod, "randsdvine") && !is_bicop_dist(basecopula)) {
       stop(
-        "'basecopula' must be a bicop_dist object when 'randomizermod' is an 'sdvine'.",
+        "'basecopula' must be a bicop_dist object when 'randomizermod' is a 'randsdvine'.",
         call. = FALSE
       )
     }
@@ -239,11 +239,11 @@ bsicopula <- function(basecopula, udp1, udp2, randomizermod = NULL) {
 # (Z1, Z2) given (V1, V2) from the simplified D-vine: basecopula is
 # C_{V1,V2} (tree 1), randomizermod's three slots are the tree-2/tree-3
 # edges; the two tree-1 outer edges C_{Z1,V1} and C_{V2,Z2} are the
-# independence copula, not stored anywhere (see sdvine()). Uses the
+# independence copula, not stored anywhere (see randsdvine()). Uses the
 # rvinecopulib h-function convention throughout: hbicop(cbind(cond, target),
 # cond_var = 1, family = bicop) is C(target | cond), and inverse = TRUE
 # solves it for target given a probability level.
-sdvine_sample <- function(V1, V2, basecopula, randomizermod) {
+randsdvine_sample <- function(V1, V2, basecopula, randomizermod) {
   n <- length(V1)
   w1 <- runif(n)
   w2 <- runif(n)
@@ -266,13 +266,13 @@ sdvine_sample <- function(V1, V2, basecopula, randomizermod) {
   cbind(Z1 = Z1, Z2 = Z2)
 }
 
-# (Z1, Z2) given (V1, V2) from a vmixture model: evaluate selector(V1, V2)
+# (Z1, Z2) given (V1, V2) from a randmixture model: evaluate selector(V1, V2)
 # on the realized pair, then draw from cop1 where TRUE and cop2 where FALSE.
 # Z1 independent of V1 (and Z2 of V2) holds for any selector -- see
-# vmixture-class's documentation -- so unlike sdvine_sample() this needs no
+# randmixture-class's documentation -- so unlike randsdvine_sample() this needs no
 # h-function machinery, just an ordinary draw from whichever copula was
 # picked.
-vmixture_sample <- function(V1, V2, randomizermod) {
+randmixture_sample <- function(V1, V2, randomizermod) {
   n <- length(V1)
   sel <- randomizermod@selector(V1, V2)
   if (!is.logical(sel) || length(sel) != n) {
@@ -303,9 +303,9 @@ vmixture_sample <- function(V1, V2, randomizermod) {
 #'    V2))` -- each with its own fresh, independent randomizer -- and stops.
 #' 3. Otherwise draws `(Z1, Z2)` given `(V1, V2)`: from the simplified
 #'    D-vine specified by `basecopula` (as `C_{V1,V2}`) and `randomizermod`
-#'    when it is an \linkS4class{sdvine}, or from `randomizermod@cop1` /
+#'    when it is a \linkS4class{randsdvine}, or from `randomizermod@cop1` /
 #'    `cop2` according to `randomizermod@selector(V1, V2)` when it is a
-#'    \linkS4class{vmixture}.
+#'    \linkS4class{randmixture}.
 #' 4. Returns `(udpsi(udp1, V1, Z1), udpsi(udp2, V2, Z2))`.
 #'
 #' @param n number of draws.
@@ -333,10 +333,10 @@ rbsicopula <- function(n, object) {
     U1 <- udpsi(object@udp1, V1)
     U2 <- udpsi(object@udp2, V2)
   } else {
-    Z <- if (methods::is(object@randomizermod, "sdvine")) {
-      sdvine_sample(V1, V2, object@basecopula, object@randomizermod)
+    Z <- if (methods::is(object@randomizermod, "randsdvine")) {
+      randsdvine_sample(V1, V2, object@basecopula, object@randomizermod)
     } else {
-      vmixture_sample(V1, V2, object@randomizermod)
+      randmixture_sample(V1, V2, object@randomizermod)
     }
     U1 <- udpsi(object@udp1, V1, Z[, "Z1"])
     U2 <- udpsi(object@udp2, V2, Z[, "Z2"])
@@ -402,19 +402,19 @@ preimage_interval <- function(P, j) {
 # simplified D-vine: the tree-3 copula applied to the two tree-2
 # h-functions, each conditioned on the matching tree-1 h-function of
 # (v1, v2). e21 = P(V2 <= v2 | V1 = v1), e12 = P(V1 <= v1 | V2 = v2) -- the
-# same quantities sdvine_sample() computes for simulation.
-sdvine_cdf <- function(z1, z2, e21, e12, randomizermod) {
+# same quantities randsdvine_sample() computes for simulation.
+randsdvine_cdf <- function(z1, z2, e21, e12, randomizermod) {
   a <- rvinecopulib::hbicop(cbind(e21, z1), cond_var = 1, family = randomizermod@copZ1V2_V1)
   b <- rvinecopulib::hbicop(cbind(e12, z2), cond_var = 1, family = randomizermod@copV1Z2_V2)
   rvinecopulib::pbicop(cbind(a, b), family = randomizermod@copZ1Z2_V1V2)
 }
 
-# Joint conditional CDF F(z1, z2 | V1 = v1, V2 = v2) implied by a vmixture
+# Joint conditional CDF F(z1, z2 | V1 = v1, V2 = v2) implied by a randmixture
 # model: given the realized (v1, v2), selector(v1, v2) deterministically
 # picks cop1 or cop2, and (Z1, Z2) | that choice is an ordinary draw from
 # the picked copula -- so the conditional CDF is just that copula's own
-# CDF, no h-function composition needed (unlike sdvine_cdf()).
-vmixture_cdf <- function(z1, z2, v1, v2, randomizermod) {
+# CDF, no h-function composition needed (unlike randsdvine_cdf()).
+randmixture_cdf <- function(z1, z2, v1, v2, randomizermod) {
   sel <- randomizermod@selector(v1, v2)
   out <- numeric(length(z1))
   if (any(sel)) {
@@ -431,7 +431,7 @@ vmixture_cdf <- function(z1, z2, v1, v2, randomizermod) {
 # containing (u1, u2), given V1 = v1, V2 = v2, under randomizermod, to (2)
 # the same probability under independent randomizers -- a rectangle
 # probability under the joint conditional law of (Z1, Z2) | (V1, V2)
-# (numerator, via sdvine_cdf()'s closed form) over the product of the two
+# (numerator, via randsdvine_cdf()'s closed form) over the product of the two
 # marginal selection probabilities already in udpinverse()'s "prob"
 # attribute (denominator). See McNeil and Nešlehová (2026), arXiv:2607.07174,
 # also cited via dbsicopula()'s @references.
@@ -448,12 +448,12 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
 
   denom <- P1[cbind(seq_along(u1), j1)] * P2[cbind(seq_along(u2), j2)]
 
-  if (methods::is(randomizermod, "sdvine")) {
+  if (methods::is(randomizermod, "randsdvine")) {
     e21 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 1, family = basecopula)
     e12 <- rvinecopulib::hbicop(cbind(v2, v1), cond_var = 1, family = basecopula)
-    joint_cdf <- function(z1, z2) sdvine_cdf(z1, z2, e21, e12, randomizermod)
+    joint_cdf <- function(z1, z2) randsdvine_cdf(z1, z2, e21, e12, randomizermod)
   } else {
-    joint_cdf <- function(z1, z2) vmixture_cdf(z1, z2, v1, v2, randomizermod)
+    joint_cdf <- function(z1, z2) randmixture_cdf(z1, z2, v1, v2, randomizermod)
   }
 
   numer <- joint_cdf(I1$b, I2$b) - joint_cdf(I1$a, I2$b) -
@@ -473,8 +473,8 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
 #' \linkS4class{udp} transformation's pre-image selection probabilities sum
 #' to `1` at every `v` by construction.
 #'
-#' When `randomizermod` is an \linkS4class{sdvine} or a
-#' \linkS4class{vmixture}, that cancellation is no longer exact -- `Z1` now
+#' When `randomizermod` is a \linkS4class{randsdvine} or a
+#' \linkS4class{randmixture}, that cancellation is no longer exact -- `Z1` now
 #' depends on `V2` (and vice versa), not just on its own `V_i` -- and an
 #' extra multiplicative weight `w(u1, u2)` corrects for it: the ratio of
 #' the probability that the joint stochastic inverse lands in the same

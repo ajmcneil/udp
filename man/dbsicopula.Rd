@@ -25,8 +25,8 @@ the \verb{1 / |T'|} pre-image selection probability, since a
 to \code{1} at every \code{v} by construction.
 }
 \details{
-When \code{randomizermod} is an \linkS4class{sdvine} or a
-\linkS4class{vmixture}, that cancellation is no longer exact -- \code{Z1} now
+When \code{randomizermod} is a \linkS4class{randsdvine} or a
+\linkS4class{randmixture}, that cancellation is no longer exact -- \code{Z1} now
 depends on \code{V2} (and vice versa), not just on its own \code{V_i} -- and an
 extra multiplicative weight \code{w(u1, u2)} corrects for it: the ratio of
 the probability that the joint stochastic inverse lands in the same

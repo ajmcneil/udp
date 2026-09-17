@@ -1,21 +1,21 @@
-# sdvine(), bsicopula(), rbsicopula() -- these need the Suggested packages
+# randsdvine(), bsicopula(), rbsicopula() -- these need the Suggested packages
 # copula and rvinecopulib, so every test here skips cleanly when either is
 # unavailable.
 
-test_that("sdvine() requires bicop_dist objects and defaults the two tree-2 edges to independence", {
+test_that("randsdvine() requires bicop_dist objects and defaults the two tree-2 edges to independence", {
   skip_if_not_installed("rvinecopulib")
   cop3 <- rvinecopulib::bicop_dist("t", 0, c(0.4, 5))
-  sdv <- sdvine(cop3)
-  expect_s4_class(sdv, "sdvine")
+  sdv <- randsdvine(cop3)
+  expect_s4_class(sdv, "randsdvine")
   expect_identical(sdv@copZ1Z2_V1V2$family, "t")
   expect_identical(sdv@copZ1V2_V1$family, "indep")
   expect_identical(sdv@copV1Z2_V2$family, "indep")
 
-  expect_error(sdvine(rvinecopulib::bicop_dist("clayton", 0, 2), copZ1V2_V1 = 1),
+  expect_error(randsdvine(rvinecopulib::bicop_dist("clayton", 0, 2), copZ1V2_V1 = 1),
     "bicop_dist"
   )
   skip_if_not_installed("copula")
-  expect_error(sdvine(copula::claytonCopula(2)), "bicop_dist")
+  expect_error(randsdvine(copula::claytonCopula(2)), "bicop_dist")
 })
 
 test_that("bsicopula() accepts either a parCopula or bicop_dist basecopula when randomizermod is NULL", {
@@ -36,17 +36,17 @@ test_that("bsicopula() rejects non-udp margins and non-copula basecopula", {
   expect_error(bsicopula(matrix(1), udpcosine(2), udpcosine(3)), "parCopula.*bicop_dist")
 })
 
-test_that("bsicopula() requires basecopula to be bicop_dist when randomizermod is an sdvine", {
+test_that("bsicopula() requires basecopula to be bicop_dist when randomizermod is a randsdvine", {
   skip_if_not_installed("copula")
   skip_if_not_installed("rvinecopulib")
-  sdv <- sdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)))
+  sdv <- randsdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)))
   expect_error(
     bsicopula(copula::claytonCopula(2), udpcosine(2), udpcosine(3), randomizermod = sdv),
     "bicop_dist object when 'randomizermod'"
   )
   expect_error(
     bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3), randomizermod = "x"),
-    "class 'sdvine'"
+    "class 'randsdvine'"
   )
   expect_s4_class(
     bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3), randomizermod = sdv),
@@ -54,28 +54,28 @@ test_that("bsicopula() requires basecopula to be bicop_dist when randomizermod i
   )
 })
 
-## vmixture() / vmixture_sample() --------------------------------------------
+## randmixture() / randmixture_sample() --------------------------------------------
 
-test_that("vmixture() validates cop1, cop2 and selector", {
+test_that("randmixture() validates cop1, cop2 and selector", {
   skip_if_not_installed("rvinecopulib")
   cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 1)
   cop2 <- rvinecopulib::bicop_dist("gaussian", parameters = -1)
   sel <- function(v1, v2) pmax(v1, v2) > 0.7
 
-  vm <- vmixture(cop1, cop2, sel)
-  expect_s4_class(vm, "vmixture")
+  vm <- randmixture(cop1, cop2, sel)
+  expect_s4_class(vm, "randmixture")
 
-  expect_error(vmixture(cop1, "not a copula", sel), "parCopula.*bicop_dist")
-  expect_error(vmixture("not a copula", cop2, sel), "parCopula.*bicop_dist")
-  expect_error(vmixture(cop1, cop2, "not a function"), "must be a function")
+  expect_error(randmixture(cop1, "not a copula", sel), "parCopula.*bicop_dist")
+  expect_error(randmixture("not a copula", cop2, sel), "parCopula.*bicop_dist")
+  expect_error(randmixture(cop1, cop2, "not a function"), "must be a function")
 })
 
-test_that("bsicopula() accepts a vmixture with either basecopula type (no bicop_dist restriction)", {
+test_that("bsicopula() accepts a randmixture with either basecopula type (no bicop_dist restriction)", {
   skip_if_not_installed("copula")
   skip_if_not_installed("rvinecopulib")
   cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 1)
   cop2 <- rvinecopulib::bicop_dist("gaussian", parameters = -1)
-  vm <- vmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
+  vm <- randmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
 
   expect_s4_class(
     bsicopula(copula::claytonCopula(2), udpcosine(2), udpcosine(3), randomizermod = vm),
@@ -87,17 +87,17 @@ test_that("bsicopula() accepts a vmixture with either basecopula type (no bicop_
   )
 })
 
-test_that("vmixture_sample() gives Z1 independent of V1 and Z2 independent of V2, for any selector", {
+test_that("randmixture_sample() gives Z1 independent of V1 and Z2 independent of V2, for any selector", {
   skip_if_not_installed("copula")
   skip_if_not_installed("rvinecopulib")
   cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 1)
   cop2 <- rvinecopulib::bicop_dist("gaussian", parameters = -1)
-  vm <- vmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
+  vm <- randmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
 
   set.seed(1)
   n <- 20000
   V <- copula::rCopula(n, copula::claytonCopula(2))
-  Z <- vmixture_sample(V[, 1], V[, 2], vm)
+  Z <- randmixture_sample(V[, 1], V[, 2], vm)
 
   expect_equal(cor(Z[, "Z1"], V[, 1]), 0, tolerance = 0.02)
   expect_equal(cor(Z[, "Z2"], V[, 2]), 0, tolerance = 0.02)
@@ -105,44 +105,44 @@ test_that("vmixture_sample() gives Z1 independent of V1 and Z2 independent of V2
   expect_gt(ks.test(Z[, "Z2"], "punif")$p.value, 0.001)
 })
 
-test_that("vmixture_sample() actually switches regimes according to 'selector'", {
+test_that("randmixture_sample() actually switches regimes according to 'selector'", {
   skip_if_not_installed("copula")
   skip_if_not_installed("rvinecopulib")
   cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 1) # comonotonic
   cop2 <- rvinecopulib::bicop_dist("gaussian", parameters = -1) # countermonotonic
-  vm <- vmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
+  vm <- randmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
 
   set.seed(1)
   n <- 20000
   V <- copula::rCopula(n, copula::claytonCopula(2))
   sel <- pmax(V[, 1], V[, 2]) > 0.7
-  Z <- vmixture_sample(V[, 1], V[, 2], vm)
+  Z <- randmixture_sample(V[, 1], V[, 2], vm)
 
   expect_equal(cor(Z[sel, "Z1"], Z[sel, "Z2"]), 1, tolerance = 1e-8)
   expect_equal(cor(Z[!sel, "Z1"], Z[!sel, "Z2"]), -1, tolerance = 1e-8)
 })
 
-test_that("vmixture_sample() errors clearly if 'selector' returns the wrong shape", {
+test_that("randmixture_sample() errors clearly if 'selector' returns the wrong shape", {
   skip_if_not_installed("rvinecopulib")
   cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 0.5)
-  vm_wronglen <- vmixture(cop1, cop1, function(v1, v2) TRUE)
-  vm_notlogical <- vmixture(cop1, cop1, function(v1, v2) v1)
+  vm_wronglen <- randmixture(cop1, cop1, function(v1, v2) TRUE)
+  vm_notlogical <- randmixture(cop1, cop1, function(v1, v2) v1)
 
   expect_error(
-    vmixture_sample(runif(5), runif(5), vm_wronglen),
+    randmixture_sample(runif(5), runif(5), vm_wronglen),
     "logical vector the same length"
   )
   expect_error(
-    vmixture_sample(runif(5), runif(5), vm_notlogical),
+    randmixture_sample(runif(5), runif(5), vm_notlogical),
     "logical vector the same length"
   )
 })
 
-test_that("rbsicopula() with a vmixture gives an n x 2 matrix with uniform margins", {
+test_that("rbsicopula() with a randmixture gives an n x 2 matrix with uniform margins", {
   skip_if_not_installed("rvinecopulib")
   cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 1)
   cop2 <- rvinecopulib::bicop_dist("gaussian", parameters = -1)
-  vm <- vmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
+  vm <- randmixture(cop1, cop2, function(v1, v2) pmax(v1, v2) > 0.7)
   bc <- bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3),
     randomizermod = vm
   )
@@ -171,12 +171,12 @@ test_that("rbsicopula() with randomizermod = NULL returns an n x 2 matrix, unifo
   expect_gt(ks.test(samp[, "U2"], "punif")$p.value, 0.001)
 })
 
-test_that("rbsicopula() with an sdvine matches a direct hand-rolled implementation of the algorithm", {
+test_that("rbsicopula() with a randsdvine matches a direct hand-rolled implementation of the algorithm", {
   skip_if_not_installed("rvinecopulib")
   bic <- rvinecopulib::bicop_dist
   hbicop <- rvinecopulib::hbicop
   basecop <- bic("gumbel", 0, 1.6)
-  sdv <- sdvine(bic("t", 0, c(0.4, 5)), bic("clayton", 0, 1.3), bic("joe", 0, 2.0))
+  sdv <- randsdvine(bic("t", 0, c(0.4, 5)), bic("clayton", 0, 1.3), bic("joe", 0, 2.0))
 
   set.seed(11)
   n <- 500
@@ -193,15 +193,15 @@ test_that("rbsicopula() with an sdvine matches a direct hand-rolled implementati
   z2 <- hbicop(cbind(e12, y), cond_var = 1, family = sdv@copV1Z2_V2, inverse = TRUE)
 
   set.seed(22)
-  Z <- sdvine_sample(V1, V2, basecop, sdv)
+  Z <- randsdvine_sample(V1, V2, basecop, sdv)
 
   expect_equal(as.numeric(Z[, "Z1"]), z1)
   expect_equal(as.numeric(Z[, "Z2"]), z2)
 })
 
-test_that("rbsicopula() with an sdvine still gives uniform margins and matches udpsi() directly", {
+test_that("rbsicopula() with a randsdvine still gives uniform margins and matches udpsi() directly", {
   skip_if_not_installed("rvinecopulib")
-  sdv <- sdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)),
+  sdv <- randsdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)),
     rvinecopulib::bicop_dist("clayton", 0, 1.3),
     rvinecopulib::bicop_dist("joe", 0, 2.0)
   )
@@ -218,7 +218,7 @@ test_that("rbsicopula() with an sdvine still gives uniform margins and matches u
 
   set.seed(3)
   V <- rvinecopulib::rbicop(5000, bc@basecopula)
-  Z <- sdvine_sample(V[, 1], V[, 2], bc@basecopula, sdv)
+  Z <- randsdvine_sample(V[, 1], V[, 2], bc@basecopula, sdv)
   expect_equal(samp[, "U1"], udpsi(udpcosine(2), V[, 1], Z[, "Z1"]))
   expect_equal(samp[, "U2"], udpsi(udpcosine(3), V[, 2], Z[, "Z2"]))
 })
@@ -248,21 +248,21 @@ test_that("dbsicopula() with randomizermod = NULL is exactly c_V(T1(u1), T2(u2))
   )
 })
 
-test_that("dbsicopula() with an all-independence sdvine matches randomizermod = NULL", {
+test_that("dbsicopula() with an all-independence randsdvine matches randomizermod = NULL", {
   skip_if_not_installed("rvinecopulib")
   u1 <- c(0.1, 0.37, 0.6, 0.85)
   u2 <- c(0.2, 0.55, 0.4, 0.9)
   base <- rvinecopulib::bicop_dist("gumbel", 0, 1.6)
-  sdv_indep <- sdvine(rvinecopulib::bicop_dist(), rvinecopulib::bicop_dist(), rvinecopulib::bicop_dist())
+  sdv_indep <- randsdvine(rvinecopulib::bicop_dist(), rvinecopulib::bicop_dist(), rvinecopulib::bicop_dist())
 
   bc_indep <- bsicopula(base, udpcosine(2), udpcosine(3))
   bc_sdv <- bsicopula(base, udpcosine(2), udpcosine(3), randomizermod = sdv_indep)
   expect_equal(dbsicopula(u1, u2, bc_sdv), dbsicopula(u1, u2, bc_indep), tolerance = 1e-6)
 })
 
-test_that("dbsicopula() with a non-trivial sdvine integrates to 1 over the unit square", {
+test_that("dbsicopula() with a non-trivial randsdvine integrates to 1 over the unit square", {
   skip_if_not_installed("rvinecopulib")
-  sdv <- sdvine(
+  sdv <- randsdvine(
     rvinecopulib::bicop_dist("t", 0, c(0.4, 5)),
     rvinecopulib::bicop_dist("clayton", 0, 1.3),
     rvinecopulib::bicop_dist("joe", 0, 2.0)
@@ -288,12 +288,12 @@ test_that("dbsicopula() with a non-trivial sdvine integrates to 1 over the unit 
   expect_equal(total, 1, tolerance = 0.01)
 })
 
-test_that("dbsicopula() with an all-independence vmixture matches randomizermod = NULL", {
+test_that("dbsicopula() with an all-independence randmixture matches randomizermod = NULL", {
   skip_if_not_installed("rvinecopulib")
   u1 <- c(0.1, 0.37, 0.6, 0.85)
   u2 <- c(0.2, 0.55, 0.4, 0.9)
   base <- rvinecopulib::bicop_dist("gumbel", 0, 1.6)
-  vm_indep <- vmixture(rvinecopulib::bicop_dist(), rvinecopulib::bicop_dist(),
+  vm_indep <- randmixture(rvinecopulib::bicop_dist(), rvinecopulib::bicop_dist(),
     selector = function(v1, v2) v1 > 0.5 # any selector: both branches are independence
   )
 
@@ -302,9 +302,9 @@ test_that("dbsicopula() with an all-independence vmixture matches randomizermod 
   expect_equal(dbsicopula(u1, u2, bc_vmix), dbsicopula(u1, u2, bc_indep), tolerance = 1e-6)
 })
 
-test_that("dbsicopula() with a non-trivial vmixture integrates to 1 over the unit square", {
+test_that("dbsicopula() with a non-trivial randmixture integrates to 1 over the unit square", {
   skip_if_not_installed("rvinecopulib")
-  vm <- vmixture(
+  vm <- randmixture(
     rvinecopulib::bicop_dist("gaussian", parameters = 0.7),
     rvinecopulib::bicop_dist("gaussian", parameters = -0.7),
     selector = function(v1, v2) pmax(v1, v2) > 0.6
@@ -327,11 +327,11 @@ test_that("dbsicopula() with a non-trivial vmixture integrates to 1 over the uni
   expect_equal(total, 1, tolerance = 0.01)
 })
 
-test_that("dbsicopula()/plot() work for a vmixture built from degenerate (comonotonic/countermonotonic) copulas", {
+test_that("dbsicopula()/plot() work for a randmixture built from degenerate (comonotonic/countermonotonic) copulas", {
   # regression test: this exact construction (rho = +-1) used to error inside
-  # plot()/dbsicopula(), which only handled sdvine randomizer models
+  # plot()/dbsicopula(), which only handled randsdvine randomizer models
   skip_if_not_installed("rvinecopulib")
-  vm <- vmixture(
+  vm <- randmixture(
     rvinecopulib::bicop_dist("gaussian", parameters = 1),
     rvinecopulib::bicop_dist("gaussian", parameters = -1),
     selector = function(v1, v2) pmax(v1, v2) > 0.6
@@ -353,7 +353,7 @@ test_that("dbsicopula()/plot() work for a vmixture built from degenerate (comono
 
 test_that("dbsicopula() gives a finite, non-negative value when u1 lands exactly on a breakpoint", {
   skip_if_not_installed("rvinecopulib")
-  sdv <- sdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)))
+  sdv <- randsdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)))
   bc <- bsicopula(rvinecopulib::bicop_dist("gumbel", 0, 1.6), udpcosine(2), udpcosine(3),
     randomizermod = sdv
   )
@@ -363,7 +363,7 @@ test_that("dbsicopula() gives a finite, non-negative value when u1 lands exactly
 
 ## plot() ---------------------------------------------------------------
 
-test_that("plot() runs for both type = \"contour\" (default) and \"persp\", with and without an sdvine", {
+test_that("plot() runs for both type = \"contour\" (default) and \"persp\", with and without a randsdvine", {
   skip_if_not_installed("rvinecopulib")
   f <- tempfile(fileext = ".pdf")
   pdf(f)
@@ -372,7 +372,7 @@ test_that("plot() runs for both type = \"contour\" (default) and \"persp\", with
     unlink(f)
   })
 
-  sdv <- sdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)), rvinecopulib::bicop_dist("clayton", 0, 1.3))
+  sdv <- randsdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)), rvinecopulib::bicop_dist("clayton", 0, 1.3))
   bc_indep <- bsicopula(rvinecopulib::bicop_dist("gumbel", 0, 1.6), udpcosine(2), udpcosine(3))
   bc_sdv <- bsicopula(rvinecopulib::bicop_dist("gumbel", 0, 1.6), udpcosine(2), udpcosine(3),
     randomizermod = sdv
@@ -486,12 +486,12 @@ test_that("plot(type = \"contour\") floors density below the lowest level before
     dev.off()
     unlink(f)
   })
-  # a near-degenerate vmixture: comonotonic/countermonotonic components,
+  # a near-degenerate randmixture: comonotonic/countermonotonic components,
   # like the "regime-switching" vignette example, which leaves a speckle of
   # tiny but numerically nonzero density values in what should be a
   # perfectly uniform "background" region -- exactly what the floor should
   # absorb
-  vm <- vmixture(
+  vm <- randmixture(
     rvinecopulib::bicop_dist("gaussian", parameters = 1),
     rvinecopulib::bicop_dist("gaussian", parameters = -1),
     selector = function(v1, v2) pmax(v1, v2) > 0.6
