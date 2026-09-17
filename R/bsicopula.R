@@ -117,6 +117,9 @@ randsdvine <- function(copZ1Z2_V1V2,
 #'
 #' @slot cop1,cop2 parCopula objects (\pkg{copula}) or bicop_dist objects
 #'   (\pkg{rvinecopulib}), the two copulas of `(Z1, Z2)` to choose between.
+#'   `cop1` and `cop2` need not share a backend -- one may be a parCopula
+#'   and the other a bicop_dist object -- since sampling and density/CDF
+#'   evaluation dispatch on each of `cop1`/`cop2` individually.
 #' @slot selector a function `selector(v1, v2)` returning a logical vector
 #'   the same length as `v1`/`v2`, with no `NA`s: `TRUE` selects `cop1`,
 #'   `FALSE` selects `cop2`. Any further parameters (such as a threshold)
