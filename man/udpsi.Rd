@@ -26,13 +26,21 @@ udpsi(x, v, Z = runif(length(v)), ...)
 An object shaped like \code{v} with values in \verb{[0, 1]}.
 }
 \description{
-A \code{\link[=udptrans]{udptrans()}} map is in general many-to-one, so it has no ordinary inverse.
-\code{udpsi()} returns a single pre-image of \code{v}, drawn so that the
+A \code{\link[=udptrans]{udptrans()}} map is in general many-to-one -- it \emph{folds} \verb{[0, 1]} onto
+itself -- so it has no ordinary inverse. \code{udpsi()} \emph{unfolds} \code{v}: it
+returns a single pre-image, drawn so that the
 uniform-distribution-preserving property runs backwards too: if \code{v} is
-uniform on \verb{[0, 1]} and \code{Z} is an independent uniform, then \code{udpsi(x, v, Z)}
-is uniform on \verb{[0, 1]}. \code{Z} carries the randomization.
+uniform on \verb{[0, 1]} and \code{Z} is an independent uniform, then
+\code{udpsi(x, v, Z)} is uniform on \verb{[0, 1]}. \code{Z} carries the randomization.
 }
 \details{
+Unfolding undoes folding only in the deterministic direction:
+\code{udptrans(x, udpsi(x, v, Z))} equals \code{v} exactly, for every \code{v} and
+\code{Z} -- \code{udpsi()} always returns a genuine pre-image. The reverse,
+\code{udpsi(x, udptrans(x, u))}, recovers the original \code{u} only with some
+probability less than \code{1} (unless \code{x} is a bijection): folding is lossy,
+so unfolding can only guess. That probability is \code{\link[=pcoincide]{pcoincide()}}.
+
 For every \linkS4class{udp} class this is the same computation: \code{\link[=udpinverse]{udpinverse()}}
 enumerates the pre-images of each \code{v} together with their selection
 probabilities (\verb{1 / |T'|} at each pre-image, normalized over the row), and

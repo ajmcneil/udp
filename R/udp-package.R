@@ -58,11 +58,19 @@ setGeneric("udptrans", function(x, u) standardGeneric("udptrans"))
 
 #' Stochastically invert a uniform-distribution-preserving transformation
 #'
-#' A [udptrans()] map is in general many-to-one, so it has no ordinary inverse.
-#' `udpsi()` returns a single pre-image of `v`, drawn so that the
+#' A [udptrans()] map is in general many-to-one -- it *folds* `[0, 1]` onto
+#' itself -- so it has no ordinary inverse. `udpsi()` *unfolds* `v`: it
+#' returns a single pre-image, drawn so that the
 #' uniform-distribution-preserving property runs backwards too: if `v` is
-#' uniform on `[0, 1]` and `Z` is an independent uniform, then `udpsi(x, v, Z)`
-#' is uniform on `[0, 1]`. `Z` carries the randomization.
+#' uniform on `[0, 1]` and `Z` is an independent uniform, then
+#' `udpsi(x, v, Z)` is uniform on `[0, 1]`. `Z` carries the randomization.
+#'
+#' Unfolding undoes folding only in the deterministic direction:
+#' `udptrans(x, udpsi(x, v, Z))` equals `v` exactly, for every `v` and
+#' `Z` -- `udpsi()` always returns a genuine pre-image. The reverse,
+#' `udpsi(x, udptrans(x, u))`, recovers the original `u` only with some
+#' probability less than `1` (unless `x` is a bijection): folding is lossy,
+#' so unfolding can only guess. That probability is [pcoincide()].
 #'
 #' For every \linkS4class{udp} class this is the same computation: [udpinverse()]
 #' enumerates the pre-images of each `v` together with their selection
