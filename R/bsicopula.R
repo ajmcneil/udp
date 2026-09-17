@@ -18,7 +18,7 @@ is_bicop_dist <- function(x) inherits(x, "bicop_dist")
 
 # Sample n draws from a base copula that is either a parCopula or a
 # bicop_dist object, dispatching to the matching package's own sampler.
-sample_basecopula <- function(n, basecopula) {
+basecopula_sample <- function(n, basecopula) {
   if (is_parCopula(basecopula)) {
     copula::rCopula(n, basecopula)
   } else {
@@ -313,12 +313,12 @@ randmixture_sample <- function(V1, V2, randomizermod) {
   Z1 <- numeric(n)
   Z2 <- numeric(n)
   if (any(sel)) {
-    Z <- sample_basecopula(sum(sel), randomizermod@cop1)
+    Z <- basecopula_sample(sum(sel), randomizermod@cop1)
     Z1[sel] <- Z[, 1]
     Z2[sel] <- Z[, 2]
   }
   if (any(!sel)) {
-    Z <- sample_basecopula(sum(!sel), randomizermod@cop2)
+    Z <- basecopula_sample(sum(!sel), randomizermod@cop2)
     Z1[!sel] <- Z[, 1]
     Z2[!sel] <- Z[, 2]
   }
@@ -354,7 +354,7 @@ rbsicopula <- function(n, object) {
   if (!methods::is(object, "bsicopula")) {
     stop("'object' must be an object of class 'bsicopula'.", call. = FALSE)
   }
-  V <- sample_basecopula(n, object@basecopula)
+  V <- basecopula_sample(n, object@basecopula)
   V1 <- V[, 1]
   V2 <- V[, 2]
 
@@ -578,11 +578,11 @@ dbsicopula <- function(u1, u2, object) {
 #' the median and up -- rather than [graphics::contour()]'s own evenly
 #' spaced `pretty()` levels, which would fall almost entirely above the
 #' bulk of the mass and leave the plot looking empty; and the filled
-#' background is colored by each grid point's own rank among all evaluated
+#' background is coloured by each grid point's own rank among all evaluated
 #' density values (`rank(dens) / length(dens)`), not its raw value, so the
-#' color scale is spread evenly across the whole plot instead of collapsing
+#' colour scale is spread evenly across the whole plot instead of collapsing
 #' into a few small high-density patches against an undifferentiated
-#' background. The trade-off is that the fill color is ordinal, not a
+#' background. The trade-off is that the fill colour is ordinal, not a
 #' literal density scale -- the contour lines carry the actual values.
 #' Before ranking, every value below the lowest contour `level` is floored
 #' to that level, so they all tie for the same (lowest) rank: without this,
@@ -602,7 +602,7 @@ dbsicopula <- function(u1, u2, object) {
 #'   contour `levels`. Ignored if `levels` is supplied directly.
 #' @param levels for `type = "contour"`: contour levels, overriding the
 #'   `probs`-based default.
-#' @param col for `type = "contour"`: the fill color palette, recycled
+#' @param col for `type = "contour"`: the fill colour palette, recycled
 #'   across the rank-transformed density (see Details); passed to
 #'   [graphics::image()] as `col`.
 #' @param drawlabels for `type = "contour"`: whether to label the contour

@@ -8,7 +8,7 @@
   x,
   type = "transform",
   embellish = c("none", "colour", "bw"),
-  npoints = 200,
+  n = 200,
   lower = 0,
   upper = 1,
   ...
@@ -24,7 +24,7 @@
 for \code{type = "transform"}): \code{"none"} (the default) for no shading,
 \code{"colour"} for a light red fill, or \code{"bw"} for a grey fill.}
 
-\item{npoints}{number of plotting points along x-axis.}
+\item{n}{number of plotting points along x-axis.}
 
 \item{lower}{the lower x-axis value for plotting.}
 

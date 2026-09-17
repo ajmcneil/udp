@@ -427,7 +427,7 @@ setMethod("udpinverse", "vtransform",
 #' @param embellish style of the shading of the inadmissible zone (drawn only
 #' for `type = "transform"`): `"none"` (the default) for no shading,
 #' `"colour"` for a light red fill, or `"bw"` for a grey fill.
-#' @param npoints number of plotting points along x-axis.
+#' @param n number of plotting points along x-axis.
 #' @param lower the lower x-axis value for plotting.
 #' @param upper the upper x-axis value for plotting
 #' @param ... further graphical parameters passed to [graphics::plot()].
@@ -443,29 +443,29 @@ setMethod("udpinverse", "vtransform",
 #' plot(v2p(delta = 0.45, kappa = 0.8), type = "gradient")
 setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transform",
                                                                embellish = c("none", "colour", "bw"),
-                                                               npoints = 200, lower = 0, upper = 1, ...) {
+                                                               n = 200, lower = 0, upper = 1, ...) {
   emb <- plot_embellish(embellish)
   delta <- ifelse(is.element("delta", names(x@pars)), x@pars["delta"], 0.5)
   switch(type, inverse = {
-    vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
+    vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = n)
     plot(vvals, vinverse(x, vvals),
       xlab = "v", ylab = "Vinv(v)", type = "l", lwd = 1.5,
       xaxs = "i", yaxs = "i", asp = 1, ...
     )
   }, gradient = {
-    uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
+    uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = n)
     plot(uvals, vgradient(x, uvals),
       xlab = "u", ylab = "Vprime(u)", type = "l", lwd = 1.5,
       xaxs = "i", yaxs = "i", ...
     )
   }, pdown = {
-    vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
+    vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = n)
     plot(vvals, vdownprob(x, vvals),
       xlab = "v", ylab = "Delta(v)", type = "l", lwd = 1.5,
       xaxs = "i", yaxs = "i", asp = 1, ...
     )
   }, transform = {
-    uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = npoints)
+    uvals <- seq(from = max(lower, 0), to = min(upper, 1), length = n)
     if ((delta > lower) & (delta < upper)) uvals <- sort(c(uvals, delta))
     plot(NA,
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i", asp = 1,

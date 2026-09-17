@@ -23,8 +23,8 @@ library(udp)
 
 `udplegendre(j)` and `udpcosine(j)` each build a udp transformation from a
 single degree-`j` term of an orthonormal basis on `[0, 1]` -- shifted
-Legendre polynomials for one, cosines for the other. `udplegendre_sum()` and
-`udpcosine_sum()` generalize both to a finite weighted *sum* of terms,
+Legendre polynomials for one, cosines for the other. `udplegendrebex()` and
+`udpcosinebex()` generalize both to a finite weighted *sum* of terms,
 `g(u) = sum_j coef[j] * basis_j(u)`. The construction is otherwise the same
 as for the single-term classes -- `T(u) = F(g(u))` for `F` the distribution
 function of `g(U)` -- but a sum can have as many turning points as its
@@ -41,13 +41,13 @@ U <- runif(n)
 
 ## A sum of Legendre polynomials
 
-`udplegendre_sum()` takes a vector of weights on the orthonormal shifted
+`udplegendrebex()` takes a vector of weights on the orthonormal shifted
 Legendre polynomials. A one-term vector reproduces `udplegendre()` exactly;
 combining several terms produces a curve with more turning points and a less
 regular shape than any single degree could.
 
 ```{r legendre-sum}
-T1 <- udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+T1 <- udplegendrebex(c(0.44, -0.35, 0.56, -0.21, 0.36))
 plot(T1, embellish = "colour")
 ```
 
@@ -77,14 +77,14 @@ pcoincide(T1)
 
 ## A sum of cosine functions
 
-`udpcosine_sum()` is built the same way from the orthonormal cosine
+`udpcosinebex()` is built the same way from the orthonormal cosine
 functions. Internally it works with the Chebyshev polynomial that
 `g(u) = h(cos(pi * u))` reduces to, but the interface -- construction, plot,
 `udptrans()`, `udpsi()`, `pcoincide()` -- is identical to
-`udplegendre_sum()`.
+`udplegendrebex()`.
 
 ```{r cosine-sum}
-T2 <- udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
+T2 <- udpcosinebex(c(0.44, -0.35, 0.56, -0.21, 0.36))
 plot(T2, embellish = "colour")
 
 V <- udptrans(T2, U)
@@ -100,8 +100,8 @@ despite sharing an orthonormal-expansion origin, a stochastic inverse, and
 the uniform-distribution-preserving property itself.
 
 ```{r compare, fig.show = "hold", fig.width = 3.9}
-plot(T1, main = "udplegendre_sum", embellish = "colour")
-plot(T2, main = "udpcosine_sum", embellish = "colour")
+plot(T1, main = "udplegendrebex", embellish = "colour")
+plot(T2, main = "udpcosinebex", embellish = "colour")
 ```
 
 ## References

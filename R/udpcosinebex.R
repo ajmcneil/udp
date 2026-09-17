@@ -4,7 +4,7 @@
 # Omega_j(u) = sqrt(2) * (-1)^j * cos(j * pi * u) on [0, 1], let
 # g(u) = sum_j c_j Omega_j(u) and let F be the distribution function of g(U)
 # for U uniform. The transformation is T(u) = F(g(u)), uniform-distribution-
-# preserving for the same reason as udplegendre_sum(). udpcosine(j) is the
+# preserving for the same reason as udplegendrebex(). udpcosine(j) is the
 # one-hot special case coef = c(rep(0, j - 1), 1 / sqrt(2)).
 #
 # The Chebyshev identity cos(j*theta) = T_j(cos(theta)), with theta = pi*u and
@@ -12,7 +12,7 @@
 # h(x) = sqrt(2) * sum_j c_j * (-1)^j * T_j(x), a polynomial on [-1, 1], with
 # g(u) = h(cos(pi*u)). Every low-level helper below therefore works in x, not
 # u, and results are converted back via u = acos(x) / pi where needed --
-# unlike udplegendre_sum.R, none of udplegendre.R's [0, 1]-domain helpers
+# unlike udplegendrebex.R, none of udplegendre.R's [0, 1]-domain helpers
 # (legendre_realroots(), legendre_turnpoints()) apply directly, since this
 # class's natural domain is [-1, 1]. Only poly_deriv_coef() and polyval()
 # (pure coefficient algebra, no domain built in) are reused from there.
@@ -20,9 +20,9 @@
 # Because x = cos(pi*u) is a smooth bijection [0, 1] -> [-1, 1] with
 # dx/du != 0 on the OPEN interval (0, 1), turning points of g in u correspond
 # exactly to turning points of h in x, and the same panel-boundary logic from
-# udplegendre_sum.R applies: split panels at h's turning-point critical values
+# udplegendrebex.R applies: split panels at h's turning-point critical values
 # AND at h(1) = g(0), h(-1) = g(-1)... == g(1) whenever they land strictly
-# inside [lbound, ubound]. It matters MORE here than for udplegendre_sum: every
+# inside [lbound, ubound]. It matters MORE here than for udplegendrebex: every
 # Omega_j has zero derivative at both u = 0 and u = 1 (sin(j*pi*0) =
 # sin(j*pi*1) = 0 for every integer j), so g'(0) = g'(1) = 0 identically for
 # ANY coefficient choice -- a domain-endpoint crossing is a genuine one-sided
@@ -75,7 +75,7 @@ chebyshev_coef <- function(degree) {
 # Ascending monomial coefficients of h(x) = sum_j coef[j] * sqrt(2) * (-1)^j *
 # T_j(x), the polynomial g(u) = sum_j coef[j] * Omega_j(u) becomes under
 # x = cos(pi * u).
-sum_chebyshev_coef <- function(coef) {
+chebyshev_bex_coef <- function(coef) {
   n <- length(coef)
   cfs <- numeric(n + 1L)
   for (j in seq_len(n)) {
@@ -127,7 +127,7 @@ chebyshev_bounds <- function(coef, coefD) {
 }
 
 # Exact F(y) = |{u in [0, 1] : g(u) <= y}| for a single y, where
-# g(u) = h(cos(pi * u)). Unlike legendre_measure_bounded() (udplegendre_sum.R),
+# g(u) = h(cos(pi * u)). Unlike legendre_measure_bounded() (udplegendrebex.R),
 # this cannot count Lebesgue measure directly in x: x = cos(pi * U) is NOT
 # uniform when U is (it has the arcsine distribution), so the roots of
 # h(x) = y are found in x, converted to u via u = acos(x) / pi, and the
@@ -149,7 +149,7 @@ chebyshev_measure_bounded <- function(coef, y, lbound, ubound) {
 }
 
 # g'(u) = h'(x) * dx/du, x = cos(pi * u), dx/du = -pi * sin(pi * u). The chain
-# rule for the derivative of a udpcosine_sum transformation's underlying g;
+# rule for the derivative of a udpcosinebex transformation's underlying g;
 # used by udpinverse()'s pre-image weights and udpderiv()'s interior formula.
 cosine_sum_gderiv <- function(cfsD, u) {
   -pi * sin(pi * u) * polyval(cfsD, cos(pi * u))
@@ -157,18 +157,18 @@ cosine_sum_gderiv <- function(cfsD, u) {
 
 #' Class of finite orthonormal-cosine-expansion udp transformations
 #'
-#' A udpcosine_sum transformation is `T(u) = F(g(u))`, the composition of
+#' A udpcosinebex transformation is `T(u) = F(g(u))`, the composition of
 #' `g(u) = sum_j coef[j] * Omega_j(u)` -- a finite expansion in the orthonormal
 #' cosine functions `Omega_j(u) = sqrt(2) * (-1)^j * cos(j * pi * u)` on
 #' `[0, 1]` -- with the distribution function `F` of `g(U)` for `U` uniform.
 #' It is a uniform-distribution-preserving map of `[0, 1]`: for `U` uniform,
 #' `udptrans(x, U)` is again uniform. \linkS4class{udpcosine} is the one-term
-#' special case; see [udpcosine_sum()] for how the two relate.
+#' special case; see [udpcosinebex()] for how the two relate.
 #'
 #' The identity `cos(j*theta) = T_j(cos(theta))` turns `g` into an ordinary
 #' polynomial `h(x) = sqrt(2) * sum_j coef[j] * (-1)^j * T_j(x)` in the
 #' DIFFERENT variable `x = cos(pi * u)`, with `g(u) = h(cos(pi * u))`. `F` and
-#' its inverse are built exactly as for \linkS4class{udplegendre_sum} --
+#' its inverse are built exactly as for \linkS4class{udplegendrebex} --
 #' exact real roots from polynomial root finding, panel splines of `F` and
 #' `F^{-1}` between consecutive turning-point critical values, regularized
 #' against the square-root branch point at each -- but working in `x`, with
@@ -183,14 +183,14 @@ cosine_sum_gderiv <- function(cfsD, u) {
 #'   (equivalently on `[-1, 1]`).
 #' @slot Tfun,Qfun functions evaluating `T` and `F^{-1}`.
 #'
-#' @seealso [udpcosine_sum()] to construct one, [udptrans()] to evaluate it.
+#' @seealso [udpcosinebex()] to construct one, [udptrans()] to evaluate it.
 #' @include udp-package.R udplegendre.R
 #' @export
 #'
 #' @references
 #' McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
 #' of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
-setClass("udpcosine_sum",
+setClass("udpcosinebex",
   contains = "udp",
   slots = list(
     coef = "numeric", degree = "integer", cfs = "numeric", cfsD = "numeric",
@@ -204,25 +204,25 @@ setClass("udpcosine_sum",
 #'   orthonormal cosine function `Omega_j(u) = sqrt(2) * (-1)^j * cos(j * pi *
 #'   u)`. Trailing zeros are trimmed to find the effective degree; at least
 #'   one entry must be nonzero. There is no `j = 0` (constant) term, for the
-#'   same reason as \linkS4class{udplegendre_sum}.
+#'   same reason as \linkS4class{udplegendrebex}.
 #' @param ngrid number of grid points (at least 3) at which `F` is evaluated
 #'   exactly before interpolation.
 #'
-#' @return An object of class \linkS4class{udpcosine_sum}.
+#' @return An object of class \linkS4class{udpcosinebex}.
 #'
 #' @details
 #' A one-hot `coef` reproduces the corresponding \linkS4class{udpcosine}
 #' exactly, up to the `1 / sqrt(2)` rescaling needed to undo the orthonormal
-#' `sqrt(2)` factor: `udptrans(udpcosine_sum(c(0, 0, 1 / sqrt(2))), u)` equals
-#' `udptrans(udpcosine(3), u)`. As for \linkS4class{udplegendre_sum}, flipping
+#' `sqrt(2)` factor: `udptrans(udpcosinebex(c(0, 0, 1 / sqrt(2))), u)` equals
+#' `udptrans(udpcosine(3), u)`. As for \linkS4class{udplegendrebex}, flipping
 #' the sign of every entry of `coef` replaces `T` with its complement, `1 - T`.
 #'
 #' @export
 #'
 #' @examples
-#' udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
-#' plot(udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
-udpcosine_sum <- function(coef, ngrid = 513L) {
+#' udpcosinebex(c(0.44, -0.35, 0.56, -0.21, 0.36))
+#' plot(udpcosinebex(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
+udpcosinebex <- function(coef, ngrid = 513L) {
   if (!is.numeric(coef) || length(coef) < 1L || anyNA(coef)) {
     stop("'coef' must be a numeric vector with no missing values.", call. = FALSE)
   }
@@ -234,7 +234,7 @@ udpcosine_sum <- function(coef, ngrid = 513L) {
   coef <- as.numeric(coef[seq_len(degree)])
   if (degree > 12L) {
     warning(
-      "udpcosine_sum(): effective degree > 12 is numerically unreliable ",
+      "udpcosinebex(): effective degree > 12 is numerically unreliable ",
       "(polyroot on large alternating coefficients).",
       call. = FALSE
     )
@@ -244,7 +244,7 @@ udpcosine_sum <- function(coef, ngrid = 513L) {
   }
   ngrid <- as.integer(ngrid)
 
-  cfs <- sum_chebyshev_coef(coef)
+  cfs <- chebyshev_bex_coef(coef)
   cfsD <- poly_deriv_coef(cfs)
   bounds <- chebyshev_bounds(cfs, cfsD)
   lbound <- bounds[1L]
@@ -252,7 +252,7 @@ udpcosine_sum <- function(coef, ngrid = 513L) {
 
   # Panel boundaries: turning-point critical values, plus h(1) = g(0) and
   # h(-1) = g(1) whenever either lies strictly inside the range -- see the
-  # file header for why this matters more here than for udplegendre_sum.
+  # file header for why this matters more here than for udplegendrebex.
   yv <- sort(c(polyval(cfs, c(-1, 1)), polyval(cfs, chebyshev_turnpoints(cfsD))))
   if (length(yv)) {
     yv <- yv[c(TRUE, diff(yv) > 1e-7)]
@@ -304,15 +304,15 @@ udpcosine_sum <- function(coef, ngrid = 513L) {
   }
   Tfun <- function(u) Ffun(polyval(cfs, cos(pi * pmin(pmax(u, 0), 1))))
 
-  new("udpcosine_sum",
+  new("udpcosinebex",
     coef = coef, degree = as.integer(degree), cfs = cfs, cfsD = cfsD,
     lbound = lbound, ubound = ubound, Tfun = Tfun, Qfun = Qfun
   )
 }
 
-#' @describeIn udptrans Evaluate a udpcosine_sum transformation.
+#' @describeIn udptrans Evaluate a udpcosinebex transformation.
 #' @export
-setMethod("udptrans", "udpcosine_sum", function(x, u) {
+setMethod("udptrans", "udpcosinebex", function(x, u) {
   out <- pmin(pmax(x@Tfun(pmin(pmax(as.numeric(u), 0), 1)), 0), 1)
   if (!is.null(attributes(u))) {
     attributes(out) <- attributes(u)
@@ -320,13 +320,13 @@ setMethod("udptrans", "udpcosine_sum", function(x, u) {
   out
 })
 
-#' @describeIn udpinverse Pre-images of a udpcosine_sum transformation: a
+#' @describeIn udpinverse Pre-images of a udpcosinebex transformation: a
 #'   matrix with `degree` columns holding, for each `v`, the roots in
 #'   `[0, 1]` of `g(u) = F^{-1}(v)`, sorted ascending and left-packed with
 #'   trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each
 #'   root by `1 / |g'(u)|`, normalized over the row.
 #' @export
-setMethod("udpinverse", "udpcosine_sum", function(x, v, prob = FALSE, ...) {
+setMethod("udpinverse", "udpcosinebex", function(x, v, prob = FALSE, ...) {
   vv <- as.numeric(v)
   if (anyNA(vv) || any(vv < 0 | vv > 1)) {
     stop("every element of 'v' must be in [0, 1].", call. = FALSE)
@@ -352,9 +352,9 @@ setMethod("udpinverse", "udpcosine_sum", function(x, v, prob = FALSE, ...) {
 })
 
 #' @describeIn udpderiv `T'(u) = f(g(u)) * g'(u)` away from turning points and
-#'   the boundary, `f` the density of `g(U)` as in \linkS4class{udplegendre_sum}.
+#'   the boundary, `f` the density of `g(U)` as in \linkS4class{udplegendrebex}.
 #'   At an interior turning point of `g` this is `2 * m` or `-2 * m` according
-#'   to the sign of `g''`, exactly as for \linkS4class{udplegendre_sum}. At
+#'   to the sign of `g''`, exactly as for \linkS4class{udplegendrebex}. At
 #'   `u = 0` or `u = 1` the general formula does not apply: `g'` is
 #'   identically `0` at both (`sin(j * pi * 0) = sin(j * pi * 1) = 0` for
 #'   every `j`, so this holds for any `coef`), but `T` still has a one-sided
@@ -363,7 +363,7 @@ setMethod("udpinverse", "udpcosine_sum", function(x, v, prob = FALSE, ...) {
 #'   interior turning-point value (weight `2`) or with each other (weight
 #'   `1`) -- see the file header for the derivation.
 #' @export
-setMethod("udpderiv", "udpcosine_sum", function(x, u) {
+setMethod("udpderiv", "udpcosinebex", function(x, u) {
   uu <- pmin(pmax(as.numeric(u), 0), 1)
   cfs <- x@cfs
   cfsD <- x@cfsD
@@ -411,13 +411,13 @@ setMethod("udpderiv", "udpcosine_sum", function(x, u) {
 })
 
 # Breakpoints: 0, 1, and every non-smooth point of T. Similar in method to
-# udplegendre_sum's, but with the same broadened critical-value set (see
+# udplegendrebex's, but with the same broadened critical-value set (see
 # there): also search for other pre-images of g(0) = h(1) and g(1) = h(-1),
 # not just of the turning-point values. u = 0 and u = 1 are always included
 # regardless (they always are, unconditionally, for this class); if tp_x is
 # empty, g is injective (no turning point means no repeated value), so no
 # cross points of either kind are possible and the early return is exact.
-setMethod("udpbreaks", "udpcosine_sum", function(x) {
+setMethod("udpbreaks", "udpcosinebex", function(x) {
   cfs <- x@cfs
   cfsD <- x@cfsD
   tp_x <- chebyshev_turnpoints(cfsD)
@@ -442,16 +442,16 @@ setMethod("udpbreaks", "udpcosine_sum", function(x) {
 #'   but split the range at the images of the turning points of `g`, where the
 #'   integrand has a corner, so each piece is smooth.
 #' @export
-setMethod("pcoincide", "udpcosine_sum", function(x) {
+setMethod("pcoincide", "udpcosinebex", function(x) {
   tp_x <- chebyshev_turnpoints(x@cfsD)
   tp_u <- if (length(tp_x)) sort(acos(pmin(pmax(tp_x, -1), 1)) / pi) else numeric(0)
   breaks <- pmin(pmax(x@Tfun(tp_u), 0), 1)
   integrate_collision(x, breaks)
 })
 
-#' Plot method for the udpcosine_sum class
+#' Plot method for the udpcosinebex class
 #'
-#' Draws the graph of the udpcosine_sum transformation over thin gridlines
+#' Draws the graph of the udpcosinebex transformation over thin gridlines
 #' marking its A-partition and T-partition: vertical lines at the points of
 #' `udpbreaks()` (the A-partition, `0` and `1` excluded as redundant with the
 #' plot's own border), the coarsest partition of `[0, 1]` into intervals on
@@ -465,7 +465,7 @@ setMethod("pcoincide", "udpcosine_sum", function(x) {
 #' behave like one-sided turning points -- see the file header), so they are
 #' handled separately in each role.
 #'
-#' @param x an object of class \linkS4class{udpcosine_sum}.
+#' @param x an object of class \linkS4class{udpcosinebex}.
 #' @param n number of points at which to evaluate the transformation.
 #' @param xlab,ylab axis labels.
 #' @param embellish style of the gridlines: `"none"` (the default) to omit
@@ -476,9 +476,9 @@ setMethod("pcoincide", "udpcosine_sum", function(x) {
 #' @export
 #'
 #' @examples
-#' plot(udpcosine_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
-#' plot(udpcosine_sum(c(0, 0.6, 0, -0.4)), embellish = "bw")
-setMethod("plot", c(x = "udpcosine_sum", y = "missing"),
+#' plot(udpcosinebex(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
+#' plot(udpcosinebex(c(0, 0.6, 0, -0.4)), embellish = "bw")
+setMethod("plot", c(x = "udpcosinebex", y = "missing"),
   function(x, n = 500L, xlab = "u", ylab = "T(u)",
            embellish = c("none", "colour", "bw"), ...) {
     emb <- plot_embellish(embellish)

@@ -1,18 +1,18 @@
 # Finite orthonormal-Legendre-expansion udp transformations: T(u) = F(g(u))
 # for g(u) = sum_j coef[j] * P_j(u), P_j(u) = sqrt(2j + 1) * L_j(u).
 
-test_that("udplegendre_sum() validates its arguments", {
-  expect_s4_class(udplegendre_sum(c(0, 0, 1)), "udplegendre_sum")
-  expect_identical(udplegendre_sum(c(1, -1, 0, 0.5))@degree, 4L)
-  expect_error(udplegendre_sum(numeric(0)), "numeric vector")
-  expect_error(udplegendre_sum(c(0, 0, 0)), "nonzero entry")
-  expect_error(udplegendre_sum(c(1, NA)), "numeric vector")
-  expect_error(udplegendre_sum(1, ngrid = 2), "at least 3")
-  expect_warning(udplegendre_sum(c(rep(0, 13), 1)), "degree > 12")
+test_that("udplegendrebex() validates its arguments", {
+  expect_s4_class(udplegendrebex(c(0, 0, 1)), "udplegendrebex")
+  expect_identical(udplegendrebex(c(1, -1, 0, 0.5))@degree, 4L)
+  expect_error(udplegendrebex(numeric(0)), "numeric vector")
+  expect_error(udplegendrebex(c(0, 0, 0)), "nonzero entry")
+  expect_error(udplegendrebex(c(1, NA)), "numeric vector")
+  expect_error(udplegendrebex(1, ngrid = 2), "at least 3")
+  expect_warning(udplegendrebex(c(rep(0, 13), 1)), "degree > 12")
 })
 
 test_that("trailing zeros are trimmed to find the effective degree", {
-  x <- udplegendre_sum(c(0.5, 0, 0.3, 0, 0))
+  x <- udplegendrebex(c(0.5, 0, 0.3, 0, 0))
   expect_identical(x@degree, 3L)
   expect_equal(x@coef, c(0.5, 0, 0.3))
 })
@@ -23,7 +23,7 @@ test_that("a one-hot positive coefficient reproduces the matching udplegendre", 
     coef <- rep(0, j)
     coef[j] <- 1
     expect_equal(
-      udptrans(udplegendre_sum(coef), u),
+      udptrans(udplegendrebex(coef), u),
       udptrans(udplegendre(j), u),
       tolerance = 1e-4
     )
@@ -33,8 +33,8 @@ test_that("a one-hot positive coefficient reproduces the matching udplegendre", 
 test_that("flipping the sign of every coefficient complements T to 1 - T", {
   u <- seq(0, 1, length.out = 1001)
   coef <- c(0.7, -0.35, 0, 0.5, -0.25)
-  a <- udptrans(udplegendre_sum(coef), u)
-  b <- udptrans(udplegendre_sum(-coef), u)
+  a <- udptrans(udplegendrebex(coef), u)
+  b <- udptrans(udplegendrebex(-coef), u)
   expect_equal(b, 1 - a, tolerance = 1e-8)
 })
 
@@ -44,7 +44,7 @@ test_that("udptrans() maps [0, 1] into [0, 1] with no missing values", {
   for (i in 1:8) {
     coef <- round(stats::runif(sample(1:6, 1), -1, 1), 2)
     if (all(coef == 0)) next
-    y <- udptrans(udplegendre_sum(coef), u)
+    y <- udptrans(udplegendrebex(coef), u)
     expect_false(anyNA(y))
     expect_true(all(y >= 0 & y <= 1))
   }
@@ -52,19 +52,19 @@ test_that("udptrans() maps [0, 1] into [0, 1] with no missing values", {
 
 test_that("udptrans() preserves the shape and attributes of u", {
   u <- ts(seq(0.02, 0.98, length.out = 24), frequency = 4)
-  y <- udptrans(udplegendre_sum(c(0.4, 0, -0.6, 0.2)), u)
+  y <- udptrans(udplegendrebex(c(0.4, 0, -0.6, 0.2)), u)
   expect_s3_class(y, "ts")
   expect_identical(tsp(y), tsp(u))
 })
 
-test_that("udplegendre_sum transformations preserve the uniform distribution", {
+test_that("udplegendrebex transformations preserve the uniform distribution", {
   skip_on_cran()
   set.seed(20260101)
   u <- runif(1e5)
   cases <- list(c(0.8, -0.3, 0.5), c(0, 0, 0, 0.6, -0.4), c(1), c(-0.5, 0.5))
   for (coef in cases) {
     p <- suppressWarnings(
-      stats::ks.test(udptrans(udplegendre_sum(coef), u), "punif")$p.value
+      stats::ks.test(udptrans(udplegendrebex(coef), u), "punif")$p.value
     )
     expect_gte(p, 0.01)
   }
@@ -73,7 +73,7 @@ test_that("udplegendre_sum transformations preserve the uniform distribution", {
 test_that("udpinverse() returns pre-images that invert back through udptrans()", {
   set.seed(2)
   coef <- c(0.6, 0, -0.5, 0.3, 0, -0.2)
-  x <- udplegendre_sum(coef)
+  x <- udplegendrebex(coef)
   v <- runif(200)
   M <- udpinverse(x, v)
   expect_equal(ncol(M), x@degree)
@@ -88,7 +88,7 @@ test_that("udpinverse() returns pre-images that invert back through udptrans()",
 })
 
 test_that("udpinverse(prob = TRUE) weights pre-images by 1 / |g'| and rows sum to 1", {
-  x <- udplegendre_sum(c(0.5, 0, -0.4, 0.3))
+  x <- udplegendrebex(c(0.5, 0, -0.4, 0.3))
   v <- seq(0.05, 0.95, by = 0.05)
   M <- udpinverse(x, v, prob = TRUE)
   P <- attr(M, "prob")
@@ -103,7 +103,7 @@ test_that("udpinverse(prob = TRUE) weights pre-images by 1 / |g'| and rows sum t
 })
 
 test_that("udpinverse() validates v", {
-  x <- udplegendre_sum(c(0.5, -0.3, 0.2))
+  x <- udplegendrebex(c(0.5, -0.3, 0.2))
   expect_error(udpinverse(x, 1.2), "in \\[0, 1\\]")
   expect_error(udpinverse(x, c(0.5, NA)), "in \\[0, 1\\]")
   expect_equal(dim(udpinverse(x, numeric(0))), c(0L, x@degree))
@@ -113,7 +113,7 @@ test_that("udpsi() stochastically inverts udptrans() and recovers a uniform", {
   skip_on_cran()
   set.seed(20260101)
   for (coef in list(c(0.8, -0.3, 0.5), c(0, 0, 0, 0.6, -0.4))) {
-    x <- udplegendre_sum(coef)
+    x <- udplegendrebex(coef)
     u <- runif(1e5)
     back <- udpsi(x, udptrans(x, u), runif(1e5))
     expect_true(all(back >= 0 & back <= 1))
@@ -122,7 +122,7 @@ test_that("udpsi() stochastically inverts udptrans() and recovers a uniform", {
 })
 
 test_that("pcoincide() lies in (0, 1] and agrees with the default integrator", {
-  x <- udplegendre_sum(c(0.5, 0, -0.4, 0.3))
+  x <- udplegendrebex(c(0.5, 0, -0.4, 0.3))
   p <- pcoincide(x)
   expect_gt(p, 0)
   expect_lte(p, 1)
@@ -135,7 +135,7 @@ test_that("udpbreaks() finds other pre-images of g(0)/g(1), not just of turning 
   # shared value), but nothing about u = 0.3873 makes it a turning point or
   # a pre-image of one, so only searching turning-point critical values
   # misses it.
-  x <- udplegendre_sum(c(0.3, -0.2))
+  x <- udplegendrebex(c(0.3, -0.2))
   b <- udpbreaks(x)
   expect_true(any(abs(b - 0.3872983) < 1e-4))
 
@@ -153,10 +153,10 @@ test_that("plot() runs, including for a degree with no turning points", {
     dev.off()
     unlink(f)
   })
-  expect_no_error(plot(udplegendre_sum(c(1)))) # degree 1: tp is empty
-  expect_no_error(plot(udplegendre_sum(c(0.7, -0.35, 0, 0.5, -0.25))))
-  expect_no_error(plot(udplegendre_sum(c(0, 0.6, 0, -0.4)), embellish = "bw"))
-  expect_no_error(plot(udplegendre_sum(c(0.3, -0.6)), n = 200, embellish = "none"))
+  expect_no_error(plot(udplegendrebex(c(1)))) # degree 1: tp is empty
+  expect_no_error(plot(udplegendrebex(c(0.7, -0.35, 0, 0.5, -0.25))))
+  expect_no_error(plot(udplegendrebex(c(0, 0.6, 0, -0.4)), embellish = "bw"))
+  expect_no_error(plot(udplegendrebex(c(0.3, -0.6)), n = 200, embellish = "none"))
 })
 
 test_that("plot() draws a horizontal line at T(1) when it is a non-trivial T-partition value", {
@@ -166,7 +166,7 @@ test_that("plot() draws a horizontal line at T(1) when it is a non-trivial T-par
   # horizontal line -- a regression check for the gap where filtering 0/1 out
   # of the vertical lines also, incorrectly, filtered them out of the
   # horizontal ones.
-  x <- udplegendre_sum(c(0.3, -0.2))
+  x <- udplegendrebex(c(0.3, -0.2))
   target <- as.numeric(udptrans(x, 1))
   expect_true(target > 1e-6 && target < 1 - 1e-6) # sanity: genuinely non-trivial
 

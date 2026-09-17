@@ -457,7 +457,7 @@ setMethod("plot", c(x = "udplegendre", y = "missing"),
       # edges (always members by definition). Two break points sharing a
       # critical value give T() the same value exactly in principle, but
       # each is evaluated through the panel spline independently, so
-      # deduplicate by tolerance, not exact equality (see udplegendre_sum.R).
+      # deduplicate by tolerance, not exact equality (see udplegendrebex.R).
       tv <- sort(udptrans(x, b))
       tv <- tv[c(TRUE, diff(tv) > 1e-5)]
       tv <- tv[tv > 1e-9 & tv < 1 - 1e-9]

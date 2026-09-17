@@ -36,7 +36,7 @@ contour \code{levels}. Ignored if \code{levels} is supplied directly.}
 \item{levels}{for \code{type = "contour"}: contour levels, overriding the
 \code{probs}-based default.}
 
-\item{col}{for \code{type = "contour"}: the fill color palette, recycled
+\item{col}{for \code{type = "contour"}: the fill colour palette, recycled
 across the rank-transformed density (see Details); passed to
 \code{\link[graphics:image]{graphics::image()}} as \code{col}.}
 
@@ -63,11 +63,11 @@ ways: contour \code{levels} default to \code{quantile(dens, probs)} -- by defaul
 the median and up -- rather than \code{\link[graphics:contour]{graphics::contour()}}'s own evenly
 spaced \code{pretty()} levels, which would fall almost entirely above the
 bulk of the mass and leave the plot looking empty; and the filled
-background is colored by each grid point's own rank among all evaluated
+background is coloured by each grid point's own rank among all evaluated
 density values (\code{rank(dens) / length(dens)}), not its raw value, so the
-color scale is spread evenly across the whole plot instead of collapsing
+colour scale is spread evenly across the whole plot instead of collapsing
 into a few small high-density patches against an undifferentiated
-background. The trade-off is that the fill color is ordinal, not a
+background. The trade-off is that the fill colour is ordinal, not a
 literal density scale -- the contour lines carry the actual values.
 Before ranking, every value below the lowest contour \code{level} is floored
 to that level, so they all tie for the same (lowest) rank: without this,

@@ -23,7 +23,7 @@
 
 # Ascending monomial coefficients of g(u) = sum_j coef[j] * P_j(u), ready to be
 # combined with the low-level polynomial helpers in udplegendre.R.
-sum_legendre_coef <- function(coef) {
+legendre_bex_coef <- function(coef) {
   n <- length(coef)
   cfs <- numeric(n + 1L)
   for (j in seq_len(n)) {
@@ -61,13 +61,13 @@ legendre_measure_bounded <- function(coef, y, lbound, ubound) {
 
 #' Class of finite orthonormal-Legendre-expansion udp transformations
 #'
-#' A udplegendre_sum transformation is `T(u) = F(g(u))`, the composition of
+#' A udplegendrebex transformation is `T(u) = F(g(u))`, the composition of
 #' `g(u) = sum_j coef[j] * P_j(u)` -- a finite expansion in the orthonormal
 #' shifted Legendre polynomials `P_j(u) = sqrt(2j + 1) L_j(u)` on `[0, 1]` --
 #' with the distribution function `F` of `g(U)` for `U` uniform. It is a
 #' uniform-distribution-preserving map of `[0, 1]`: for `U` uniform,
 #' `udptrans(x, U)` is again uniform. \linkS4class{udplegendre} is the
-#' one-term special case; see [udplegendre_sum()] for how the two relate.
+#' one-term special case; see [udplegendrebex()] for how the two relate.
 #'
 #' `F` and its inverse are constructed exactly as for \linkS4class{udplegendre}
 #' -- exact real roots of `g(u) = y` from [udpinverse()]'s polynomial root
@@ -84,14 +84,14 @@ legendre_measure_bounded <- function(coef, y, lbound, ubound) {
 #' @slot lbound,ubound the range of `g` on `[0, 1]`.
 #' @slot Tfun,Qfun functions evaluating `T` and `F^{-1}`.
 #'
-#' @seealso [udplegendre_sum()] to construct one, [udptrans()] to evaluate it.
+#' @seealso [udplegendrebex()] to construct one, [udptrans()] to evaluate it.
 #' @include udp-package.R udplegendre.R
 #' @export
 #'
 #' @references
 #' McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and models
 #' of non-monotonic dependence. \href{https://arxiv.org/abs/2512.10828}{arXiv:2512.10828}
-setClass("udplegendre_sum",
+setClass("udplegendrebex",
   contains = "udp",
   slots = list(
     coef = "numeric", degree = "integer", cfs = "numeric", cfsD = "numeric",
@@ -110,13 +110,13 @@ setClass("udplegendre_sum",
 #' @param ngrid number of grid points (at least 3) at which `F` is evaluated
 #'   exactly before interpolation.
 #'
-#' @return An object of class \linkS4class{udplegendre_sum}.
+#' @return An object of class \linkS4class{udplegendrebex}.
 #'
 #' @details
 #' Because `P_j` is a positive rescaling of `L_j`, and `T(u) = F_{g(U)}(g(u))`
 #' is unchanged by rescaling `g` by any positive constant, a one-hot `coef`
 #' with a single positive entry reproduces the corresponding
-#' \linkS4class{udplegendre} exactly: `udptrans(udplegendre_sum(c(0, 0, 1)),
+#' \linkS4class{udplegendre} exactly: `udptrans(udplegendrebex(c(0, 0, 1)),
 #' u)` equals `udptrans(udplegendre(3), u)`. Flipping the sign of every entry
 #' of `coef` (equivalently, negating `g`) replaces `T` with its complement,
 #' `1 - T`.
@@ -139,9 +139,9 @@ setClass("udplegendre_sum",
 #' @export
 #'
 #' @examples
-#' udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36))
-#' plot(udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
-udplegendre_sum <- function(coef, ngrid = 513L) {
+#' udplegendrebex(c(0.44, -0.35, 0.56, -0.21, 0.36))
+#' plot(udplegendrebex(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
+udplegendrebex <- function(coef, ngrid = 513L) {
   if (!is.numeric(coef) || length(coef) < 1L || anyNA(coef)) {
     stop("'coef' must be a numeric vector with no missing values.", call. = FALSE)
   }
@@ -153,7 +153,7 @@ udplegendre_sum <- function(coef, ngrid = 513L) {
   coef <- as.numeric(coef[seq_len(degree)])
   if (degree > 12L) {
     warning(
-      "udplegendre_sum(): effective degree > 12 is numerically unreliable ",
+      "udplegendrebex(): effective degree > 12 is numerically unreliable ",
       "(polyroot on large alternating coefficients).",
       call. = FALSE
     )
@@ -163,7 +163,7 @@ udplegendre_sum <- function(coef, ngrid = 513L) {
   }
   ngrid <- as.integer(ngrid)
 
-  cfs <- sum_legendre_coef(coef)
+  cfs <- legendre_bex_coef(coef)
   cfsD <- poly_deriv_coef(cfs)
   bounds <- legendre_bounds(cfs, cfsD)
   lbound <- bounds[1L]
@@ -236,15 +236,15 @@ udplegendre_sum <- function(coef, ngrid = 513L) {
   }
   Tfun <- function(u) Ffun(polyval(cfs, pmin(pmax(u, 0), 1)))
 
-  new("udplegendre_sum",
+  new("udplegendrebex",
     coef = coef, degree = as.integer(degree), cfs = cfs, cfsD = cfsD,
     lbound = lbound, ubound = ubound, Tfun = Tfun, Qfun = Qfun
   )
 }
 
-#' @describeIn udptrans Evaluate a udplegendre_sum transformation.
+#' @describeIn udptrans Evaluate a udplegendrebex transformation.
 #' @export
-setMethod("udptrans", "udplegendre_sum", function(x, u) {
+setMethod("udptrans", "udplegendrebex", function(x, u) {
   out <- pmin(pmax(x@Tfun(pmin(pmax(as.numeric(u), 0), 1)), 0), 1)
   if (!is.null(attributes(u))) {
     attributes(out) <- attributes(u)
@@ -252,13 +252,13 @@ setMethod("udptrans", "udplegendre_sum", function(x, u) {
   out
 })
 
-#' @describeIn udpinverse Pre-images of a udplegendre_sum transformation: a
+#' @describeIn udpinverse Pre-images of a udplegendrebex transformation: a
 #'   matrix with `degree` columns holding, for each `v`, the roots in
 #'   `[0, 1]` of `g(u) = F^{-1}(v)`, sorted ascending and left-packed with
 #'   trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each
 #'   root by `1 / |g'(u)|`, normalized over the row.
 #' @export
-setMethod("udpinverse", "udplegendre_sum", function(x, v, prob = FALSE, ...) {
+setMethod("udpinverse", "udplegendrebex", function(x, v, prob = FALSE, ...) {
   vv <- as.numeric(v)
   if (anyNA(vv) || any(vv < 0 | vv > 1)) {
     stop("every element of 'v' must be in [0, 1].", call. = FALSE)
@@ -292,7 +292,7 @@ setMethod("udpinverse", "udplegendre_sum", function(x, v, prob = FALSE, ...) {
 #'   a turning-point value `T` has a one-sided vertical tangent, which the
 #'   formula already returns as `Inf` or `-Inf` without a special case.
 #' @export
-setMethod("udpderiv", "udplegendre_sum", function(x, u) {
+setMethod("udpderiv", "udplegendrebex", function(x, u) {
   uu <- pmin(pmax(as.numeric(u), 0), 1)
   cfs <- x@cfs
   cfsD <- x@cfsD
@@ -328,7 +328,7 @@ setMethod("udpderiv", "udplegendre_sum", function(x, u) {
 # it does at u = 0/1 themselves). If tp is empty, g is injective (no turning
 # point means no repeated value by Rolle's theorem), so no cross points of
 # either kind are possible and the early return is still exact.
-setMethod("udpbreaks", "udplegendre_sum", function(x) {
+setMethod("udpbreaks", "udplegendrebex", function(x) {
   cfs <- x@cfs
   cfsD <- x@cfsD
   tp <- legendre_turnpoints(cfsD)
@@ -351,15 +351,15 @@ setMethod("udpbreaks", "udplegendre_sum", function(x) {
 #'   but split the range at the images of the turning points of `g`, where the
 #'   integrand has a corner, so each piece is smooth.
 #' @export
-setMethod("pcoincide", "udplegendre_sum", function(x) {
+setMethod("pcoincide", "udplegendrebex", function(x) {
   tp <- legendre_turnpoints(x@cfsD)
   breaks <- pmin(pmax(x@Tfun(tp), 0), 1)
   integrate_collision(x, breaks)
 })
 
-#' Plot method for the udplegendre_sum class
+#' Plot method for the udplegendrebex class
 #'
-#' Draws the graph of the udplegendre_sum transformation over thin gridlines
+#' Draws the graph of the udplegendrebex transformation over thin gridlines
 #' marking its A-partition and T-partition: vertical lines at the points of
 #' `udpbreaks()` (the A-partition, `0` and `1` excluded as redundant with the
 #' plot's own border), the coarsest partition of `[0, 1]` into intervals on
@@ -371,7 +371,7 @@ setMethod("pcoincide", "udplegendre_sum", function(x) {
 #' and `u = 1` are always A-partition members but need not be trivial
 #' T-partition values, so they are handled separately in each role.
 #'
-#' @param x an object of class \linkS4class{udplegendre_sum}.
+#' @param x an object of class \linkS4class{udplegendrebex}.
 #' @param n number of points at which to evaluate the transformation.
 #' @param xlab,ylab axis labels.
 #' @param embellish style of the gridlines: `"none"` (the default) to omit
@@ -382,9 +382,9 @@ setMethod("pcoincide", "udplegendre_sum", function(x) {
 #' @export
 #'
 #' @examples
-#' plot(udplegendre_sum(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
-#' plot(udplegendre_sum(c(0, 0.6, 0, -0.4)), embellish = "bw")
-setMethod("plot", c(x = "udplegendre_sum", y = "missing"),
+#' plot(udplegendrebex(c(0.44, -0.35, 0.56, -0.21, 0.36)), embellish = "colour")
+#' plot(udplegendrebex(c(0, 0.6, 0, -0.4)), embellish = "bw")
+setMethod("plot", c(x = "udplegendrebex", y = "missing"),
   function(x, n = 500L, xlab = "u", ylab = "T(u)",
            embellish = c("none", "colour", "bw"), ...) {
     emb <- plot_embellish(embellish)
