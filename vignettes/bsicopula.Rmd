@@ -170,14 +170,14 @@ for (nm in c("case1", "case2", "case3", "case4")) {
 ```
 
 In other words, all four `bsicopula` objects here are different
-*refinements* of the very same coarse dependence structure on `(V1, V2)`.
-A randomizer model never touches that shared structure -- it only decides
-*which* pre-image `vsymmetric()`'s fold selects for each margin, and that
-selection is entirely where the visibly different dependence patterns
-above come from: linear correlation the base copula already carries in
-`case1`, extra diagonal stretching in `case2` and `case3`, or an outright
-regime switch in `case4`. Coarsen any of them back through `vsymmetric()`
-and that difference disappears completely.
+*unfolded versions* of the very same base dependence structure on
+`(V1, V2)`. A randomizer model never touches that shared structure -- it
+only decides *which* pre-image `vsymmetric()`'s fold selects for each
+margin, and that selection is entirely where the visibly different
+dependence patterns above come from: linear correlation the base copula
+already carries in `case1`, extra diagonal stretching in `case2` and
+`case3`, or an outright regime switch in `case4`. Fold any of them back
+through `vsymmetric()` and that difference disappears completely.
 
 ## References
 
