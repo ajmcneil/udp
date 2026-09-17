@@ -16,6 +16,19 @@ dependence parameter -- so \verb{Z1 | V1 = v1, V2 = v2} is uniform on
 \verb{[0, 1]} for every \verb{(v1, v2)}, whatever \code{selector} does, which is
 exactly what \code{Z1} independent of \code{V1} requires.
 }
+\details{
+\code{selector} must nonetheless be a pure, deterministic function of
+\verb{(v1, v2)}: \code{\link[=rbsicopula]{rbsicopula()}} calls it once to sample, while
+\code{\link[=dbsicopula]{dbsicopula()}}/\code{plot()} call it again, independently, to evaluate the
+density, and \code{\link[=dbsicopula]{dbsicopula()}} itself calls it once for every corner of an
+inclusion-exclusion rectangle. If \code{selector} has any internal randomness
+or depends on mutable external state, these calls can disagree, silently
+corrupting results -- so avoid things like
+\code{function(v1, v2) pmax(v1, v2) > runif(1)}, and capture any threshold in
+the closure by value, not by a variable that might be reassigned later.
+\code{selector} must also be vectorized (\code{pmax()}/\code{ifelse()}/\code{&}/\code{|}, not
+\code{if}/\code{&&}/\code{||}) and must never return \code{NA}.
+}
 \section{Slots}{
 
 \describe{
@@ -23,9 +36,10 @@ exactly what \code{Z1} independent of \code{V1} requires.
 (\pkg{rvinecopulib}), the two copulas of \verb{(Z1, Z2)} to choose between.}
 
 \item{\code{selector}}{a function \code{selector(v1, v2)} returning a logical vector
-the same length as \code{v1}/\code{v2}: \code{TRUE} selects \code{cop1}, \code{FALSE} selects
-\code{cop2}. Any further parameters (such as a threshold) should be
-captured in \code{selector}'s closure rather than passed separately.}
+the same length as \code{v1}/\code{v2}, with no \code{NA}s: \code{TRUE} selects \code{cop1},
+\code{FALSE} selects \code{cop2}. Any further parameters (such as a threshold)
+should be captured in \code{selector}'s closure rather than passed
+separately. See Details for the purity requirement this implies.}
 }}
 
 \seealso{

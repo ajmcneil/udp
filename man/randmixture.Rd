@@ -11,9 +11,10 @@ randmixture(cop1, cop2, selector)
 (\pkg{rvinecopulib}), the two copulas of \verb{(Z1, Z2)} to choose between.}
 
 \item{selector}{a function \code{selector(v1, v2)} returning a logical vector
-the same length as \code{v1}/\code{v2}: \code{TRUE} selects \code{cop1}, \code{FALSE} selects
-\code{cop2}. Capture any further parameters in its closure, e.g.
-\code{function(v1, v2) pmax(v1, v2) > 0.7}.}
+the same length as \code{v1}/\code{v2}, with no \code{NA}s: \code{TRUE} selects \code{cop1},
+\code{FALSE} selects \code{cop2}. Capture any further parameters in its closure,
+e.g. \code{function(v1, v2) pmax(v1, v2) > 0.7}. Must be pure and
+vectorized -- see \linkS4class{randmixture}'s Details.}
 }
 \value{
 An object of class \linkS4class{randmixture}.

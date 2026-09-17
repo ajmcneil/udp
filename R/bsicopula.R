@@ -103,12 +103,25 @@ randsdvine <- function(copZ1Z2_V1V2,
 #' `[0, 1]` for every `(v1, v2)`, whatever `selector` does, which is
 #' exactly what `Z1` independent of `V1` requires.
 #'
+#' `selector` must nonetheless be a pure, deterministic function of
+#' `(v1, v2)`: [rbsicopula()] calls it once to sample, while
+#' [dbsicopula()]/`plot()` call it again, independently, to evaluate the
+#' density, and [dbsicopula()] itself calls it once for every corner of an
+#' inclusion-exclusion rectangle. If `selector` has any internal randomness
+#' or depends on mutable external state, these calls can disagree, silently
+#' corrupting results -- so avoid things like
+#' `function(v1, v2) pmax(v1, v2) > runif(1)`, and capture any threshold in
+#' the closure by value, not by a variable that might be reassigned later.
+#' `selector` must also be vectorized (`pmax()`/`ifelse()`/`&`/`|`, not
+#' `if`/`&&`/`||`) and must never return `NA`.
+#'
 #' @slot cop1,cop2 parCopula objects (\pkg{copula}) or bicop_dist objects
 #'   (\pkg{rvinecopulib}), the two copulas of `(Z1, Z2)` to choose between.
 #' @slot selector a function `selector(v1, v2)` returning a logical vector
-#'   the same length as `v1`/`v2`: `TRUE` selects `cop1`, `FALSE` selects
-#'   `cop2`. Any further parameters (such as a threshold) should be
-#'   captured in `selector`'s closure rather than passed separately.
+#'   the same length as `v1`/`v2`, with no `NA`s: `TRUE` selects `cop1`,
+#'   `FALSE` selects `cop2`. Any further parameters (such as a threshold)
+#'   should be captured in `selector`'s closure rather than passed
+#'   separately. See Details for the purity requirement this implies.
 #'
 #' @seealso [randmixture()] to construct one; \linkS4class{bsicopula} to use it.
 #' @export
@@ -123,9 +136,10 @@ setClass("randmixture", slots = list(
 #' @param cop1,cop2 parCopula objects (\pkg{copula}) or bicop_dist objects
 #'   (\pkg{rvinecopulib}), the two copulas of `(Z1, Z2)` to choose between.
 #' @param selector a function `selector(v1, v2)` returning a logical vector
-#'   the same length as `v1`/`v2`: `TRUE` selects `cop1`, `FALSE` selects
-#'   `cop2`. Capture any further parameters in its closure, e.g.
-#'   `function(v1, v2) pmax(v1, v2) > 0.7`.
+#'   the same length as `v1`/`v2`, with no `NA`s: `TRUE` selects `cop1`,
+#'   `FALSE` selects `cop2`. Capture any further parameters in its closure,
+#'   e.g. `function(v1, v2) pmax(v1, v2) > 0.7`. Must be pure and
+#'   vectorized -- see \linkS4class{randmixture}'s Details.
 #'
 #' @return An object of class \linkS4class{randmixture}.
 #' @export
@@ -266,6 +280,23 @@ randsdvine_sample <- function(V1, V2, basecopula, randomizermod) {
   cbind(Z1 = Z1, Z2 = Z2)
 }
 
+# Checks a randmixture selector(v1, v2) result: must be a logical vector,
+# the same length as v1/v2, with no NA (an NA would otherwise reach
+# Z1[sel] <- .../Z1[!sel] <- ... in randmixture_sample() and fail there with
+# a cryptic "NAs are not allowed in subscripted assignments" instead of
+# pointing at the real cause).
+validate_selector_result <- function(sel, n) {
+  if (!is.logical(sel) || length(sel) != n) {
+    stop(
+      "'selector' must return a logical vector the same length as 'v1'/'v2'.",
+      call. = FALSE
+    )
+  }
+  if (anyNA(sel)) {
+    stop("'selector' must not return NA.", call. = FALSE)
+  }
+}
+
 # (Z1, Z2) given (V1, V2) from a randmixture model: evaluate selector(V1, V2)
 # on the realized pair, then draw from cop1 where TRUE and cop2 where FALSE.
 # Z1 independent of V1 (and Z2 of V2) holds for any selector -- see
@@ -275,12 +306,7 @@ randsdvine_sample <- function(V1, V2, basecopula, randomizermod) {
 randmixture_sample <- function(V1, V2, randomizermod) {
   n <- length(V1)
   sel <- randomizermod@selector(V1, V2)
-  if (!is.logical(sel) || length(sel) != n) {
-    stop(
-      "'selector' must return a logical vector the same length as 'v1'/'v2'.",
-      call. = FALSE
-    )
-  }
+  validate_selector_result(sel, n)
   Z1 <- numeric(n)
   Z2 <- numeric(n)
   if (any(sel)) {
@@ -413,9 +439,11 @@ randsdvine_cdf <- function(z1, z2, e21, e12, randomizermod) {
 # model: given the realized (v1, v2), selector(v1, v2) deterministically
 # picks cop1 or cop2, and (Z1, Z2) | that choice is an ordinary draw from
 # the picked copula -- so the conditional CDF is just that copula's own
-# CDF, no h-function composition needed (unlike randsdvine_cdf()).
-randmixture_cdf <- function(z1, z2, v1, v2, randomizermod) {
-  sel <- randomizermod@selector(v1, v2)
+# CDF, no h-function composition needed (unlike randsdvine_cdf()). Takes
+# the already-evaluated sel = selector(v1, v2) rather than v1/v2 themselves
+# -- see bsicopula_weight(), which calls this 4 times per point with the
+# same (v1, v2) and would otherwise re-run selector() redundantly.
+randmixture_cdf <- function(z1, z2, sel, randomizermod) {
   out <- numeric(length(z1))
   if (any(sel)) {
     out[sel] <- basecopula_cdf(z1[sel], z2[sel], randomizermod@cop1)
@@ -453,7 +481,11 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
     e12 <- rvinecopulib::hbicop(cbind(v2, v1), cond_var = 1, family = basecopula)
     joint_cdf <- function(z1, z2) randsdvine_cdf(z1, z2, e21, e12, randomizermod)
   } else {
-    joint_cdf <- function(z1, z2) randmixture_cdf(z1, z2, v1, v2, randomizermod)
+    # (v1, v2) don't change across the four corner calls below, so
+    # selector(v1, v2) only needs evaluating once here, not once per call.
+    sel <- randomizermod@selector(v1, v2)
+    validate_selector_result(sel, length(v1))
+    joint_cdf <- function(z1, z2) randmixture_cdf(z1, z2, sel, randomizermod)
   }
 
   numer <- joint_cdf(I1$b, I2$b) - joint_cdf(I1$a, I2$b) -

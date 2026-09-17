@@ -138,6 +138,49 @@ test_that("randmixture_sample() errors clearly if 'selector' returns the wrong s
   )
 })
 
+test_that("randmixture_sample() errors clearly if 'selector' returns NA", {
+  skip_if_not_installed("rvinecopulib")
+  cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 0.5)
+  vm_na <- randmixture(cop1, cop1, function(v1, v2) {
+    sel <- v1 > 0.5
+    sel[1] <- NA
+    sel
+  })
+
+  expect_error(
+    randmixture_sample(runif(5), runif(5), vm_na),
+    "must not return NA"
+  )
+})
+
+test_that("dbsicopula() calls a randmixture's 'selector' once per bsicopula_weight() evaluation, not once per rectangle corner", {
+  skip_if_not_installed("rvinecopulib")
+  ncalls <- 0
+  cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 0.5)
+  cop2 <- rvinecopulib::bicop_dist("gaussian", parameters = -0.5)
+  vm <- randmixture(cop1, cop2, function(v1, v2) {
+    ncalls <<- ncalls + 1
+    pmax(v1, v2) > 0.6
+  })
+  bc <- bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3),
+    randomizermod = vm
+  )
+
+  dbsicopula(0.3, 0.4, bc)
+  expect_equal(ncalls, 1)
+})
+
+test_that("dbsicopula() errors clearly if a randmixture's 'selector' returns NA", {
+  skip_if_not_installed("rvinecopulib")
+  cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 0.5)
+  vm_na <- randmixture(cop1, cop1, function(v1, v2) NA)
+  bc <- bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3),
+    randomizermod = vm_na
+  )
+
+  expect_error(dbsicopula(0.3, 0.4, bc), "must not return NA")
+})
+
 test_that("rbsicopula() with a randmixture gives an n x 2 matrix with uniform margins", {
   skip_if_not_installed("rvinecopulib")
   cop1 <- rvinecopulib::bicop_dist("gaussian", parameters = 1)
