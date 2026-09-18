@@ -63,7 +63,7 @@ fit@correlation
 `aceshuffle()` returns a \linkS4class{bishuffle} object, packaging the two
 fitted shuffles together with a `plot()` method that draws them side by side:
 
-```{r ace-plot}
+```{r ace-plot, fig.width = 7.8}
 plot(fit, embellish = "colour")
 ```
 
