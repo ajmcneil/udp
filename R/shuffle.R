@@ -203,17 +203,48 @@ shuffle_trend <- function(x) {
   2 * (sum(wT[mid > 0.5]) - sum(wT[mid < 0.5]))
 }
 
+#' Class of bivariate shuffle fits
+#'
+#' A `bishuffle` object packages the pair of \linkS4class{shuffle}
+#' transformations fitted by [aceshuffle()] to the two columns of a bivariate
+#' uniform sample, together with the achieved correlation and the number of
+#' alternating sweeps used to find them.
+#'
+#' @slot shuffle1,shuffle2 the fitted \linkS4class{shuffle} objects for the
+#'   two columns.
+#' @slot correlation numeric; the achieved linear correlation between
+#'   `udptrans(shuffle1, U[, 1])` and `udptrans(shuffle2, U[, 2])`.
+#' @slot iterations integer; the number of alternating sweeps performed.
+#'
+#' @seealso [aceshuffle()] to construct one, [udptrans()] to apply it.
+#' @include udp-package.R
+#' @export
+setClass("bishuffle", slots = list(
+  shuffle1 = "shuffle", shuffle2 = "shuffle",
+  correlation = "numeric", iterations = "integer"
+))
+
+#' @describeIn bishuffle-class Show method for bishuffle objects.
+#' @param object an object of class \linkS4class{bishuffle}.
+#' @export
+setMethod("show", "bishuffle", function(object) {
+  cat("An object of class \"bishuffle\"\n")
+  cat("m: ", length(object@shuffle1@perm), "\n", sep = "")
+  cat("correlation: ", format(object@correlation, digits = 4), "\n", sep = "")
+  cat("iterations: ", object@iterations, "\n", sep = "")
+})
+
 #' Alternating conditional expectation for shuffle transformations
 #'
-#' Given a paired sample of (approximately) uniform variables, `aceshuffle()`
-#' searches for a [shuffle()] of each margin that maximizes the linear
-#' correlation between the transformed variables.
+#' Given a bivariate sample of (approximately) uniform variables,
+#' `aceshuffle()` searches for a [shuffle()] of each column that maximizes
+#' the linear correlation between the transformed columns.
 #'
 #' It alternates in the manner of alternating conditional expectations: with the
-#' shuffle of `U2` fixed it selects the shuffle of `U1` maximizing the
-#' correlation, then with that new shuffle of `U1` fixed it selects the shuffle
-#' of `U2`, repeating until neither shuffle changes or `maxit` sweeps have been
-#' done.
+#' shuffle of column 2 fixed it selects the shuffle of column 1 maximizing the
+#' correlation, then with that new shuffle of column 1 fixed it selects the
+#' shuffle of column 2, repeating until neither shuffle changes or `maxit`
+#' sweeps have been done.
 #'
 #' Each selection is solved in closed form. Written as a covariance (a shuffle
 #' leaves the variance of uniform data essentially unchanged), the objective
@@ -234,33 +265,30 @@ shuffle_trend <- function(x) {
 #' not force `shuffle1` to match a particular generating transform when that
 #' transform is close to symmetric about the centre of the unit square.
 #'
-#' @param U1,U2 numeric vectors of equal length with values in `[0, 1]`.
+#' @param U a two-column numeric matrix with values in `[0, 1]`.
 #' @param m the common length of the two permutations (the number of strips).
 #' @param maxit maximum number of alternating sweeps.
 #' @param init1,init2 optional starting \linkS4class{shuffle} objects with
 #'   permutations of length `m`; the identity shuffle is used by default.
 #'
-#' @return A list with elements `V` (a two-column matrix with
-#'   `udptrans(shuffle1, U1)` in column 1 and `udptrans(shuffle2, U2)` in
-#'   column 2), `shuffle1` and `shuffle2` (the fitted \linkS4class{shuffle}
-#'   objects), `correlation` (the achieved linear correlation) and `iterations`
-#'   (the number of sweeps performed).
+#' @return An object of class \linkS4class{bishuffle}.
 #' @export
 #'
 #' @examples
 #' set.seed(1)
 #' u1 <- runif(2000)
 #' u2 <- (u1 + 0.5) %% 1
-#' fit <- aceshuffle(u1, u2, m = 4)
-#' fit$correlation
-#' plot(fit$shuffle1, embellish = "colour")
-aceshuffle <- function(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL) {
-  n <- length(U1)
-  if (!is.numeric(U1) || !is.numeric(U2) || length(U2) != n || n < 2L) {
-    stop("'U1' and 'U2' must be numeric vectors of the same length (>= 2).",
+#' fit <- aceshuffle(cbind(u1, u2), m = 4)
+#' fit@correlation
+#' plot(fit, embellish = "colour")
+aceshuffle <- function(U, m, maxit = 100L, init1 = NULL, init2 = NULL) {
+  if (!is.matrix(U) || !is.numeric(U) || ncol(U) != 2L || nrow(U) < 2L) {
+    stop("'U' must be a numeric matrix with two columns and at least two rows.",
       call. = FALSE
     )
   }
+  U1 <- U[, 1]
+  U2 <- U[, 2]
   if (!is.numeric(m) || length(m) != 1L || is.na(m) || m < 1) {
     stop("'m' must be a single positive integer.", call. = FALSE)
   }
@@ -320,13 +348,65 @@ aceshuffle <- function(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL) {
     s2 <- shuffle_complement(s2)
   }
 
-  V1 <- udptrans(s1, U1)
-  V2 <- udptrans(s2, U2)
-  list(
-    V = cbind(V1 = V1, V2 = V2),
-    shuffle1 = s1,
-    shuffle2 = s2,
-    correlation = cor(V1, V2),
-    iterations = it
+  new("bishuffle",
+    shuffle1 = s1, shuffle2 = s2,
+    correlation = cor(udptrans(s1, U1), udptrans(s2, U2)), iterations = it
   )
 }
+
+#' Plot method for the bishuffle class
+#'
+#' Draws the two shuffles of a fitted \linkS4class{bishuffle} object side by
+#' side, in the manner of [graphics::plot()], sharing a common `[0, 1]`
+#' frame (every \linkS4class{shuffle} plot already does).
+#'
+#' @param x an object of class \linkS4class{bishuffle}.
+#' @param xlab x-axis label, shared by both panels.
+#' @param ylab y-axis label(s) for the `shuffle1` and `shuffle2` panels
+#'   respectively; a single value is recycled for both.
+#' @param embellish style of the strip-boundary gridlines in each panel,
+#'   forwarded to [plot,shuffle,missing-method]: `"none"` (the default),
+#'   `"colour"`, or `"bw"`.
+#' @param ... further graphical parameters passed to [graphics::plot()].
+#'
+#' @return No return value, generates a plot.
+#' @export
+#'
+#' @examples
+#' set.seed(1)
+#' u1 <- runif(2000)
+#' u2 <- (u1 + 0.5) %% 1
+#' fit <- aceshuffle(cbind(u1, u2), m = 4)
+#' plot(fit, embellish = "colour")
+setMethod("plot", c(x = "bishuffle", y = "missing"),
+  function(x, xlab = "u", ylab = NULL,
+           embellish = c("none", "colour", "bw"), ...) {
+    if (is.null(ylab)) {
+      ylab <- c("shuffle1(u)", "shuffle2(u)")
+    }
+    ylab <- rep_len(ylab, 2)
+    op <- graphics::par(mfrow = c(1, 2))
+    on.exit(graphics::par(op))
+    plot(x@shuffle1,
+      xlab = xlab, ylab = ylab[1], embellish = embellish,
+      main = "shuffle1", ...
+    )
+    plot(x@shuffle2,
+      xlab = xlab, ylab = ylab[2], embellish = embellish,
+      main = "shuffle2", ...
+    )
+  }
+)
+
+#' @describeIn udptrans Apply the pair of shuffles in a \linkS4class{bishuffle}
+#'   object to the two columns of a bivariate matrix, `cbind(udptrans(shuffle1,
+#'   u[, 1]), udptrans(shuffle2, u[, 2]))`. Unlike a single
+#'   \linkS4class{shuffle}, which acts on a vector, `u` here must be a
+#'   two-column matrix since the two columns get different shuffles.
+#' @export
+setMethod("udptrans", "bishuffle", function(x, u) {
+  if (!is.matrix(u) || ncol(u) != 2L) {
+    stop("'u' must be a two-column matrix.", call. = FALSE)
+  }
+  cbind(udptrans(x@shuffle1, u[, 1]), udptrans(x@shuffle2, u[, 2]))
+})

@@ -84,18 +84,18 @@ test_that("aceshuffle() returns the documented structure", {
   set.seed(1)
   u1 <- runif(500)
   u2 <- runif(500)
-  fit <- aceshuffle(u1, u2, m = 4)
+  fit <- aceshuffle(cbind(u1, u2), m = 4)
 
-  expect_named(fit, c("V", "shuffle1", "shuffle2", "correlation", "iterations"))
-  expect_identical(
-    fit$V,
-    cbind(V1 = udptrans(fit$shuffle1, u1), V2 = udptrans(fit$shuffle2, u2))
+  expect_s4_class(fit, "bishuffle")
+  expect_equal(
+    udptrans(fit, cbind(u1, u2)),
+    cbind(udptrans(fit@shuffle1, u1), udptrans(fit@shuffle2, u2))
   )
-  expect_s4_class(fit$shuffle1, "shuffle")
-  expect_s4_class(fit$shuffle2, "shuffle")
-  expect_length(fit$shuffle1@perm, 4L)
-  expect_length(fit$correlation, 1L)
-  expect_gte(fit$iterations, 1L)
+  expect_s4_class(fit@shuffle1, "shuffle")
+  expect_s4_class(fit@shuffle2, "shuffle")
+  expect_length(fit@shuffle1@perm, 4L)
+  expect_length(fit@correlation, 1L)
+  expect_gte(fit@iterations, 1L)
 })
 
 test_that("aceshuffle() recovers an exact shuffle relationship", {
@@ -104,19 +104,19 @@ test_that("aceshuffle() recovers an exact shuffle relationship", {
 
   # u2 is u1 shifted half a period: shuffle(c(2, 1)) maps u1 exactly to u2
   u2 <- (u1 + 0.5) %% 1
-  fit <- aceshuffle(u1, u2, m = 2)
-  expect_equal(fit$correlation, 1, tolerance = 1e-6)
-  expect_equal(udptrans(fit$shuffle1, u1), udptrans(fit$shuffle2, u2),
+  fit <- aceshuffle(cbind(u1, u2), m = 2)
+  expect_equal(fit@correlation, 1, tolerance = 1e-6)
+  expect_equal(udptrans(fit@shuffle1, u1), udptrans(fit@shuffle2, u2),
     tolerance = 1e-6
   )
   # the swap perm c(2, 1) or its reflection c(1, 2), depending on orientation
-  expect_setequal(fit$shuffle1@perm, c(1L, 2L))
+  expect_setequal(fit@shuffle1@perm, c(1L, 2L))
 
   # perfect negative dependence: a sign flip on one margin fixes it
-  fit <- aceshuffle(u1, 1 - u1, m = 1)
-  expect_equal(fit$correlation, 1, tolerance = 1e-6)
+  fit <- aceshuffle(cbind(u1, 1 - u1), m = 1)
+  expect_equal(fit@correlation, 1, tolerance = 1e-6)
   # both cannot trend upward here; the tie-break keeps shuffle1 upward
-  expect_gt(shuffle_trend(fit$shuffle1), 0)
+  expect_gt(shuffle_trend(fit@shuffle1), 0)
 })
 
 test_that("shuffle_trend() is the right-half minus left-half mean", {
@@ -140,25 +140,25 @@ test_that("aceshuffle() returns the upward-trending orientation", {
   u1 <- runif(3000)
   u2 <- (u1 + 0.5) %% 1
 
-  fit <- aceshuffle(u1, u2, m = 4)
-  tr <- shuffle_trend(fit$shuffle1) + shuffle_trend(fit$shuffle2)
+  fit <- aceshuffle(cbind(u1, u2), m = 4)
+  tr <- shuffle_trend(fit@shuffle1) + shuffle_trend(fit@shuffle2)
   expect_gte(tr, -1e-9)
   # the reflected pair has the same correlation but the opposite total trend
-  c1 <- shuffle_complement(fit$shuffle1)
-  c2 <- shuffle_complement(fit$shuffle2)
+  c1 <- shuffle_complement(fit@shuffle1)
+  c2 <- shuffle_complement(fit@shuffle2)
   expect_equal(
     cor(udptrans(c1, u1), udptrans(c2, u2)),
-    fit$correlation,
+    fit@correlation,
     tolerance = 1e-6
   )
   expect_lte(shuffle_trend(c1) + shuffle_trend(c2), 1e-9)
 
   # feeding the oriented shuffles back leaves them unchanged
-  refit <- aceshuffle(u1, u2, m = 4,
-    init1 = fit$shuffle1, init2 = fit$shuffle2
+  refit <- aceshuffle(cbind(u1, u2), m = 4,
+    init1 = fit@shuffle1, init2 = fit@shuffle2
   )
-  expect_identical(refit$shuffle1@perm, fit$shuffle1@perm)
-  expect_identical(refit$shuffle1@signs, fit$shuffle1@signs)
+  expect_identical(refit@shuffle1@perm, fit@shuffle1@perm)
+  expect_identical(refit@shuffle1@signs, fit@shuffle1@signs)
 })
 
 test_that("aceshuffle() uncovers non-monotone dependence", {
@@ -167,33 +167,54 @@ test_that("aceshuffle() uncovers non-monotone dependence", {
   u2 <- pmin(pmax(abs(2 * u1 - 1) + rnorm(4000, 0, 0.03), 0), 1)
 
   expect_lt(abs(cor(u1, u2)), 0.1)
-  fit <- aceshuffle(u1, u2, m = 8)
-  expect_gt(fit$correlation, 0.9)
+  fit <- aceshuffle(cbind(u1, u2), m = 8)
+  expect_gt(fit@correlation, 0.9)
 })
 
 test_that("aceshuffle() stops at a fixed point", {
   set.seed(4)
   u1 <- runif(1000)
   u2 <- (u1 + 0.3 * runif(1000)) %% 1
-  fit <- aceshuffle(u1, u2, m = 5)
+  fit <- aceshuffle(cbind(u1, u2), m = 5)
 
-  refit <- aceshuffle(u1, u2, m = 5,
-    init1 = fit$shuffle1, init2 = fit$shuffle2
+  refit <- aceshuffle(cbind(u1, u2), m = 5,
+    init1 = fit@shuffle1, init2 = fit@shuffle2
   )
-  expect_identical(refit$iterations, 1L)
-  expect_identical(refit$shuffle1@perm, fit$shuffle1@perm)
-  expect_identical(refit$shuffle1@signs, fit$shuffle1@signs)
+  expect_identical(refit@iterations, 1L)
+  expect_identical(refit@shuffle1@perm, fit@shuffle1@perm)
+  expect_identical(refit@shuffle1@signs, fit@shuffle1@signs)
 })
 
 test_that("aceshuffle() validates its arguments", {
   u <- runif(100)
-  expect_error(aceshuffle(u, u[1:50], m = 3), "same length")
-  expect_error(aceshuffle(u, u, m = c(2, 3)), "single positive integer")
-  expect_error(aceshuffle(u, u, m = 0), "single positive integer")
+  expect_error(aceshuffle(u, m = 3), "two columns")
+  expect_error(aceshuffle(cbind(u, u, u), m = 3), "two columns")
+  expect_error(aceshuffle(cbind(u, u), m = c(2, 3)), "single positive integer")
+  expect_error(aceshuffle(cbind(u, u), m = 0), "single positive integer")
   expect_error(
-    aceshuffle(u, u, m = 3, init1 = shuffle(c(2, 1))),
+    aceshuffle(cbind(u, u), m = 3, init1 = shuffle(c(2, 1))),
     "permutations of length m"
   )
+})
+
+test_that("udptrans() validates its 'u' argument for a bishuffle", {
+  fit <- aceshuffle(cbind(runif(100), runif(100)), m = 3)
+  expect_error(udptrans(fit, runif(100)), "two-column matrix")
+  expect_error(udptrans(fit, cbind(runif(100), runif(100), runif(100))),
+    "two-column matrix"
+  )
+})
+
+test_that("plot() runs for a bishuffle", {
+  f <- tempfile(fileext = ".pdf")
+  pdf(f)
+  on.exit({
+    dev.off()
+    unlink(f)
+  })
+  fit <- aceshuffle(cbind(runif(200), runif(200)), m = 4)
+  expect_no_error(plot(fit))
+  expect_no_error(plot(fit, embellish = "colour"))
 })
 
 ## udpid() / udpflip() --------------------------------------------------------

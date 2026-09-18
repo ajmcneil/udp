@@ -4,10 +4,10 @@
 \alias{aceshuffle}
 \title{Alternating conditional expectation for shuffle transformations}
 \usage{
-aceshuffle(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL)
+aceshuffle(U, m, maxit = 100L, init1 = NULL, init2 = NULL)
 }
 \arguments{
-\item{U1, U2}{numeric vectors of equal length with values in \verb{[0, 1]}.}
+\item{U}{a two-column numeric matrix with values in \verb{[0, 1]}.}
 
 \item{m}{the common length of the two permutations (the number of strips).}
 
@@ -17,23 +17,19 @@ aceshuffle(U1, U2, m, maxit = 100L, init1 = NULL, init2 = NULL)
 permutations of length \code{m}; the identity shuffle is used by default.}
 }
 \value{
-A list with elements \code{V} (a two-column matrix with
-\code{udptrans(shuffle1, U1)} in column 1 and \code{udptrans(shuffle2, U2)} in
-column 2), \code{shuffle1} and \code{shuffle2} (the fitted \linkS4class{shuffle}
-objects), \code{correlation} (the achieved linear correlation) and \code{iterations}
-(the number of sweeps performed).
+An object of class \linkS4class{bishuffle}.
 }
 \description{
-Given a paired sample of (approximately) uniform variables, \code{aceshuffle()}
-searches for a \code{\link[=shuffle]{shuffle()}} of each margin that maximizes the linear
-correlation between the transformed variables.
+Given a bivariate sample of (approximately) uniform variables,
+\code{aceshuffle()} searches for a \code{\link[=shuffle]{shuffle()}} of each column that maximizes
+the linear correlation between the transformed columns.
 }
 \details{
 It alternates in the manner of alternating conditional expectations: with the
-shuffle of \code{U2} fixed it selects the shuffle of \code{U1} maximizing the
-correlation, then with that new shuffle of \code{U1} fixed it selects the shuffle
-of \code{U2}, repeating until neither shuffle changes or \code{maxit} sweeps have been
-done.
+shuffle of column 2 fixed it selects the shuffle of column 1 maximizing the
+correlation, then with that new shuffle of column 1 fixed it selects the
+shuffle of column 2, repeating until neither shuffle changes or \code{maxit}
+sweeps have been done.
 
 Each selection is solved in closed form. Written as a covariance (a shuffle
 leaves the variance of uniform data essentially unchanged), the objective
@@ -58,7 +54,7 @@ transform is close to symmetric about the centre of the unit square.
 set.seed(1)
 u1 <- runif(2000)
 u2 <- (u1 + 0.5) \%\% 1
-fit <- aceshuffle(u1, u2, m = 4)
-fit$correlation
-plot(fit$shuffle1, embellish = "colour")
+fit <- aceshuffle(cbind(u1, u2), m = 4)
+fit@correlation
+plot(fit, embellish = "colour")
 }

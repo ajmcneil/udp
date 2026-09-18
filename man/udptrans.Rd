@@ -5,6 +5,7 @@
 \name{udptrans}
 \alias{udptrans}
 \alias{udptrans,shuffle-method}
+\alias{udptrans,bishuffle-method}
 \alias{udptrans,udpcosine-method}
 \alias{udptrans,udplegendre-method}
 \alias{udptrans,udpcosinebex-method}
@@ -16,6 +17,8 @@
 udptrans(x, u)
 
 \S4method{udptrans}{shuffle}(x, u)
+
+\S4method{udptrans}{bishuffle}(x, u)
 
 \S4method{udptrans}{udpcosine}(x, u)
 
@@ -46,6 +49,11 @@ own method.
 \section{Methods (by class)}{
 \itemize{
 \item \code{udptrans(shuffle)}: Evaluate a shuffle.
+
+\item \code{udptrans(bishuffle)}: Apply the pair of shuffles in a \linkS4class{bishuffle}
+object to the two columns of a bivariate matrix, \code{cbind(udptrans(shuffle1, u[, 1]), udptrans(shuffle2, u[, 2]))}. Unlike a single
+\linkS4class{shuffle}, which acts on a vector, \code{u} here must be a
+two-column matrix since the two columns get different shuffles.
 
 \item \code{udptrans(udpcosine)}: Evaluate a cosine udp transformation.
 

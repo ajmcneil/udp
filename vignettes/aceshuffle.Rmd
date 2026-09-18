@@ -55,9 +55,16 @@ alternating conditional expectations, for a shuffle of each margin that makes
 the transformed pair as linearly correlated as possible.
 
 ```{r ace-fit}
-fit <- aceshuffle(X[, 1], X[, 2], m = 50)
-fit$iterations
-fit$correlation
+fit <- aceshuffle(X, m = 50)
+fit@iterations
+fit@correlation
+```
+
+`aceshuffle()` returns a \linkS4class{bishuffle} object, packaging the two
+fitted shuffles together with a `plot()` method that draws them side by side:
+
+```{r ace-plot}
+plot(fit, embellish = "colour")
 ```
 
 The fitted shuffles approximate the udp functions we used to build the data.
@@ -69,10 +76,10 @@ trend upward.
 ```{r ace-shapes, fig.show = "hold", fig.width = 3.9}
 u <- seq(0, 1, length.out = 200)
 
-plot(fit$shuffle1, embellish = "colour")
+plot(fit@shuffle1, embellish = "colour")
 lines(u, udptrans(udp1, u), col = 2, lwd = 2)
 
-plot(fit$shuffle2, embellish = "colour")
+plot(fit@shuffle2, embellish = "colour")
 lines(u, udptrans(udp2, u), col = 2, lwd = 2)
 ```
 
@@ -82,12 +89,14 @@ that shuffle alone; here the clear upward trend of the `udplegendre(5)` shuffle
 fixes the orientation of the pair. If an overlay comes out reflected, compare
 against `1 - udptrans(...)` instead.
 
-`fit$V` holds the shuffled data, `cbind(udptrans(shuffle1, X1),
-udptrans(shuffle2, X2))`. Its correlation matches the copula it came from.
+`udptrans(fit, X)` applies the two shuffles to their matching columns,
+`cbind(udptrans(shuffle1, X[, 1]), udptrans(shuffle2, X[, 2]))`. Its
+correlation matches the copula it came from.
 
 ```{r ace-result}
-plot(fit$V, pch = 20, cex = 0.4, asp = 1, xaxs = "i", yaxs = "i")
-c(fitted = fit$correlation, original = cor(W)[1, 2])
+V <- udptrans(fit, X)
+plot(V, pch = 20, cex = 0.4, asp = 1, xaxs = "i", yaxs = "i")
+c(fitted = fit@correlation, original = cor(W)[1, 2])
 ```
 
 ## References
