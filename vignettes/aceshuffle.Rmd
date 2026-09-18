@@ -1,0 +1,96 @@
+---
+title: "Uncovering non-monotonic dependence with aceshuffle"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Uncovering non-monotonic dependence with aceshuffle}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 3.9,
+  fig.height = 4.5,
+  fig.align = "center"
+)
+```
+
+```{r library}
+library(udp)
+```
+
+```{r guard, include = FALSE}
+knitr::opts_chunk$set(eval = requireNamespace("copula", quietly = TRUE))
+```
+
+Stochastic inversion (see `vignette("udp")`) lets us build a dataset with a
+deliberately awkward dependence structure. Start from a strongly dependent
+copula sample and pull each margin back through a udp function: the margins
+stay uniform, but their ordinary correlation can be made to vanish even
+though the pair is far from independent. This vignette uses the **copula**
+package to build such a pair, then uses `aceshuffle()` to recover the
+non-monotonic dependence.
+
+```{r data}
+set.seed(1)
+n <- 1000
+
+udp2 <- udpcosine(6)
+# odd degree, unlike udp2: its shape isn't close to symmetric about the centre
+# of the unit square, which matters below when aceshuffle() has to pick an
+# orientation
+udp1 <- udplegendre(5)
+
+GC <- copula::gumbelCopula(3)
+W <- copula::rCopula(n, GC)
+X <- cbind(udpsi(udp1, W[, 1]), udpsi(udp2, W[, 2]))
+plot(X, pch = 20, cex = 0.4, xlab = "X1", ylab = "X2", asp = 1, xaxs = "i", yaxs = "i")
+```
+
+The margins of `X` are uniform and their ordinary correlation is close to zero,
+yet they are far from independent. `aceshuffle()` searches, in the manner of
+alternating conditional expectations, for a shuffle of each margin that makes
+the transformed pair as linearly correlated as possible.
+
+```{r ace-fit}
+fit <- aceshuffle(X[, 1], X[, 2], m = 50)
+fit$iterations
+fit$correlation
+```
+
+The fitted shuffles approximate the udp functions we used to build the data.
+The fitted pair is unique only up to the joint reflection
+`(shuffle1, shuffle2) -> (1 - shuffle1, 1 - shuffle2)`, which leaves the
+correlation unchanged; `aceshuffle()` returns the orientation whose shuffles
+trend upward.
+
+```{r ace-shapes, fig.show = "hold", fig.width = 3.9}
+u <- seq(0, 1, length.out = 200)
+
+plot(fit$shuffle1, embellish = "colour")
+lines(u, udptrans(udp1, u), col = 2, lwd = 2)
+
+plot(fit$shuffle2, embellish = "colour")
+lines(u, udptrans(udp2, u), col = 2, lwd = 2)
+```
+
+When a generating transform is close to symmetric about the centre of the unit
+square (as `udpcosine(6)` is), the trend rule cannot pin the orientation from
+that shuffle alone; here the clear upward trend of the `udplegendre(5)` shuffle
+fixes the orientation of the pair. If an overlay comes out reflected, compare
+against `1 - udptrans(...)` instead.
+
+`fit$V` holds the shuffled data, `cbind(udptrans(shuffle1, X1),
+udptrans(shuffle2, X2))`. Its correlation matches the copula it came from.
+
+```{r ace-result}
+plot(fit$V, pch = 20, cex = 0.4, asp = 1, xaxs = "i", yaxs = "i")
+c(fitted = fit$correlation, original = cor(W)[1, 2])
+```
+
+## References
+
+- McNeil, A. J., Nešlehová, J. G. and Smith, A. D. (2025). Measures and
+  models of non-monotonic dependence. arXiv:2512.10828.
