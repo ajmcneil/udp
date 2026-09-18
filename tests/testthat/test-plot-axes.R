@@ -50,3 +50,15 @@ test_that("plot() of a vtransform's other types keeps the x-axis within [0, 1]",
     grDevices::dev.off()
   }
 })
+
+test_that("plot() of a bsicopula (contour) stays within [0, 1] on both axes", {
+  skip_if_not_installed("rvinecopulib")
+  x <- bsicopula(rvinecopulib::bicop_dist("gauss", parameters = 0.5),
+    udp1 = vsymmetric(), udp2 = vsymmetric()
+  )
+  f <- wide_png()
+  on.exit(unlink(f), add = TRUE)
+  plot(x, n = 20)
+  expect_true(in_unit_interval(par("usr")))
+  grDevices::dev.off()
+})

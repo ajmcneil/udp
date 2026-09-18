@@ -649,6 +649,11 @@ setMethod("plot", c(x = "bsicopula", y = "missing"),
       if (is.null(dots$asp)) dots$asp <- 1
       if (is.null(dots$xaxs)) dots$xaxs <- "i"
       if (is.null(dots$yaxs)) dots$yaxs <- "i"
+      # pty = "s" makes the plotting region square in physical inches;
+      # without it, asp = 1 stretches one axis's displayed range past its
+      # data limits on any device or panel that isn't already exactly square.
+      op <- graphics::par(pty = "s")
+      on.exit(graphics::par(op))
       do.call(image, c(
         list(x = grid, y = grid, z = rankdens, col = col, xlab = xlab, ylab = ylab), dots
       ))
