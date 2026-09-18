@@ -41,5 +41,6 @@ Collate:
     'udplegendre.R'
     'udpcosinebex.R'
     'udplegendrebex.R'
+    'udpzigzag.R'
     'utils.R'
     'vtransforms.R'
