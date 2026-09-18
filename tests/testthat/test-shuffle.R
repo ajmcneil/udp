@@ -217,6 +217,24 @@ test_that("plot() runs for a bishuffle", {
   expect_no_error(plot(fit, embellish = "colour"))
 })
 
+test_that("plot() keeps both axes within [0, 1] for a bishuffle", {
+  # a shuffle's own plot() uses asp = 1; side-by-side panels aren't square,
+  # so without pty = "s" that asp constraint stretches one axis's displayed
+  # range past [0, 1] to fit the panel shape -- verify par("usr") (the
+  # actually rendered extent of the last panel drawn, shuffle2) stays inside
+  # [0, 1] up to floating-point noise.
+  f <- tempfile(fileext = ".pdf")
+  pdf(f)
+  on.exit({
+    dev.off()
+    unlink(f)
+  })
+  fit <- aceshuffle(cbind(runif(200), runif(200)), m = 4)
+  plot(fit)
+  usr <- par("usr")
+  expect_true(all(usr > -1e-6 & usr < 1 + 1e-6))
+})
+
 ## udpid() / udpflip() --------------------------------------------------------
 
 test_that("udpid() is the identity, shuffle(1)", {

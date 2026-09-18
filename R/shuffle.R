@@ -385,7 +385,11 @@ setMethod("plot", c(x = "bishuffle", y = "missing"),
       ylab <- c("shuffle1(u)", "shuffle2(u)")
     }
     ylab <- rep_len(ylab, 2)
-    op <- graphics::par(mfrow = c(1, 2))
+    # pty = "s" makes each side-by-side panel square in physical inches.
+    # Without it, the shuffle plot method's asp = 1 forces 1 data-unit to mean
+    # the same physical distance on both axes of an oblong panel, which it can
+    # only do by stretching one axis's displayed range past [0, 1].
+    op <- graphics::par(mfrow = c(1, 2), pty = "s")
     on.exit(graphics::par(op))
     plot(x@shuffle1,
       xlab = xlab, ylab = ylab[1], embellish = embellish,
