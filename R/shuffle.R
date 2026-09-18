@@ -166,6 +166,12 @@ setMethod("plot", c(x = "shuffle", y = "missing"),
     m <- length(x@perm)
     bounds <- (0:m) / m
 
+    # pty = "s" makes the plotting region square in physical inches; without
+    # it, asp = 1 stretches one axis's displayed range past [0, 1] on any
+    # device or panel that isn't already exactly square (margins alone are
+    # usually enough to break that).
+    op <- graphics::par(pty = "s")
+    on.exit(graphics::par(op))
     plot(NA,
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i", asp = 1,
       xlab = xlab, ylab = ylab, ...

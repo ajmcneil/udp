@@ -443,6 +443,11 @@ setMethod("plot", c(x = "udplegendre", y = "missing"),
     emb <- plot_embellish(embellish)
     b <- udpbreaks(x)
     u <- sort(unique(c(seq(0, 1, length.out = n), b)))
+    # pty = "s" makes the plotting region square in physical inches; without
+    # it, asp = 1 stretches one axis's displayed range past [0, 1] on any
+    # device or panel that isn't already exactly square.
+    op <- graphics::par(pty = "s")
+    on.exit(graphics::par(op))
     plot(NA,
       xlim = c(0, 1), ylim = c(0, 1), xaxs = "i", yaxs = "i", asp = 1,
       xlab = xlab, ylab = ylab, ...

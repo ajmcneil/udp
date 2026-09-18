@@ -446,6 +446,12 @@ setMethod("plot", c(x = "vtransform", y = "missing"), function(x, type = "transf
                                                                n = 200, lower = 0, upper = 1, ...) {
   emb <- plot_embellish(embellish)
   delta <- ifelse(is.element("delta", names(x@pars)), x@pars["delta"], 0.5)
+  # pty = "s" makes the plotting region square in physical inches; without
+  # it, the asp = 1 used below (every type but "gradient") stretches one
+  # axis's displayed range past its data limits on any device or panel that
+  # isn't already exactly square.
+  op <- graphics::par(pty = "s")
+  on.exit(graphics::par(op))
   switch(type, inverse = {
     vvals <- seq(from = max(lower, 0), to = min(upper, 1), length = n)
     plot(vvals, vinverse(x, vvals),
