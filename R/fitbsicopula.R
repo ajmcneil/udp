@@ -77,8 +77,10 @@ udp_block <- function(label, x, set) {
   )
 }
 
-# The parameter blocks to estimate, dropping any with no free parameters.
-fit_blocks <- function(object, udpfix, sdvinesimple) {
+# The parameter blocks to estimate, dropping any with no free parameters --
+# so a randsdvine's tree-2 copulas, independence by default, are estimated
+# only when the user has made them parametric.
+fit_blocks <- function(object, udpfix) {
   blocks <- list(bicop_block("basecopula", object@basecopula, function(obj, cop) {
     obj@basecopula <- cop
     obj
@@ -97,22 +99,20 @@ fit_blocks <- function(object, udpfix, sdvinesimple) {
   }
   rm <- object@randomizermod
   if (!is.null(rm)) {
-    blocks <- c(blocks, list(bicop_block("copZ1Z2_V1V2", rm@copZ1Z2_V1V2, function(obj, cop) {
-      obj@randomizermod@copZ1Z2_V1V2 <- cop
-      obj
-    })))
-    if (!sdvinesimple) {
-      blocks <- c(blocks, list(
-        bicop_block("copZ1V2_V1", rm@copZ1V2_V1, function(obj, cop) {
-          obj@randomizermod@copZ1V2_V1 <- cop
-          obj
-        }),
-        bicop_block("copV1Z2_V2", rm@copV1Z2_V2, function(obj, cop) {
-          obj@randomizermod@copV1Z2_V2 <- cop
-          obj
-        })
-      ))
-    }
+    blocks <- c(blocks, list(
+      bicop_block("copZ1Z2_V1V2", rm@copZ1Z2_V1V2, function(obj, cop) {
+        obj@randomizermod@copZ1Z2_V1V2 <- cop
+        obj
+      }),
+      bicop_block("copZ1V2_V1", rm@copZ1V2_V1, function(obj, cop) {
+        obj@randomizermod@copZ1V2_V1 <- cop
+        obj
+      }),
+      bicop_block("copV1Z2_V2", rm@copV1Z2_V2, function(obj, cop) {
+        obj@randomizermod@copV1Z2_V2 <- cop
+        obj
+      })
+    ))
   }
   Filter(function(b) length(b$value) > 0L, blocks)
 }
@@ -313,10 +313,12 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' holds both udps at their given values: the natural choice when they have
 #' been determined externally, e.g. by [aceshuffle()].
 #'
-#' **Randomizer.** When `randomizermod` is a \linkS4class{randsdvine},
-#' `sdvinesimple = TRUE` estimates only its tree-3 copula `copZ1Z2_V1V2`,
-#' leaving the two tree-2 copulas at their given values (by default the
-#' independence copula); `sdvinesimple = FALSE` estimates all three. With
+#' **Randomizer.** When `randomizermod` is a \linkS4class{randsdvine}, the
+#' parameters of all three of its copulas are estimated. The two tree-2
+#' copulas default to the independence copula, which has no parameters, so
+#' by default only the tree-3 copula `copZ1Z2_V1V2` is estimated; to
+#' estimate a tree-2 copula too, give it a parametric family (a Gaussian
+#' with a small correlation, say) as its starting value. With
 #' `twostage = TRUE`, the model is first fitted with independent
 #' randomizers, and that fit's base copula and udps are used as starting
 #' values for the full fit.
@@ -364,8 +366,6 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #'   starting values.
 #' @param udpfix logical; hold the parameters of `udp1` and `udp2` fixed at
 #'   their given values?
-#' @param sdvinesimple logical; when `randomizermod` is a
-#'   \linkS4class{randsdvine}, estimate only `copZ1Z2_V1V2`?
 #' @param twostage logical; when `randomizermod` is a
 #'   \linkS4class{randsdvine}, obtain starting values from a first fit with
 #'   independent randomizers? Ignored otherwise.
@@ -399,7 +399,7 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #'   fitbsicopula(U, start, se = "bootstrap", B = 100)
 #'   }
 #' }
-fitbsicopula <- function(U, object, udpfix = FALSE, sdvinesimple = TRUE, twostage = TRUE,
+fitbsicopula <- function(U, object, udpfix = FALSE, twostage = TRUE,
                          se = FALSE, B = 200, vfloor = "auto", method = NULL,
                          control = list()) {
   if (!methods::is(object, "bsicopula")) {
@@ -412,7 +412,7 @@ fitbsicopula <- function(U, object, udpfix = FALSE, sdvinesimple = TRUE, twostag
       call. = FALSE
     )
   }
-  for (arg in c("udpfix", "sdvinesimple", "twostage")) {
+  for (arg in c("udpfix", "twostage")) {
     val <- get(arg)
     if (!is.logical(val) || length(val) != 1L || is.na(val)) {
       stop(sprintf("'%s' must be TRUE or FALSE.", arg), call. = FALSE)
@@ -457,7 +457,7 @@ fitbsicopula <- function(U, object, udpfix = FALSE, sdvinesimple = TRUE, twostag
   if (!is.null(rm) && twostage) {
     object1 <- object
     object1@randomizermod <- NULL
-    res1 <- fit_stage(U, object1, fit_blocks(object1, udpfix, sdvinesimple),
+    res1 <- fit_stage(U, object1, fit_blocks(object1, udpfix),
       floor_value, FALSE, method, control
     )
     stage1 <- new_fitbsicopula(res1, n, floor_value)
@@ -466,11 +466,11 @@ fitbsicopula <- function(U, object, udpfix = FALSE, sdvinesimple = TRUE, twostag
     object@udp2 <- res1$object@udp2
   }
 
-  res <- fit_stage(U, object, fit_blocks(object, udpfix, sdvinesimple),
+  res <- fit_stage(U, object, fit_blocks(object, udpfix),
     floor_value, se_method == "hessian", method, control
   )
   if (se_method == "bootstrap" && res$npar > 0L) {
-    res <- bootstrap_se(res, n, B, udpfix, sdvinesimple, floor_value, method, control)
+    res <- bootstrap_se(res, n, B, udpfix, floor_value, method, control)
   }
   new_fitbsicopula(res, n, floor_value, se_method, stage1)
 }
@@ -480,9 +480,9 @@ fitbsicopula <- function(U, object, udpfix = FALSE, sdvinesimple = TRUE, twostag
 # the fitted values -- which are close enough that a randsdvine model needs
 # no first stage. Returns 'res' with se, vcov and boot filled in. A refit
 # that errors leaves a row of NAs and is left out of se/vcov.
-bootstrap_se <- function(res, n, B, udpfix, sdvinesimple, vfloor, method, control) {
+bootstrap_se <- function(res, n, B, udpfix, vfloor, method, control) {
   fitted <- res$object
-  blocks <- fit_blocks(fitted, udpfix, sdvinesimple)
+  blocks <- fit_blocks(fitted, udpfix)
   est <- matrix(NA_real_, B, res$npar, dimnames = list(NULL, names(res$estimate)))
   for (b in seq_len(B)) {
     Ub <- apply(rbsicopula(n, fitted), 2, rank) / (n + 1)

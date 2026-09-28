@@ -4,8 +4,9 @@
   from pseudo-observations, returning a new `fitbsicopula` class (with
   `show`, `coef`, `logLik` and `vcov` methods). The base copula must be an
   `rvinecopulib` `bicop_dist`; `randomizermod` may be `NULL` or a
-  `randsdvine` (estimating `copZ1Z2_V1V2` only, or all three copulas with
-  `sdvinesimple = FALSE`, from a two-stage fit by default). The parameters
+  `randsdvine`, whose parametric copulas are all estimated (by default only
+  `copZ1Z2_V1V2`, the tree-2 copulas being parameter-free independence
+  copulas), from a two-stage fit by default. The parameters
   of v-transforms are estimated unless `udpfix = TRUE`; parameter-free udps
   (shuffles, `vsymmetric()`, fixed-degree `udpcosine`/`udplegendre`)
   contribute none. Standard errors are optional: a parametric bootstrap

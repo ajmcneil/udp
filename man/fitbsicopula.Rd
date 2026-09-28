@@ -8,7 +8,6 @@ fitbsicopula(
   U,
   object,
   udpfix = FALSE,
-  sdvinesimple = TRUE,
   twostage = TRUE,
   se = FALSE,
   B = 200,
@@ -26,9 +25,6 @@ starting values.}
 
 \item{udpfix}{logical; hold the parameters of \code{udp1} and \code{udp2} fixed at
 their given values?}
-
-\item{sdvinesimple}{logical; when \code{randomizermod} is a
-\linkS4class{randsdvine}, estimate only \code{copZ1Z2_V1V2}?}
 
 \item{twostage}{logical; when \code{randomizermod} is a
 \linkS4class{randsdvine}, obtain starting values from a first fit with
@@ -74,10 +70,12 @@ simply contribute nothing. For other classes use \code{udpfix = TRUE}, which
 holds both udps at their given values: the natural choice when they have
 been determined externally, e.g. by \code{\link[=aceshuffle]{aceshuffle()}}.
 
-\strong{Randomizer.} When \code{randomizermod} is a \linkS4class{randsdvine},
-\code{sdvinesimple = TRUE} estimates only its tree-3 copula \code{copZ1Z2_V1V2},
-leaving the two tree-2 copulas at their given values (by default the
-independence copula); \code{sdvinesimple = FALSE} estimates all three. With
+\strong{Randomizer.} When \code{randomizermod} is a \linkS4class{randsdvine}, the
+parameters of all three of its copulas are estimated. The two tree-2
+copulas default to the independence copula, which has no parameters, so
+by default only the tree-3 copula \code{copZ1Z2_V1V2} is estimated; to
+estimate a tree-2 copula too, give it a parametric family (a Gaussian
+with a small correlation, say) as its starting value. With
 \code{twostage = TRUE}, the model is first fitted with independent
 randomizers, and that fit's base copula and udps are used as starting
 values for the full fit.

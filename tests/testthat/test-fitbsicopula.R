@@ -130,7 +130,7 @@ test_that("parameter-free udps and udpfix = TRUE leave only the copula to estima
   expect_identical(fit2@bsicopula@udp1@pars, bc@udp1@pars)
 })
 
-test_that("randsdvine fits honour sdvinesimple and twostage", {
+test_that("randsdvine fits estimate every parametric randomizer copula, and honour twostage", {
   skip_if_not_installed("rvinecopulib")
   bd <- rvinecopulib::bicop_dist
   truth <- bsicopula(bd("gaussian", 0, 0.5), vlinear(0.4), vlinear(0.6), randsdvine(bd("gaussian", 0, 0.7)))
@@ -147,16 +147,16 @@ test_that("randsdvine fits honour sdvinesimple and twostage", {
   expect_null(fit@stage1@bsicopula@randomizermod)
   expect_null(fitbsicopula(U, truth, twostage = FALSE)@stage1)
 
-  # sdvinesimple = FALSE also estimates the tree-2 copulas -- once they have
-  # parameters to estimate (the independence copula has none)
+  # the tree-2 copulas are estimated too once they have parameters to
+  # estimate (the independence copula has none)
   start <- truth
   start@randomizermod <- randsdvine(bd("gaussian", 0, 0.7), bd("gaussian", 0, 0.1), bd("gaussian", 0, 0.1))
-  fit3 <- fitbsicopula(U, start, udpfix = TRUE, sdvinesimple = FALSE)
+  fit3 <- fitbsicopula(U, start, udpfix = TRUE)
   expect_identical(
     names(coef(fit3)),
     c("basecopula.rho", "copZ1Z2_V1V2.rho", "copZ1V2_V1.rho", "copV1Z2_V2.rho")
   )
-  expect_identical(names(coef(fitbsicopula(U, truth, udpfix = TRUE, sdvinesimple = FALSE))),
+  expect_identical(names(coef(fitbsicopula(U, truth, udpfix = TRUE))),
     c("basecopula.rho", "copZ1Z2_V1V2.rho")
   )
 })
