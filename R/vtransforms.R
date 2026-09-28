@@ -282,6 +282,22 @@ setMethod("udpbreaks", "vtransform", function(x) {
   c(0, delta, 1)
 })
 
+# Estimable parameters, for fitbsicopula(): all of `pars` (none for
+# vsymmetric()). delta lies in (0, 1); kappa and xi are positive.
+setMethod("udp_fitpars", "vtransform", function(x) {
+  p <- x@pars
+  list(
+    value = p,
+    lower = rep(0, length(p)),
+    upper = ifelse(names(p) == "delta", 1, Inf)
+  )
+})
+
+setMethod("udp_setfitpars", "vtransform", function(x, value) {
+  x@pars[] <- value
+  x
+})
+
 #' Calculate the lower-branch inverse of a v-transform
 #'
 #' Returns the pre-image at or below the fulcrum: the value `u` in

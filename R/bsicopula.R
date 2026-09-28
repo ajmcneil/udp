@@ -552,9 +552,22 @@ dbsicopula <- function(u1, u2, object) {
     stop("'u1' and 'u2' must have the same length.", call. = FALSE)
   }
 
+  dbsicopula_eval(u1, u2, object)
+}
+
+# dbsicopula()'s computation, minus argument checking, with one extra option
+# for fitbsicopula(): when vfloor is non-NULL, the carrier values are floored
+# at vfloor before the base copula density is evaluated -- and only there.
+# The weight w(u1, u2) still sees the exact V1, V2, since match_preimage()
+# needs u_i and V_i to be consistent.
+dbsicopula_eval <- function(u1, u2, object, vfloor = NULL) {
   V1 <- udptrans(object@udp1, u1)
   V2 <- udptrans(object@udp2, u2)
-  cV <- basecopula_density(V1, V2, object@basecopula)
+  cV <- if (is.null(vfloor)) {
+    basecopula_density(V1, V2, object@basecopula)
+  } else {
+    basecopula_density(pmax(V1, vfloor), pmax(V2, vfloor), object@basecopula)
+  }
 
   if (is.null(object@randomizermod)) {
     return(cV)

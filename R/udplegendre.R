@@ -399,6 +399,9 @@ setMethod("udpbreaks", "udplegendre", function(x) {
   pts[c(TRUE, diff(pts) > tol)]
 })
 
+# No continuous parameters: the degree is fixed.
+setMethod("udp_fitpars", "udplegendre", function(x) no_fitpars)
+
 #' @describeIn pcoincide Integrate `sum_j p_j(v)^2` as in the default method,
 #'   but split the range at the images of the turning points of `L_j`, where
 #'   the integrand has a corner, so each piece is smooth. Accuracy is bounded

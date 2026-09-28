@@ -381,3 +381,29 @@ setGeneric("udpbreaks", function(x) standardGeneric("udpbreaks"))
 # Default: no class-specific break points are known, so T is taken to be
 # smooth on all of [0, 1].
 setMethod("udpbreaks", "udp", function(x) c(0, 1))
+
+# Estimable parameters of a udp object, for fitbsicopula(): a list with the
+# named natural-scale values and their lower/upper bounds. Internal -- not
+# exported. Classes whose only parameters are discrete (a degree, a
+# permutation) have none; the default is for classes whose continuous
+# parameters are not yet supported, and stops with a pointer to udpfix = TRUE.
+setGeneric("udp_fitpars", function(x) standardGeneric("udp_fitpars"))
+
+setMethod("udp_fitpars", "udp", function(x) {
+  stop(
+    sprintf(
+      "estimating the parameters of a '%s' object is not yet supported; use udpfix = TRUE.",
+      class(x)
+    ),
+    call. = FALSE
+  )
+})
+
+# Write new natural-scale values (in udp_fitpars() order) back into x. The
+# default suits every class with no estimable parameters.
+setGeneric("udp_setfitpars", function(x, value) standardGeneric("udp_setfitpars"))
+
+setMethod("udp_setfitpars", "udp", function(x, value) x)
+
+# The udp_fitpars() value of a class with no estimable parameters.
+no_fitpars <- list(value = numeric(0), lower = numeric(0), upper = numeric(0))

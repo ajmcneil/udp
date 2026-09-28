@@ -1,5 +1,20 @@
 # udp 0.1.1
 
+* Added `fitbsicopula()`, maximum likelihood estimation of a `bsicopula`
+  from pseudo-observations, returning a new `fitbsicopula` class (with
+  `show`, `coef`, `logLik` and `vcov` methods). The base copula must be an
+  `rvinecopulib` `bicop_dist`; `randomizermod` may be `NULL` or a
+  `randsdvine` (estimating `copZ1Z2_V1V2` only, or all three copulas with
+  `sdvinesimple = FALSE`, from a two-stage fit by default). The parameters
+  of v-transforms are estimated unless `udpfix = TRUE`; parameter-free udps
+  (shuffles, `vsymmetric()`, fixed-degree `udpcosine`/`udplegendre`)
+  contribute none. Standard errors are optional: a parametric bootstrap
+  (`se = "bootstrap"`), or a quicker Hessian (`se = "hessian"`) that is
+  unreliable for a v-transform's `delta`, whose likelihood has a cusp at
+  every observation. For base copulas whose density is unbounded at
+  `(0, 0)`, carrier values are floored at `1 / (2n)` in the base density
+  during fitting (`vfloor = "auto"`), which stops the optimizer being
+  trapped where both udps' pre-images of `0` sit on one observation.
 * License changed from MIT to GPL-3, matching `basiscor`, which depends on
   `udp`.
 * Every `plot()` method whose axes are both `[0, 1]` (`shuffle`, `udpcosine`,

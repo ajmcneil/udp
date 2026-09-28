@@ -117,6 +117,9 @@ setMethod("udpbreaks", "udpcosine", function(x) {
   (0:x@degree) / x@degree
 })
 
+# No continuous parameters: the degree is fixed.
+setMethod("udp_fitpars", "udpcosine", function(x) no_fitpars)
+
 #' @describeIn pcoincide The degree-`k` triangle wave has `k` equally weighted
 #'   pre-images at almost every `v`, so the probability is `1 / k`.
 #' @export

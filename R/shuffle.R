@@ -137,6 +137,9 @@ setMethod("udpbreaks", "shuffle", function(x) {
   (0:length(x@perm)) / length(x@perm)
 })
 
+# No continuous parameters: the permutation and signs are fixed.
+setMethod("udp_fitpars", "shuffle", function(x) no_fitpars)
+
 #' @describeIn pcoincide A shuffle is a bijection, so stochastic inversion
 #'   always recovers the original value: the probability is `1`.
 #' @export
