@@ -75,8 +75,8 @@ percentile intervals.}
 
 \item{\code{method}}{the \code{\link[stats:optim]{stats::optim()}} method used.}
 
-\item{\code{vfloor}}{the floor applied to the carrier values before evaluating the
-base copula density, or \code{NA} if none was applied.}
+\item{\code{vfloor}}{the clamp \code{f} applied to the carrier values (into \verb{[f, 1 - f]}) before evaluating the base copula density, or \code{NA} if none was
+applied.}
 
 \item{\code{stage1}}{for a two-stage fit, the first-stage fit (with independent
 randomizers) as a \code{fitbsicopula} object; otherwise \code{NULL}.}

@@ -1,21 +1,29 @@
 # udp 0.1.1
 
 * Added `fitbsicopula()`, maximum likelihood estimation of a `bsicopula`
-  from pseudo-observations, returning a new `fitbsicopula` class (with
-  `show`, `coef`, `logLik` and `vcov` methods). The base copula must be an
-  `rvinecopulib` `bicop_dist`; `randomizermod` may be `NULL` or a
-  `randsdvine`, whose parametric copulas are all estimated (by default only
-  `copZ1Z2_V1V2`, the tree-2 copulas being parameter-free independence
-  copulas), from a two-stage fit by default. The parameters
-  of v-transforms are estimated unless `udpfix = TRUE`; parameter-free udps
-  (shuffles, `vsymmetric()`, fixed-degree `udpcosine`/`udplegendre`)
-  contribute none. Standard errors are optional: a parametric bootstrap
-  (`se = "bootstrap"`), or a quicker Hessian (`se = "hessian"`) that is
-  unreliable for a v-transform's `delta`, whose likelihood has a cusp at
-  every observation. For base copulas whose density is unbounded at
-  `(0, 0)`, carrier values are floored at `1 / (2n)` in the base density
-  during fitting (`vfloor = "auto"`), which stops the optimizer being
-  trapped where both udps' pre-images of `0` sit on one observation.
+  from copula data -- pseudo-observations, or probability integral
+  transforms from fitted margins (`pseudo = FALSE`) -- returning a new
+  `fitbsicopula` class (with `show`, `coef`, `logLik` and `vcov` methods).
+  The base copula must be an `rvinecopulib` `bicop_dist`; `randomizermod`
+  may be `NULL` or a `randsdvine`, whose parametric copulas are all
+  estimated (by default only `copZ1Z2_V1V2`, the tree-2 copulas being
+  parameter-free independence copulas), from a two-stage fit by default.
+  Unless `udpfix = TRUE`, the parameters of v-transforms and the interior
+  breakpoints of `udpzigzag` objects (their number of pieces and `up` held
+  fixed) are estimated too; parameter-free udps (shuffles, `vsymmetric()`,
+  fixed-degree `udpcosine`/`udplegendre`) contribute none. Because the
+  likelihood has a kink or cusp wherever a udp breakpoint crosses an
+  observation, udp parameters are fitted by continuation, first with the
+  carrier values coarsely clamped, which stops the optimizer stalling short
+  of the main peak. Standard errors are optional: a parametric bootstrap
+  of the whole procedure (`se = "bootstrap"`), or a quicker Hessian
+  (`se = "hessian"`) that is unreliable for udp breakpoints. For base
+  copulas whose density is unbounded at some corner of the unit square,
+  carrier values are clamped into `[1 / (2n), 1 - 1 / (2n)]` in the base
+  density during fitting (`vfloor = "auto"`), which stops the optimizer
+  being trapped where both udps send one observation to that corner.
+* `udpinverse()` for `udpzigzag` objects is vectorized, and several hundred
+  times faster.
 * License changed from MIT to GPL-3, matching `basiscor`, which depends on
   `udp`.
 * Every `plot()` method whose axes are both `[0, 1]` (`shuffle`, `udpcosine`,

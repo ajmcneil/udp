@@ -555,18 +555,32 @@ dbsicopula <- function(u1, u2, object) {
   dbsicopula_eval(u1, u2, object)
 }
 
+# Clamp carrier values V into [f, 1 - f], but only for observations whose u
+# is itself inside [f, 1 - f]. An observation that close to 0 or 1 sits
+# next to one of the fixed endpoints every udp maps to 0 or 1 whatever its
+# parameters, so its extreme V is genuine data, not the product of a moving
+# breakpoint, and is left exact. For pseudo-observations (all u in
+# [1/(n+1), n/(n+1)]) and f = 1/(2n), every observation is clamped.
+clamp_v <- function(V, u, f) {
+  inside <- u >= f & u <= 1 - f
+  V[inside] <- pmin(pmax(V[inside], f), 1 - f)
+  V
+}
+
 # dbsicopula()'s computation, minus argument checking, with one extra option
-# for fitbsicopula(): when vfloor is non-NULL, the carrier values are floored
-# at vfloor before the base copula density is evaluated -- and only there.
-# The weight w(u1, u2) still sees the exact V1, V2, since match_preimage()
-# needs u_i and V_i to be consistent.
+# for fitbsicopula(): when vfloor is non-NULL, the carrier values are clamped
+# into [vfloor, 1 - vfloor] (see clamp_v()) before the base copula density is
+# evaluated -- and only there. The weight w(u1, u2) still sees the exact
+# V1, V2, since match_preimage() needs u_i and V_i to be consistent.
 dbsicopula_eval <- function(u1, u2, object, vfloor = NULL) {
   V1 <- udptrans(object@udp1, u1)
   V2 <- udptrans(object@udp2, u2)
   cV <- if (is.null(vfloor)) {
     basecopula_density(V1, V2, object@basecopula)
   } else {
-    basecopula_density(pmax(V1, vfloor), pmax(V2, vfloor), object@basecopula)
+    basecopula_density(
+      clamp_v(V1, u1, vfloor), clamp_v(V2, u2, vfloor), object@basecopula
+    )
   }
 
   if (is.null(object@randomizermod)) {

@@ -7,6 +7,7 @@
 fitbsicopula(
   U,
   object,
+  pseudo = TRUE,
   udpfix = FALSE,
   twostage = TRUE,
   se = FALSE,
@@ -17,11 +18,16 @@ fitbsicopula(
 )
 }
 \arguments{
-\item{U}{a two-column numeric matrix (or data frame) of pseudo-observations,
-with every value strictly inside \verb{(0, 1)}.}
+\item{U}{a two-column numeric matrix (or data frame) of copula data, with
+every value strictly inside \verb{(0, 1)}; \code{\link[=boundaryadjust]{boundaryadjust()}} moves values
+of exactly \code{0} or \code{1} inside.}
 
 \item{object}{a \linkS4class{bsicopula} giving the model structure and
 starting values.}
+
+\item{pseudo}{logical; are \code{U} pseudo-observations (ranks scaled into
+\verb{(0, 1)})? Set \code{FALSE} for probability integral transforms from fitted
+marginal models. Affects only the bootstrap.}
 
 \item{udpfix}{logical; hold the parameters of \code{udp1} and \code{udp2} fixed at
 their given values?}
@@ -49,8 +55,9 @@ An object of class \linkS4class{fitbsicopula}.
 }
 \description{
 Estimates the parameters of a \linkS4class{bsicopula} from bivariate
-pseudo-observations by maximizing the likelihood built from
-\code{\link[=dbsicopula]{dbsicopula()}}. \code{object} supplies both the model structure -- the
+copula data -- pseudo-observations (ranks), or probability integral
+transforms from fitted marginal models (\code{pseudo = FALSE}) -- by maximizing
+the likelihood built from \code{\link[=dbsicopula]{dbsicopula()}}. \code{object} supplies both the model structure -- the
 copula families and rotations, the udp classes, the randomizer model --
 and the starting values for the optimization.
 }
@@ -62,8 +69,12 @@ rotation are held fixed and only its parameters are estimated.
 
 \strong{udp parameters.} With \code{udpfix = FALSE}, the continuous parameters of
 \code{udp1} and \code{udp2} are estimated alongside the copula parameters. At
-present that is supported for v-transforms (\code{delta}, \code{kappa}, \code{xi}).
-udps with no continuous parameters -- \code{\link[=vsymmetric]{vsymmetric()}}, shuffles such as
+present that is supported for v-transforms (\code{delta}, \code{kappa}, \code{xi}) and
+for \linkS4class{udpzigzag} objects, whose interior breakpoints are
+estimated (reported as \code{break1}, \code{break2}, ...) while the number of
+pieces and the direction of the first piece, \code{up}, are held at their
+given values -- set them from a priori knowledge, \code{\link[=aceshuffle]{aceshuffle()}} output
+or a plot. udps with no continuous parameters -- \code{\link[=vsymmetric]{vsymmetric()}}, shuffles such as
 \code{\link[=udpid]{udpid()}} and \code{\link[=udpflip]{udpflip()}}, and \linkS4class{udpcosine} or
 \linkS4class{udplegendre} objects, whose degree is regarded as fixed --
 simply contribute nothing. For other classes use \code{udpfix = TRUE}, which
@@ -80,34 +91,47 @@ with a small correlation, say) as its starting value. With
 randomizers, and that fit's base copula and udps are used as starting
 values for the full fit.
 
-\strong{Boundary floor.} For many udps an interior point (a v-transform's
-fulcrum \code{delta}, for instance) maps to \code{0}. When the base copula's
-density is unbounded at \verb{(0, 0)}, the likelihood becomes unbounded as
-such points approach an observation in both margins at once, and even a
-slow blow-up is enough to trap the optimizer there. \code{vfloor = "auto"}
-guards against this by flooring the carrier values at \verb{1 / (2n)} before
-evaluating the base copula density, but only for base copulas that need
-it: the Gaussian (for either sign of the correlation) and t copulas;
-Clayton, Gumbel, BB1, BB6 and BB7 (rotation 0); and survival Gumbel,
-Joe, BB1, BB6 and BB7 (rotation 180). \code{vfloor = TRUE} or \code{FALSE} forces
-the floor on or off. The floor enters only the fitting; \code{\link[=dbsicopula]{dbsicopula()}}
-is exact.
+\strong{Boundary clamp.} udp breakpoints map interior points to \code{0} or \code{1}: a
+v-transform's fulcrum \code{delta} to \code{0}, a zigzag's breakpoints to \code{0} and
+\code{1} alternately. When the base copula's density is unbounded at a corner
+of the unit square, the likelihood becomes unbounded as breakpoints of
+both udps approach the same observation and send it to that corner, and
+even a slow blow-up is enough to trap the optimizer there.
+\code{vfloor = "auto"} guards against this by clamping the carrier values
+into \verb{[1 / (2n), 1 - 1 / (2n)]} before evaluating the base copula
+density, for every base copula unbounded at some corner -- all but the
+independence, Frank and BB8 copulas. Observations with a \code{u} outside
+\verb{[1 / (2n), 1 - 1 / (2n)]} (possible with \code{pseudo = FALSE}) are exempt:
+every udp sends \code{u = 0} and \code{u = 1} to fixed values, so their extreme
+carrier values are data, not the product of a moving breakpoint.
+\code{vfloor = TRUE} or \code{FALSE} forces the clamp on or off. The clamp enters
+only the fitting; \code{\link[=dbsicopula]{dbsicopula()}} is exact.
 
 \strong{Optimization and standard errors.} Parameters are optimized with
 \code{\link[stats:optim]{stats::optim()}} on an internal unconstrained scale; every result is
 reported on the natural scale. The likelihood is only piecewise smooth
 in a udp's breakpoint parameters (a v-transform's \code{delta}): it has a
 kink or cusp wherever the breakpoint crosses an observation, and for many
-base copulas the profile likelihood in \code{delta} is a fine sawtooth. The
-optimizer may stop on a neighbouring tooth, which moves \code{delta} by about
-\code{1 / n} and the log-likelihood by a unit or two; Nelder-Mead is restarted
-automatically when its simplex collapses on a kink.
+base copulas the profile likelihood in \code{delta} (or a zigzag breakpoint) is
+a fine sawtooth. The optimizer may stop on a neighbouring tooth, which
+moves \code{delta} by about \code{1 / n} and the log-likelihood by a unit or two.
+Worse, from a neutral start the optimizer can stall on one of these
+features well short of the main peak. So when udp parameters are
+estimated, the model is fitted by continuation: first with the carrier
+values coarsely clamped into \verb{[0.05, 0.95]}, which smooths the kinks
+away, then into \verb{[0.01, 0.99]}, then as requested by \code{vfloor}, each fit
+starting the next. Nelder-Mead is also restarted automatically when its
+simplex collapses on a kink.
 
 \code{se = "bootstrap"} (or \code{TRUE}) gives parametric bootstrap standard
 errors: \code{B} samples of size \code{n} are drawn from the fitted model with
-\code{\link[=rbsicopula]{rbsicopula()}}, converted to pseudo-observations, and refitted, starting
-from the fitted values. This accounts for the rank transformation and is
-the recommended choice. \code{se = "hessian"} is much quicker, using the
+\code{\link[=rbsicopula]{rbsicopula()}}, converted to pseudo-observations when \code{pseudo = TRUE},
+and put through the whole estimation procedure again, from the same
+starting values as the original fit. This accounts for the rank
+transformation and is the recommended choice. With \code{pseudo = FALSE} the
+simulated uniforms are refitted as they are; the standard errors then
+ignore the uncertainty from estimating the marginal models, as in
+inference functions for margins. \code{se = "hessian"} is much quicker, using the
 numerically differentiated Hessian of the log-likelihood on the natural
 scale, but it ignores the rank transformation. It is also unreliable for
 \code{delta}: when the base copula density vanishes along the edge \code{V = 0}

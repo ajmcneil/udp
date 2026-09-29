@@ -167,20 +167,35 @@ setMethod("udpinverse", "udpzigzag", function(x, v, prob = FALSE, ...) {
   if (anyNA(vv) || any(vv < 0 | vv > 1)) {
     stop("every element of 'v' must be in [0, 1].", call. = FALSE)
   }
-  n <- length(x@breaks) - 1L
-  res <- udpzigzaginverse(x, vv)
-  roots <- lapply(res, `[[`, "u")
-  lens <- lengths(roots)
+  b <- x@breaks
+  n <- length(b) - 1L
+  w <- diff(b)
+  k <- seq_len(n)
+  increasing <- x@up == ((k %% 2L) == 1L)
+  # For v strictly inside (0, 1) every piece has its own root, inside that
+  # piece's interval, so the roots are distinct and already ascending in
+  # piece order: build them all at once. Only v = 0 or 1, where neighbouring
+  # pieces' roots collapse onto a shared breakpoint, needs
+  # udpzigzaginverse()'s per-value merging.
   M <- matrix(NA_real_, length(vv), n)
-  M[cbind(rep(seq_along(roots), lens), sequence(lens))] <-
-    unlist(roots, use.names = FALSE)
+  W <- matrix(NA_real_, length(vv), n)
+  inner <- vv > 0 & vv < 1
+  if (any(inner)) {
+    vi <- vv[inner]
+    M[inner, ] <- t(ifelse(increasing, b[k], b[k + 1L]) +
+      outer(ifelse(increasing, w, -w), vi))
+    W[inner, ] <- rep(w, each = sum(inner))
+  }
+  if (any(!inner)) {
+    res <- udpzigzaginverse(x, vv[!inner])
+    roots <- lapply(res, `[[`, "u")
+    lens <- lengths(roots)
+    rows <- which(!inner)[rep(seq_along(roots), lens)]
+    M[cbind(rows, sequence(lens))] <- unlist(roots, use.names = FALSE)
+    W[cbind(rows, sequence(lens))] <- unlist(lapply(res, `[[`, "w"), use.names = FALSE)
+  }
   if (prob) {
-    weights <- lapply(res, `[[`, "w")
-    W <- matrix(NA_real_, length(vv), n)
-    W[cbind(rep(seq_along(weights), lens), sequence(lens))] <-
-      unlist(weights, use.names = FALSE)
-    present <- !is.na(M)
-    attr(M, "prob") <- finalise_prob(W, present)
+    attr(M, "prob") <- finalise_prob(W, !is.na(M))
   }
   M
 })
@@ -205,6 +220,49 @@ setMethod("udpderiv", "udpzigzag", function(x, u) {
 
 # Breakpoints: the piece boundaries, where the slope switches sign.
 setMethod("udpbreaks", "udpzigzag", function(x) x@breaks)
+
+# Estimable parameters, for fitbsicopula(): the interior breakpoints, the
+# number of pieces and `up` being held fixed. They must stay ordered, so
+# rather than box bounds they come with their own maps: the additive
+# log-ratio of the piece widths, log(w_j / w_n) for j < n, and its inverse
+# (a softmax). Starting widths are nudged up to at least 0.01, as a
+# v-transform's delta is kept 0.01 from 0 and 1. A one-piece zigzag has no
+# interior breakpoints and nothing to estimate.
+setMethod("udp_fitpars", "udpzigzag", function(x) {
+  inner <- x@breaks[-c(1L, length(x@breaks))]
+  if (!length(inner)) {
+    return(no_fitpars)
+  }
+  widths_to_breaks <- function(w) cumsum(w / sum(w))[seq_len(length(w) - 1L)]
+  list(
+    value = stats::setNames(inner, paste0("break", seq_along(inner))),
+    maps = list(
+      to_free = function(b) {
+        w <- diff(c(0, b, 1))
+        log(w[-length(w)] / w[length(w)])
+      },
+      from_free = function(y) {
+        e <- exp(c(y, 0) - max(y, 0))
+        widths_to_breaks(pmax(e / sum(e), 1e-10))
+      },
+      nudge = function(b) {
+        w <- diff(c(0, b, 1))
+        # shrink towards equal widths just enough to lift the narrowest
+        # piece to 0.01, keeping the widths summing to 1
+        m <- min(w)
+        if (m < 0.01) {
+          w <- 0.01 + (1 - 0.01 * length(w)) * (w - m) / (1 - m * length(w))
+        }
+        widths_to_breaks(w)
+      }
+    )
+  )
+})
+
+setMethod("udp_setfitpars", "udpzigzag", function(x, value) {
+  x@breaks <- c(0, value, 1)
+  x
+})
 
 #' @describeIn pcoincide Every piece maps onto the whole of `[0, 1]`, so each
 #'   pre-image's selection probability is its piece's width, constant rather

@@ -19,34 +19,38 @@ test_that("nudge_start() moves starting values off their bounds", {
   expect_equal(nudge_start(0.3, -1, 1), 0.3)
 })
 
-test_that("basecopula_needs_vfloor() floors exactly the copulas unbounded at (0, 0)", {
+test_that("basecopula_needs_vfloor() clamps every copula unbounded at some corner", {
   skip_if_not_installed("rvinecopulib")
   bd <- rvinecopulib::bicop_dist
   expect_true(basecopula_needs_vfloor(bd("gaussian", 0, 0.5)))
   expect_true(basecopula_needs_vfloor(bd("gaussian", 0, -0.5)))
   expect_true(basecopula_needs_vfloor(bd("t", 0, c(-0.3, 5))))
   expect_true(basecopula_needs_vfloor(bd("clayton", 0, 2)))
+  expect_true(basecopula_needs_vfloor(bd("clayton", 90, 2)))
+  expect_true(basecopula_needs_vfloor(bd("clayton", 180, 2)))
   expect_true(basecopula_needs_vfloor(bd("gumbel", 0, 2)))
-  expect_true(basecopula_needs_vfloor(bd("gumbel", 180, 2)))
-  expect_true(basecopula_needs_vfloor(bd("joe", 180, 2)))
+  expect_true(basecopula_needs_vfloor(bd("joe", 0, 2)))
   expect_true(basecopula_needs_vfloor(bd("bb6", 0, c(2, 2))))
-  expect_false(basecopula_needs_vfloor(bd("joe", 0, 2)))
-  expect_false(basecopula_needs_vfloor(bd("clayton", 180, 2)))
-  expect_false(basecopula_needs_vfloor(bd("clayton", 90, 2)))
   expect_false(basecopula_needs_vfloor(bd("frank", 0, 5)))
-  expect_false(basecopula_needs_vfloor(bd("bb8", 0, c(2, 0.7))))
+  expect_false(basecopula_needs_vfloor(bd("bb8", 180, c(2, 0.7))))
   expect_false(basecopula_needs_vfloor(bd()))
 })
 
-test_that("the floor enters only the base copula density, and dbsicopula() is unchanged", {
+test_that("clamp_v() clamps both ends, but only for observations inside [f, 1 - f]", {
+  V <- c(0.001, 0.999, 0.5, 0.001, 0.999)
+  u <- c(0.3, 0.6, 0.5, 0.005, 0.998)
+  expect_equal(clamp_v(V, u, 0.01), c(0.01, 0.99, 0.5, 0.001, 0.999))
+})
+
+test_that("the clamp enters only the base copula density, and dbsicopula() is unchanged", {
   skip_if_not_installed("rvinecopulib")
   bc <- bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.5), vlinear(0.4), vlinear(0.6))
   u1 <- c(0.4, 0.2, 0.7)
   u2 <- c(0.6, 0.5, 0.1)
   expect_identical(dbsicopula(u1, u2, bc), dbsicopula_eval(u1, u2, bc))
-  floored <- dbsicopula_eval(u1, u2, bc, vfloor = 0.01)
-  expect_equal(floored[2:3], dbsicopula(u1[2:3], u2[2:3], bc))
-  expect_equal(floored[1], rvinecopulib::dbicop(c(0.01, 0.01), bc@basecopula))
+  clamped <- dbsicopula_eval(u1, u2, bc, vfloor = 0.01)
+  expect_equal(clamped[2:3], dbsicopula(u1[2:3], u2[2:3], bc))
+  expect_equal(clamped[1], rvinecopulib::dbicop(c(0.01, 0.01), bc@basecopula))
 })
 
 test_that("fitbsicopula() validates its arguments", {
@@ -56,7 +60,8 @@ test_that("fitbsicopula() validates its arguments", {
   U <- pobs(rbsicopula(100, bc))
   expect_error(fitbsicopula(U, "x"), "class 'bsicopula'")
   expect_error(fitbsicopula(cbind(U, U[, 1]), bc), "two-column")
-  expect_error(fitbsicopula(rbind(U, c(0, 0.5)), bc), "strictly inside")
+  expect_error(fitbsicopula(rbind(U, c(0, 0.5)), bc), "boundaryadjust")
+  expect_error(fitbsicopula(U, bc, pseudo = "yes"), "'pseudo' must be TRUE or FALSE")
   expect_error(fitbsicopula(U, bc, udpfix = NA), "'udpfix' must be TRUE or FALSE")
   expect_error(fitbsicopula(U, bc, se = "sandwich"), "'se' must be")
   expect_error(fitbsicopula(U, bc, se = "bootstrap", B = 1), "'B' must be")
@@ -69,7 +74,7 @@ test_that("fitbsicopula() validates its arguments", {
     "randomizermod = NULL or a 'randsdvine'"
   )
   expect_error(
-    fitbsicopula(U, bsicopula(bc@basecopula, udpzigzag(widths = c(1, 2)), vlinear(0.6))),
+    fitbsicopula(U, bsicopula(bc@basecopula, udplegendrebex(c(0, 1)), vlinear(0.6))),
     "use udpfix = TRUE"
   )
   expect_error(
@@ -122,12 +127,13 @@ test_that("parameter-free udps and udpfix = TRUE leave only the copula to estima
   U <- pobs(rbsicopula(500, truth))
   fit <- fitbsicopula(U, truth)
   expect_identical(names(coef(fit)), "basecopula.theta")
-  expect_true(is.na(fit@vfloor))
+  expect_equal(fit@vfloor, 1 / 1000)
 
   bc <- bsicopula(rvinecopulib::bicop_dist("frank", 0, 3), v2p(0.45, 1.2), udpzigzag(widths = c(1, 2)))
   fit2 <- fitbsicopula(U, bc, udpfix = TRUE)
   expect_identical(names(coef(fit2)), "basecopula.theta")
   expect_identical(fit2@bsicopula@udp1@pars, bc@udp1@pars)
+  expect_true(is.na(fit2@vfloor))
 })
 
 test_that("randsdvine fits estimate every parametric randomizer copula, and honour twostage", {
@@ -186,4 +192,52 @@ test_that("standard errors: Hessian and parametric bootstrap", {
   expect_equal(coef(fb), coef(fh))
   set.seed(5)
   expect_equal(fitbsicopula(U, truth, se = TRUE, B = 5)@se, fb@se)
+})
+
+test_that("zigzag breakpoints are estimated, with the number of pieces and up held fixed", {
+  skip_if_not_installed("rvinecopulib")
+  truth <- bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.6), udpid(),
+    udpzigzag(widths = c(0.3, 0.45, 0.25), up = FALSE)
+  )
+  start <- bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.3), udpid(),
+    udpzigzag(widths = c(1, 1, 1), up = FALSE)
+  )
+  set.seed(6)
+  U <- pobs(rbsicopula(2000, truth))
+  fit <- fitbsicopula(U, start)
+  expect_identical(names(coef(fit)), c("basecopula.rho", "udp2.break1", "udp2.break2"))
+  expect_equal(unname(coef(fit)), c(0.6, 0.3, 0.75), tolerance = 0.1)
+  expect_false(fit@bsicopula@udp2@up)
+  expect_equal(fit@bsicopula@udp2@breaks, c(0, unname(coef(fit)[2:3]), 1))
+
+  # a one-piece zigzag has no breakpoints to estimate
+  one <- bsicopula(rvinecopulib::bicop_dist("frank", 0, 3), udpid(), udpzigzag(breaks = numeric(0)))
+  expect_identical(names(coef(fitbsicopula(U, one))), "basecopula.theta")
+})
+
+test_that("the zigzag's log-ratio maps are inverse and keep the breakpoints ordered", {
+  maps <- udp_fitpars(udpzigzag(widths = c(1, 2, 3, 4)))$maps
+  b <- c(0.1, 0.3, 0.6)
+  expect_equal(maps$from_free(maps$to_free(b)), b)
+  bb <- maps$from_free(c(40, -40, 3))
+  expect_true(all(diff(c(0, bb, 1)) > 0))
+  expect_true(all(diff(c(0, maps$nudge(c(0.001, 0.002, 0.5)), 1)) >= 0.01 - 1e-12))
+})
+
+test_that("with pseudo = FALSE extreme observations are allowed and the bootstrap skips ranking", {
+  skip_if_not_installed("rvinecopulib")
+  truth <- bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.6), vlinear(0.4), vlinear(0.6))
+  set.seed(7)
+  U <- rbsicopula(300, truth)
+  U[1, ] <- c(1e-5, 1 - 1e-5)
+  fit <- fitbsicopula(U, truth, pseudo = FALSE)
+  expect_true(is.finite(fit@loglik))
+
+  # identical seeds: the only difference is whether the bootstrap ranks
+  set.seed(8)
+  fp <- fitbsicopula(U, truth, pseudo = FALSE, se = "bootstrap", B = 4)
+  set.seed(8)
+  fq <- fitbsicopula(U, truth, pseudo = TRUE, se = "bootstrap", B = 4)
+  expect_equal(coef(fp), coef(fq))
+  expect_false(isTRUE(all.equal(fp@boot, fq@boot)))
 })

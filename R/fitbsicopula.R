@@ -35,24 +35,21 @@ bicop_par_info <- function(family) {
   info
 }
 
-# TRUE when a bicop_dist base copula's density is unbounded at the (0, 0)
-# corner. Such copulas make the likelihood of a udp whose pre-image of 0 is
-# an interior point (a v-transform's fulcrum, say) spike to infinity when
-# both udps' pre-images of 0 sit on the same observation -- and the spike is
-# log-singular, so even a slow blow-up (Gaussian with rho > 0, plain Gumbel,
-# BB6, all like eps^-0.6) draws Nelder-Mead straight into it. fitbsicopula()
-# therefore floors the carrier values for all of them. The Gaussian is
-# floored whatever the sign of rho, since rho can change sign during a fit
-# and the objective must stay one function; for rho < 0 the floor only moves
-# the few points with V < 1 / (2n). Left alone: independence, Frank, Joe and
-# BB8 (rotation 0), survival Clayton, and every 90/270 rotation, whose
-# densities are bounded at (0, 0).
+# TRUE when a bicop_dist base copula's density is unbounded at any corner of
+# the unit square. udp breakpoints map interior points to V = 0 (a
+# v-transform's fulcrum) or to V = 0 and 1 alternately (a zigzag's
+# breakpoints), so the likelihood spikes to infinity when both udps send the
+# same observation to an unbounded corner -- and the spike is log-singular,
+# so even a slow blow-up (Gaussian, plain Gumbel, BB6, all like eps^-0.6)
+# draws Nelder-Mead straight into it. fitbsicopula() therefore clamps the
+# carrier values for every such copula. Only independence, Frank and BB8
+# are bounded at all four corners. (Every other family is unbounded at some
+# corner for every rotation and parameter value -- the Gaussian at (0, 0)
+# and (1, 1) for rho > 0 and at the other two for rho < 0 -- so the rule
+# needs neither, and the objective stays one function when rho changes sign
+# mid-fit.)
 basecopula_needs_vfloor <- function(cop) {
-  fam <- cop$family
-  rot <- cop$rotation
-  fam %in% c("gaussian", "t") ||
-    (rot == 0 && fam %in% c("clayton", "gumbel", "bb1", "bb6", "bb7")) ||
-    (rot == 180 && fam %in% c("gumbel", "joe", "bb1", "bb6", "bb7"))
+  !(cop$family %in% c("indep", "frank", "bb8"))
 }
 
 # A parameter block for a bicop_dist held somewhere in a bsicopula: get()
@@ -61,18 +58,21 @@ bicop_block <- function(label, cop, set) {
   info <- bicop_par_info(cop$family)
   list(
     label = label, names = info$names, value = as.numeric(cop$parameters),
-    lower = info$lower, upper = info$upper,
+    maps = bounded_maps(info$lower, info$upper),
     set = function(obj, value) {
       set(obj, rvinecopulib::bicop_dist(cop$family, cop$rotation, value))
     }
   )
 }
 
+# udp_fitpars() gives either box bounds (lower/upper) or, for parameters
+# with a joint constraint such as a zigzag's ordered breakpoints, its own
+# 'maps'.
 udp_block <- function(label, x, set) {
   fp <- udp_fitpars(x)
   list(
     label = label, names = names(fp$value), value = unname(fp$value),
-    lower = fp$lower, upper = fp$upper,
+    maps = if (is.null(fp$maps)) bounded_maps(fp$lower, fp$upper) else fp$maps,
     set = function(obj, value) set(obj, udp_setfitpars(x, value))
   )
 }
@@ -151,6 +151,16 @@ nudge_start <- function(x, lower, upper) {
   x
 }
 
+# A block's maps between the natural and unconstrained scales, and its
+# starting-value nudge, for elementwise box bounds.
+bounded_maps <- function(lower, upper) {
+  list(
+    to_free = function(x) to_free(x, lower, upper),
+    from_free = function(y) from_free(y, lower, upper),
+    nudge = function(x) nudge_start(x, lower, upper)
+  )
+}
+
 # Negative log-likelihood of a bsicopula at the data. Any failure along the
 # way -- a zero or non-finite density, or an error from udpinverse()'s
 # pre-image matching at an awkward parameter value -- returns a large finite
@@ -172,9 +182,14 @@ fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
   sizes <- vapply(blocks, function(b) length(b$value), integer(1))
   idx <- rep(seq_along(blocks), sizes)
   labels <- unlist(lapply(blocks, function(b) paste(b$label, b$names, sep = ".")))
-  lower <- unlist(lapply(blocks, `[[`, "lower"))
-  upper <- unlist(lapply(blocks, `[[`, "upper"))
-  start <- nudge_start(unlist(lapply(blocks, `[[`, "value")), lower, upper)
+  by_block <- function(v) split(v, factor(idx, levels = seq_along(blocks)))
+  all_to_free <- function(nat) {
+    unlist(Map(function(b, v) b$maps$to_free(v), blocks, by_block(nat)), use.names = FALSE)
+  }
+  all_from_free <- function(th) {
+    unlist(Map(function(b, v) b$maps$from_free(v), blocks, by_block(th)), use.names = FALSE)
+  }
+  start <- unlist(lapply(blocks, function(b) b$maps$nudge(b$value)), use.names = FALSE)
   npar <- length(start)
 
   build <- function(nat) {
@@ -198,8 +213,8 @@ fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
 
   if (is.null(method)) method <- if (npar == 1L) "BFGS" else "Nelder-Mead"
   if (method == "Nelder-Mead" && is.null(control$maxit)) control$maxit <- 2000
-  fn <- function(th) negll_nat(from_free(th, lower, upper))
-  opt <- stats::optim(to_free(start, lower, upper), fn, method = method, control = control)
+  fn <- function(th) negll_nat(all_from_free(th))
+  opt <- stats::optim(all_to_free(start), fn, method = method, control = control)
   # The likelihood has kinks (at each observation, as a udp breakpoint
   # passes it), on which Nelder-Mead's simplex can collapse (code 10) short
   # of the optimum. Restarting from where it stopped, with a fresh simplex,
@@ -211,7 +226,7 @@ fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
     opt$counts <- opt$counts + counts
     restarts <- restarts + 1L
   }
-  est <- stats::setNames(from_free(opt$par, lower, upper), labels)
+  est <- stats::setNames(all_from_free(opt$par), labels)
 
   V <- matrix(NA_real_, npar, npar, dimnames = list(labels, labels))
   sds <- stats::setNames(rep(NA_real_, npar), labels)
@@ -262,8 +277,9 @@ fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
 #' @slot message the [stats::optim()] message, if any.
 #' @slot counts the [stats::optim()] function/gradient evaluation counts.
 #' @slot method the [stats::optim()] method used.
-#' @slot vfloor the floor applied to the carrier values before evaluating the
-#'   base copula density, or `NA` if none was applied.
+#' @slot vfloor the clamp `f` applied to the carrier values (into `[f, 1 -
+#'   f]`) before evaluating the base copula density, or `NA` if none was
+#'   applied.
 #' @slot stage1 for a two-stage fit, the first-stage fit (with independent
 #'   randomizers) as a `fitbsicopula` object; otherwise `NULL`.
 #'
@@ -293,8 +309,9 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' Fit a bivariate stochastic inversion copula by maximum likelihood
 #'
 #' Estimates the parameters of a \linkS4class{bsicopula} from bivariate
-#' pseudo-observations by maximizing the likelihood built from
-#' [dbsicopula()]. `object` supplies both the model structure -- the
+#' copula data -- pseudo-observations (ranks), or probability integral
+#' transforms from fitted marginal models (`pseudo = FALSE`) -- by maximizing
+#' the likelihood built from [dbsicopula()]. `object` supplies both the model structure -- the
 #' copula families and rotations, the udp classes, the randomizer model --
 #' and the starting values for the optimization.
 #'
@@ -305,8 +322,12 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #'
 #' **udp parameters.** With `udpfix = FALSE`, the continuous parameters of
 #' `udp1` and `udp2` are estimated alongside the copula parameters. At
-#' present that is supported for v-transforms (`delta`, `kappa`, `xi`).
-#' udps with no continuous parameters -- [vsymmetric()], shuffles such as
+#' present that is supported for v-transforms (`delta`, `kappa`, `xi`) and
+#' for \linkS4class{udpzigzag} objects, whose interior breakpoints are
+#' estimated (reported as `break1`, `break2`, ...) while the number of
+#' pieces and the direction of the first piece, `up`, are held at their
+#' given values -- set them from a priori knowledge, [aceshuffle()] output
+#' or a plot. udps with no continuous parameters -- [vsymmetric()], shuffles such as
 #' [udpid()] and [udpflip()], and \linkS4class{udpcosine} or
 #' \linkS4class{udplegendre} objects, whose degree is regarded as fixed --
 #' simply contribute nothing. For other classes use `udpfix = TRUE`, which
@@ -323,34 +344,47 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' randomizers, and that fit's base copula and udps are used as starting
 #' values for the full fit.
 #'
-#' **Boundary floor.** For many udps an interior point (a v-transform's
-#' fulcrum `delta`, for instance) maps to `0`. When the base copula's
-#' density is unbounded at `(0, 0)`, the likelihood becomes unbounded as
-#' such points approach an observation in both margins at once, and even a
-#' slow blow-up is enough to trap the optimizer there. `vfloor = "auto"`
-#' guards against this by flooring the carrier values at `1 / (2n)` before
-#' evaluating the base copula density, but only for base copulas that need
-#' it: the Gaussian (for either sign of the correlation) and t copulas;
-#' Clayton, Gumbel, BB1, BB6 and BB7 (rotation 0); and survival Gumbel,
-#' Joe, BB1, BB6 and BB7 (rotation 180). `vfloor = TRUE` or `FALSE` forces
-#' the floor on or off. The floor enters only the fitting; [dbsicopula()]
-#' is exact.
+#' **Boundary clamp.** udp breakpoints map interior points to `0` or `1`: a
+#' v-transform's fulcrum `delta` to `0`, a zigzag's breakpoints to `0` and
+#' `1` alternately. When the base copula's density is unbounded at a corner
+#' of the unit square, the likelihood becomes unbounded as breakpoints of
+#' both udps approach the same observation and send it to that corner, and
+#' even a slow blow-up is enough to trap the optimizer there.
+#' `vfloor = "auto"` guards against this by clamping the carrier values
+#' into `[1 / (2n), 1 - 1 / (2n)]` before evaluating the base copula
+#' density, for every base copula unbounded at some corner -- all but the
+#' independence, Frank and BB8 copulas. Observations with a `u` outside
+#' `[1 / (2n), 1 - 1 / (2n)]` (possible with `pseudo = FALSE`) are exempt:
+#' every udp sends `u = 0` and `u = 1` to fixed values, so their extreme
+#' carrier values are data, not the product of a moving breakpoint.
+#' `vfloor = TRUE` or `FALSE` forces the clamp on or off. The clamp enters
+#' only the fitting; [dbsicopula()] is exact.
 #'
 #' **Optimization and standard errors.** Parameters are optimized with
 #' [stats::optim()] on an internal unconstrained scale; every result is
 #' reported on the natural scale. The likelihood is only piecewise smooth
 #' in a udp's breakpoint parameters (a v-transform's `delta`): it has a
 #' kink or cusp wherever the breakpoint crosses an observation, and for many
-#' base copulas the profile likelihood in `delta` is a fine sawtooth. The
-#' optimizer may stop on a neighbouring tooth, which moves `delta` by about
-#' `1 / n` and the log-likelihood by a unit or two; Nelder-Mead is restarted
-#' automatically when its simplex collapses on a kink.
+#' base copulas the profile likelihood in `delta` (or a zigzag breakpoint) is
+#' a fine sawtooth. The optimizer may stop on a neighbouring tooth, which
+#' moves `delta` by about `1 / n` and the log-likelihood by a unit or two.
+#' Worse, from a neutral start the optimizer can stall on one of these
+#' features well short of the main peak. So when udp parameters are
+#' estimated, the model is fitted by continuation: first with the carrier
+#' values coarsely clamped into `[0.05, 0.95]`, which smooths the kinks
+#' away, then into `[0.01, 0.99]`, then as requested by `vfloor`, each fit
+#' starting the next. Nelder-Mead is also restarted automatically when its
+#' simplex collapses on a kink.
 #'
 #' `se = "bootstrap"` (or `TRUE`) gives parametric bootstrap standard
 #' errors: `B` samples of size `n` are drawn from the fitted model with
-#' [rbsicopula()], converted to pseudo-observations, and refitted, starting
-#' from the fitted values. This accounts for the rank transformation and is
-#' the recommended choice. `se = "hessian"` is much quicker, using the
+#' [rbsicopula()], converted to pseudo-observations when `pseudo = TRUE`,
+#' and put through the whole estimation procedure again, from the same
+#' starting values as the original fit. This accounts for the rank
+#' transformation and is the recommended choice. With `pseudo = FALSE` the
+#' simulated uniforms are refitted as they are; the standard errors then
+#' ignore the uncertainty from estimating the marginal models, as in
+#' inference functions for margins. `se = "hessian"` is much quicker, using the
 #' numerically differentiated Hessian of the log-likelihood on the natural
 #' scale, but it ignores the rank transformation. It is also unreliable for
 #' `delta`: when the base copula density vanishes along the edge `V = 0`
@@ -360,10 +394,14 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' finite and nonzero (Joe, survival Clayton), it still understates it,
 #' by a smaller factor.
 #'
-#' @param U a two-column numeric matrix (or data frame) of pseudo-observations,
-#'   with every value strictly inside `(0, 1)`.
+#' @param U a two-column numeric matrix (or data frame) of copula data, with
+#'   every value strictly inside `(0, 1)`; [boundaryadjust()] moves values
+#'   of exactly `0` or `1` inside.
 #' @param object a \linkS4class{bsicopula} giving the model structure and
 #'   starting values.
+#' @param pseudo logical; are `U` pseudo-observations (ranks scaled into
+#'   `(0, 1)`)? Set `FALSE` for probability integral transforms from fitted
+#'   marginal models. Affects only the bootstrap.
 #' @param udpfix logical; hold the parameters of `udp1` and `udp2` fixed at
 #'   their given values?
 #' @param twostage logical; when `randomizermod` is a
@@ -399,20 +437,23 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #'   fitbsicopula(U, start, se = "bootstrap", B = 100)
 #'   }
 #' }
-fitbsicopula <- function(U, object, udpfix = FALSE, twostage = TRUE,
+fitbsicopula <- function(U, object, pseudo = TRUE, udpfix = FALSE, twostage = TRUE,
                          se = FALSE, B = 200, vfloor = "auto", method = NULL,
                          control = list()) {
   if (!methods::is(object, "bsicopula")) {
     stop("'object' must be an object of class 'bsicopula'.", call. = FALSE)
   }
   U <- as.matrix(U)
-  if (!is.numeric(U) || ncol(U) != 2L || nrow(U) < 2L || anyNA(U) || any(U <= 0 | U >= 1)) {
+  if (!is.numeric(U) || ncol(U) != 2L || nrow(U) < 2L || anyNA(U)) {
+    stop("'U' must be a two-column numeric matrix without missing values.", call. = FALSE)
+  }
+  if (any(U <= 0 | U >= 1)) {
     stop(
-      "'U' must be a two-column numeric matrix of pseudo-observations strictly inside (0, 1).",
+      "every value of 'U' must be strictly inside (0, 1); boundaryadjust() moves values of exactly 0 or 1 inside.",
       call. = FALSE
     )
   }
-  for (arg in c("udpfix", "twostage")) {
+  for (arg in c("pseudo", "udpfix", "twostage")) {
     val <- get(arg)
     if (!is.logical(val) || length(val) != 1L || is.na(val)) {
       stop(sprintf("'%s' must be TRUE or FALSE.", arg), call. = FALSE)
@@ -453,41 +494,79 @@ fitbsicopula <- function(U, object, udpfix = FALSE, twostage = TRUE,
   }
   floor_value <- if (use_floor) 1 / (2 * n) else NULL
 
-  stage1 <- NULL
-  if (!is.null(rm) && twostage) {
-    object1 <- object
-    object1@randomizermod <- NULL
-    res1 <- fit_stage(U, object1, fit_blocks(object1, udpfix),
-      floor_value, FALSE, method, control
-    )
-    stage1 <- new_fitbsicopula(res1, n, floor_value)
-    object@basecopula <- res1$object@basecopula
-    object@udp1 <- res1$object@udp1
-    object@udp2 <- res1$object@udp2
-  }
-
-  res <- fit_stage(U, object, fit_blocks(object, udpfix),
-    floor_value, se_method == "hessian", method, control
+  fit <- fit_procedure(U, object, udpfix, twostage, floor_value, se_method == "hessian",
+    method, control
   )
+  res <- fit$res
+  stage1 <- if (is.null(fit$res1)) NULL else new_fitbsicopula(fit$res1, n, floor_value)
   if (se_method == "bootstrap" && res$npar > 0L) {
-    res <- bootstrap_se(res, n, B, udpfix, floor_value, method, control)
+    res <- bootstrap_se(res, object, n, B, pseudo, udpfix, twostage, floor_value,
+      method, control
+    )
   }
   new_fitbsicopula(res, n, floor_value, se_method, stage1)
 }
 
+# The whole estimation procedure from the starting object: for a randsdvine
+# with twostage = TRUE, a first fit with independent randomizers whose base
+# copula and udps then start the full fit. Returns the full fit's result
+# ('res') and the first stage's ('res1', NULL for a single-stage fit).
+fit_procedure <- function(U, object, udpfix, twostage, vfloor, hessian, method, control) {
+  res1 <- NULL
+  if (!is.null(object@randomizermod) && twostage) {
+    object1 <- object
+    object1@randomizermod <- NULL
+    res1 <- fit_continued(U, object1, udpfix, vfloor, FALSE, method, control)
+    object@basecopula <- res1$object@basecopula
+    object@udp1 <- res1$object@udp1
+    object@udp2 <- res1$object@udp2
+  }
+  res <- fit_continued(U, object, udpfix, vfloor, hessian, method, control)
+  list(res = res, res1 = res1)
+}
+
+# Carrier-value clamps for the preliminary fits of fit_continued().
+continuation_levels <- c(0.05, 0.01)
+
+# One fit by continuation. The likelihood has a kink or cusp wherever a udp
+# breakpoint crosses an observation, all produced by carrier values near 0
+# or 1; from a neutral start Nelder-Mead often stalls on one well short of
+# the main peak (in simulations, 10 to 20 log-likelihood units short in
+# most fits). Clamping the carrier values coarsely smooths those features
+# away, so when udp parameters are being estimated the model is fitted
+# first with each clamp in continuation_levels, each fit starting the next,
+# and only then with the requested clamp 'vfloor'. With the udps fixed the
+# surface is smooth and one fit suffices.
+fit_continued <- function(U, object, udpfix, vfloor, hessian, method, control) {
+  blocks <- fit_blocks(object, udpfix)
+  if (any(vapply(blocks, function(b) b$label %in% c("udp1", "udp2"), logical(1)))) {
+    for (f in continuation_levels) {
+      object <- suppressWarnings(
+        fit_stage(U, object, fit_blocks(object, udpfix), f, FALSE, method, control)
+      )$object
+    }
+  }
+  fit_stage(U, object, fit_blocks(object, udpfix), vfloor, hessian, method, control)
+}
+
 # Parametric bootstrap: B samples of size n from the fitted model, each
-# ranked to pseudo-observations (as the real data were) and refitted from
-# the fitted values -- which are close enough that a randsdvine model needs
-# no first stage. Returns 'res' with se, vcov and boot filled in. A refit
-# that errors leaves a row of NAs and is left out of se/vcov.
-bootstrap_se <- function(res, n, B, udpfix, vfloor, method, control) {
+# ranked to pseudo-observations if the real data were, and put through the
+# whole estimation procedure again from the user's starting object -- not
+# from the fitted values: the likelihood is rugged in udp breakpoints, and
+# refits started at the fitted values tend to stay on the nearby tooth,
+# understating the spread. Returns 'res' with se, vcov and boot filled in.
+# A refit that errors leaves a row of NAs and is left out of se/vcov.
+bootstrap_se <- function(res, start, n, B, pseudo, udpfix, twostage, vfloor, method,
+                         control) {
   fitted <- res$object
-  blocks <- fit_blocks(fitted, udpfix)
   est <- matrix(NA_real_, B, res$npar, dimnames = list(NULL, names(res$estimate)))
   for (b in seq_len(B)) {
-    Ub <- apply(rbsicopula(n, fitted), 2, rank) / (n + 1)
+    Ub <- rbsicopula(n, fitted)
+    if (pseudo) Ub <- apply(Ub, 2, rank) / (n + 1)
     rb <- tryCatch(
-      suppressWarnings(fit_stage(Ub, fitted, blocks, vfloor, FALSE, method, control)),
+      suppressWarnings(
+        fit_procedure(Ub, start, udpfix, twostage, vfloor, FALSE, method, control)$res
+      ),
       error = function(e) NULL
     )
     if (!is.null(rb)) est[b, ] <- rb$estimate
@@ -545,8 +624,8 @@ setMethod("show", "fitbsicopula", function(object) {
     cat("optim() did not converge (code ", object@convergence, ")\n", sep = "")
   }
   if (!is.na(object@vfloor)) {
-    cat("carrier values floored at ", format(object@vfloor, digits = 4),
-      " in the base copula density\n",
+    cat("carrier values clamped into [", format(object@vfloor, digits = 4), ", 1 - ",
+      format(object@vfloor, digits = 4), "] in the base copula density\n",
       sep = ""
     )
   }
