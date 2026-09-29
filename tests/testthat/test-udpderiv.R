@@ -104,3 +104,28 @@ test_that("udplegendre: udpderiv() blows up at a transversal crossing of a turni
   expect_true(all(diff(abs(near)) > 0)) # grows without bound approaching u1
   expect_gt(abs(near[4]), 100)
 })
+
+test_that("udpderiv() has the right sign on both sides of every turning point", {
+  # within 1e-5 of a turning point udpderiv() switches to the exact one-sided
+  # slope; it must be the left one at and just left of the turning point and
+  # the right one just right of it (regression: the window used the left one
+  # on both sides, and udpcosinebex paired turning points with the wrong h'')
+  lb <- udplegendrebex(c(0.3, -0.8, 0.5))
+  cb <- udpcosinebex(c(0.3, -0.8, 0.5))
+  l4 <- udplegendre(4)
+  cases <- list(
+    list(x = l4, tp = legendre_turnpoints(l4@cfsD)),
+    list(x = lb, tp = legendre_turnpoints(lb@cfsD)),
+    list(x = cb, tp = sort(acos(chebyshev_turnpoints(cb@cfsD)) / pi))
+  )
+  for (case in cases) {
+    for (t in case$tp) {
+      for (h in c(-1e-3, -5e-6, 5e-6, 1e-3)) {
+        fd <- (udptrans(case$x, t + h + 1e-8) - udptrans(case$x, t + h - 1e-8)) / 2e-8
+        expect_equal(sign(udpderiv(case$x, t + h)), sign(fd))
+      }
+      left <- (udptrans(case$x, t) - udptrans(case$x, t - 1e-7)) / 1e-7
+      expect_equal(sign(udpderiv(case$x, t)), sign(left))
+    }
+  }
+})

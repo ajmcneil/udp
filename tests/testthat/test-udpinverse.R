@@ -105,3 +105,57 @@ test_that("udpsi() reproduces the equal-weight cosine selection", {
     expect_equal(udpsi(x, v, rep(z, length(v))), roots[, j])
   }
 })
+
+# At a turning point of T every branch keeps its own column: the turning point
+# appears once per branch meeting there, and the selection probabilities are
+# the one-sided limits. So each row at a turning value v* must match, column
+# by column, the row at a nearby v on the side where the same branches exist.
+turning_cases <- function() {
+  lb <- udplegendrebex(c(0.3, -0.8, 0.5))
+  cb <- udpcosinebex(c(0.3, -0.8, 0.5))
+  l4 <- udplegendre(4)
+  list(
+    list(x = vlinear(0.4), v = 0),
+    list(x = v2p(0.4, 1.5), v = 0),
+    list(x = udpzigzag(widths = c(0.3, 0.45, 0.25)), v = c(0, 1)),
+    list(x = udpcosine(3), v = c(0, 1)),
+    list(x = udpcosine(4), v = c(0, 1)),
+    list(x = l4, v = udptrans(l4, legendre_turnpoints(l4@cfsD))),
+    list(x = lb, v = udptrans(lb, legendre_turnpoints(lb@cfsD))),
+    list(x = cb, v = udptrans(cb, acos(chebyshev_turnpoints(cb@cfsD)) / pi))
+  )
+}
+
+test_that("udpinverse() records a turning point once per branch, with one-sided limit probabilities", {
+  # near a smooth extremum the probabilities approach their limit like
+  # sqrt(eps), hence the tolerance
+  eps <- 1e-9
+  for (case in turning_cases()) {
+    for (vs in case$v) {
+      M <- udpinverse(case$x, vs, prob = TRUE)
+      P <- attr(M, "prob")
+      m <- M[1, !is.na(M[1, ])]
+      # a turning point appears (at least) twice
+      expect_true(anyDuplicated(signif(m, 7)) > 0)
+      # the side of vs on which the same number of branches exists
+      near <- lapply(c(vs - eps, vs + eps), function(v) {
+        if (v < 0 || v > 1) return(NULL)
+        udpinverse(case$x, v, prob = TRUE)
+      })
+      near <- Filter(function(N) !is.null(N) && sum(!is.na(N)) == length(m), near)
+      expect_true(length(near) >= 1L)
+      N <- near[[1]]
+      expect_equal(M[1, ], N[1, ], tolerance = 1e-3)
+      expect_equal(P[1, ], attr(N, "prob")[1, ], tolerance = 5e-3)
+    }
+  }
+})
+
+test_that("finalise_prob() shares probability equally among infinite weights", {
+  w <- rbind(c(1, Inf, Inf), c(1, 2, 1), c(Inf, 3, NA))
+  present <- rbind(c(TRUE, TRUE, TRUE), c(TRUE, TRUE, TRUE), c(TRUE, TRUE, FALSE))
+  p <- finalise_prob(w, present)
+  expect_equal(p[1, ], c(0, 0.5, 0.5))
+  expect_equal(p[2, ], c(0.25, 0.5, 0.25))
+  expect_equal(p[3, ], c(1, 0, NA))
+})

@@ -127,8 +127,20 @@ setGeneric("udpsi", function(x, v, Z = runif(length(v)), ...) {
 #' aligned column-for-column with the matrix: `attr(., "prob")[i, j]` is the
 #' probability with which [udpsi()] selects pre-image `result[i, j]`, namely
 #' `1 / |T'|` at that pre-image normalized over the row (`NA` where the
-#' pre-image is `NA`). On the measure-zero set where `T'` is undefined at some
-#' pre-image the row falls back to equal probabilities.
+#' pre-image is `NA`).
+#'
+#' Every column is one branch of `T` (one maximal interval on which `T` is
+#' monotone). At a turning point of `T`, where two branches meet -- a
+#' v-transform's fulcrum, a peak or trough of a \linkS4class{udpzigzag} or
+#' \linkS4class{udpcosine}, a turning point of `g` for the polynomial
+#' classes -- the pre-image is therefore recorded once per branch, as
+#' coincident entries, and each carries its one-sided limiting selection
+#' probability: the value the probabilities approach as `v` approaches the
+#' turning value. The rows are continuous in `v` in that sense, and at such
+#' a `v` a branch's column always holds its own pre-image. Where `1 / |T'|`
+#' is infinite (`T' = 0`, as at a turning point of a smooth `g`), the
+#' probability is shared equally among the infinite entries, which is again
+#' the limit.
 #'
 #' `v` is treated as a plain numeric vector; unlike [udptrans()] and [udpsi()],
 #' `udpinverse()` does not copy the attributes of `v` onto its result (the row
@@ -314,11 +326,32 @@ setMethod("pcoincide", "udp", function(x) integrate_collision(x))
 # Normalize raw per-branch weights into a selection-probability matrix aligned
 # with a pre-image matrix. `w` holds 1 / |T'| at each pre-image (any value
 # where `present` is FALSE); `present` is `!is.na(<pre-image matrix>)`. Each row
-# is scaled to sum to 1. Rows whose weights are non-finite or fail to normalize
-# -- the measure-zero set where T' is undefined at some pre-image -- fall back
-# to equal probability over that row's pre-images.
+# is scaled to sum to 1. In a row where some weights are infinite (T' = 0 at
+# those pre-images, e.g. coincident pre-images at a turning point of a smooth
+# g), the probability is shared equally among the infinite ones -- the limit
+# as v approaches that value, since there the infinite weights dominate.
+# Rows that still fail to normalize fall back to equal probability over that
+# row's pre-images.
+# Set to Inf the raw weight 1 / |T'| of every pre-image lying on one of the
+# turning points 'tp' of a smooth g (where g' = 0). Computed directly, g'
+# there comes out as exactly 0 at one turning point and as ~1e-16 at another,
+# so without this the probability at a value shared by several turning
+# points would go to whichever happened to round to exactly 0.
+mark_turning_weights <- function(w, M, tp, tol = 1e-12) {
+  for (t in tp) {
+    on <- !is.na(M) & abs(M - t) < tol
+    w[on] <- Inf
+  }
+  w
+}
+
 finalise_prob <- function(w, present) {
   w[!present] <- 0
+  inf <- present & is.infinite(w)
+  rows_inf <- rowSums(inf) > 0
+  if (any(rows_inf)) {
+    w[rows_inf, ] <- inf[rows_inf, , drop = FALSE] + 0
+  }
   npt <- rowSums(present)
   p <- w / rowSums(w)
   rs <- rowSums(p)

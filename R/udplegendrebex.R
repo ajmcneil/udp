@@ -255,8 +255,9 @@ setMethod("udptrans", "udplegendrebex", function(x, u) {
 
 #' @describeIn udpinverse Pre-images of a udplegendrebex transformation: a
 #'   matrix with `degree` columns holding, for each `v`, the roots in
-#'   `[0, 1]` of `g(u) = F^{-1}(v)`, sorted ascending and left-packed with
-#'   trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each
+#'   `[0, 1]` of `g(u) = F^{-1}(v)`, one per monotone piece of `g` (a
+#'   turning point appears twice when `v` is its value), sorted ascending and
+#'   left-packed with trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each
 #'   root by `1 / |g'(u)|`, normalized over the row.
 #' @export
 setMethod("udpinverse", "udplegendrebex", function(x, v, prob = FALSE, ...) {
@@ -267,8 +268,7 @@ setMethod("udpinverse", "udplegendrebex", function(x, v, prob = FALSE, ...) {
   k <- x@degree
   y <- pmin(pmax(x@Qfun(vv), x@lbound), x@ubound)
   # g is monotone between its turning points, so all pre-images come from
-  # poly_crossings() at once (at most one per monotone piece, and at most k
-  # pieces), matching legendre_realroots() row by row.
+  # poly_crossings() at once: one per monotone piece, at most k pieces.
   R <- poly_crossings(x@cfs, y, c(0, legendre_turnpoints(x@cfsD), 1))
   M <- matrix(NA_real_, length(vv), k)
   M[, seq_len(ncol(R))] <- R
@@ -276,6 +276,7 @@ setMethod("udpinverse", "udplegendrebex", function(x, v, prob = FALSE, ...) {
     present <- !is.na(M)
     w <- matrix(0, nrow(M), k)
     w[present] <- 1 / abs(polyval(x@cfsD, M[present]))
+    w <- mark_turning_weights(w, M, legendre_turnpoints(x@cfsD))
     attr(M, "prob") <- finalise_prob(w, present)
   }
   M
@@ -304,7 +305,11 @@ setMethod("udpderiv", "udplegendrebex", function(x, u) {
     if (length(tp)) {
       j <- which.min(abs(ui - tp))
       if (abs(ui - tp[j]) < tol) {
-        return(-2 * mult[j] * sign(polyval(cfsDD, tp[j])))
+        # within tol of a turning point the formula is unstable (0 * Inf):
+        # use the exact one-sided slope instead -- the left one at or left of
+        # the turning point, the right one (opposite sign) to its right
+        left <- -2 * mult[j] * sign(polyval(cfsDD, tp[j]))
+        return(if (ui > tp[j]) -left else left)
       }
     }
     y <- polyval(cfs, ui)

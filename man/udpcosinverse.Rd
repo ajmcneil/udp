@@ -12,13 +12,14 @@ udpcosinverse(x, v)
 \item{v}{a vector with values in \verb{[0, 1]}.}
 }
 \value{
-A list the same length as \code{v}; element \code{j} is the sorted vector of
-\code{u} in \verb{[0, 1]} with \code{udptrans(x, u)} equal to \code{v[j]}.
+A list the same length as \code{v}; element \code{j} is the vector, one per
+piece in piece order (so sorted ascending), of \code{u} in \verb{[0, 1]} with
+\code{udptrans(x, u)} equal to \code{v[j]}.
 }
 \description{
 \code{udptrans()} is a degree-fold triangle wave and so is not injective: a
-value \code{v} in \verb{(0, 1)} has \code{degree} pre-images, one in each linear piece,
-while \code{v = 0} and \code{v = 1} have fewer (the shared troughs and peaks
-respectively).
+value \code{v} has \code{degree} pre-images, one in each linear piece. At \code{v = 0}
+and \code{v = 1} neighbouring pieces share a trough or peak, which is then the
+pre-image of both and appears twice.
 }
 \keyword{internal}

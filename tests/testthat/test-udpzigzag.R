@@ -100,47 +100,42 @@ test_that("zigzag udp transformations preserve the uniform distribution", {
   }
 })
 
-test_that("udpzigzaginverse() returns one root per piece, weighted by width", {
+test_that("udpinverse() returns one root per piece, weighted by width", {
   x <- udpzigzag(widths = c(1, 2, 1), up = TRUE) # breaks c(0, .25, .75, 1)
-  res <- udpzigzaginverse(x, c(0, 0.4, 1))
+  M <- udpinverse(x, c(0, 0.4, 1), prob = TRUE)
+  P <- attr(M, "prob")
 
-  expect_equal(res[[1]]$u, c(0, 0.75))
-  expect_equal(res[[1]]$w, c(0.25, 0.75))
-  expect_equal(res[[2]]$u, c(0.1, 0.55, 0.85))
-  expect_equal(res[[2]]$w, c(0.25, 0.5, 0.25))
-  expect_equal(res[[3]]$u, c(0.25, 1))
-  expect_equal(res[[3]]$w, c(0.75, 0.25))
+  # a shared trough (v = 0) or peak (v = 1) appears once per piece
+  expect_equal(M[1, ], c(0, 0.75, 0.75))
+  expect_equal(M[2, ], c(0.1, 0.55, 0.85))
+  expect_equal(M[3, ], c(0.25, 0.25, 1))
+  for (j in 1:3) expect_equal(P[j, ], c(0.25, 0.5, 0.25))
 
-  # every reported root really is a pre-image
-  for (j in seq_along(res)) {
-    r <- res[[j]]$u
-    expect_equal(udptrans(x, r), rep(c(0, 0.4, 1)[j], length(r)), tolerance = 1e-9)
-  }
-  # each row's summed weights always add to 1
-  expect_equal(vapply(res, function(r) sum(r$w), numeric(1)), c(1, 1, 1))
+  # every entry really is a pre-image
+  expect_equal(udptrans(x, c(M)), rep(c(0, 0.4, 1), 3), tolerance = 1e-9)
 })
 
-test_that("udpzigzaginverse() gives one root per piece for v in (0, 1)", {
+test_that("udpinverse() gives one sorted root per piece for every v", {
   set.seed(1)
   for (w in list(1, c(1, 1), c(1, 2, 1), c(3, 1, 1, 4))) {
     x <- udpzigzag(widths = w)
     n <- length(w)
-    v <- runif(30)
-    res <- udpzigzaginverse(x, v)
-    for (j in seq_along(v)) {
-      expect_length(res[[j]]$u, n)
-      expect_false(is.unsorted(res[[j]]$u))
-      expect_true(all(res[[j]]$u >= 0 & res[[j]]$u <= 1))
-      expect_equal(udptrans(x, res[[j]]$u), rep(v[j], n), tolerance = 1e-9)
-    }
+    v <- c(0, runif(30), 1)
+    M <- udpinverse(x, v)
+    expect_equal(dim(M), c(length(v), n))
+    expect_false(anyNA(M))
+    expect_false(any(apply(M, 1, is.unsorted)))
+    expect_true(all(M >= 0 & M <= 1))
+    expect_equal(udptrans(x, M), matrix(v, length(v), n), tolerance = 1e-9)
   }
 })
 
-test_that("udpzigzaginverse() validates v", {
+test_that("udpinverse() validates v", {
   x <- udpzigzag(widths = c(1, 1))
-  expect_error(udpzigzaginverse(x, 1.5), "in \\[0, 1\\]")
-  expect_error(udpzigzaginverse(x, -0.01), "in \\[0, 1\\]")
-  expect_error(udpzigzaginverse(x, c(0.5, NA)), "in \\[0, 1\\]")
+  expect_error(udpinverse(x, 1.5), "in \\[0, 1\\]")
+  expect_error(udpinverse(x, -0.01), "in \\[0, 1\\]")
+  expect_error(udpinverse(x, c(0.5, NA)), "in \\[0, 1\\]")
+  expect_equal(dim(udpinverse(x, numeric(0))), c(0L, 2L))
 })
 
 test_that("udpinverse() packs roots with a prob attribute summing to 1", {
@@ -165,17 +160,6 @@ test_that("udpinverse() packs roots with a prob attribute summing to 1", {
   # without prob = TRUE (the default) there is no "prob" attribute
   M2 <- udpinverse(x, v)
   expect_null(attr(M2, "prob"))
-})
-
-test_that("udpinverse() without prob = TRUE matches udpzigzaginverse()'s roots", {
-  x <- udpzigzag(widths = c(3, 1, 1, 4))
-  v <- c(0, 0.15, 0.6, 1)
-  M <- udpinverse(x, v)
-  res <- udpzigzaginverse(x, v)
-  for (j in seq_along(v)) {
-    row <- M[j, ]
-    expect_equal(row[!is.na(row)], res[[j]]$u)
-  }
 })
 
 test_that("udpderiv() matches finite differences within a piece", {
@@ -265,8 +249,8 @@ test_that("udpsi() at v = 0 and v = 1 samples among the shared roots", {
   u <- udpsi(x, v, runif(length(v)))
   expect_true(all(u >= 0 & u <= 1))
   expect_equal(udptrans(x, u), v, tolerance = 1e-9)
-  expect_true(all(u[v == 0] %in% udpzigzaginverse(x, 0)[[1]]$u))
-  expect_true(all(u[v == 1] %in% udpzigzaginverse(x, 1)[[1]]$u))
+  expect_true(all(u[v == 0] %in% udpinverse(x, 0)[1, ]))
+  expect_true(all(u[v == 1] %in% udpinverse(x, 1)[1, ]))
 })
 
 test_that("udpsi() validates its arguments and edge inputs", {

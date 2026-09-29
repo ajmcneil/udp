@@ -74,8 +74,20 @@ With \code{prob = TRUE} the result also carries an \code{n}-by-\code{k} \code{"p
 aligned column-for-column with the matrix: \code{attr(., "prob")[i, j]} is the
 probability with which \code{\link[=udpsi]{udpsi()}} selects pre-image \code{result[i, j]}, namely
 \verb{1 / |T'|} at that pre-image normalized over the row (\code{NA} where the
-pre-image is \code{NA}). On the measure-zero set where \verb{T'} is undefined at some
-pre-image the row falls back to equal probabilities.
+pre-image is \code{NA}).
+
+Every column is one branch of \code{T} (one maximal interval on which \code{T} is
+monotone). At a turning point of \code{T}, where two branches meet -- a
+v-transform's fulcrum, a peak or trough of a \linkS4class{udpzigzag} or
+\linkS4class{udpcosine}, a turning point of \code{g} for the polynomial
+classes -- the pre-image is therefore recorded once per branch, as
+coincident entries, and each carries its one-sided limiting selection
+probability: the value the probabilities approach as \code{v} approaches the
+turning value. The rows are continuous in \code{v} in that sense, and at such
+a \code{v} a branch's column always holds its own pre-image. Where \verb{1 / |T'|}
+is infinite (\verb{T' = 0}, as at a turning point of a smooth \code{g}), the
+probability is shared equally among the infinite entries, which is again
+the limit.
 
 \code{v} is treated as a plain numeric vector; unlike \code{\link[=udptrans]{udptrans()}} and \code{\link[=udpsi]{udpsi()}},
 \code{udpinverse()} does not copy the attributes of \code{v} onto its result (the row
@@ -89,34 +101,36 @@ the single pre-image \code{\link[=shinverse]{shinverse()}} of each \code{v}. Wit
 
 \item \code{udpinverse(udpcosine)}: Pre-images of a cosine udp transformation: a matrix
 with \code{degree} columns holding the roots \code{\link[=udpcosinverse]{udpcosinverse()}} of each \code{v},
-sorted ascending and left-packed, \code{NA}-padded where \code{v} equal to \code{0} or
-\code{1} has fewer than \code{degree} roots. With \code{prob = TRUE} the \code{"prob"}
-attribute is equal over each row's roots.
+one per piece and sorted ascending (a shared trough or peak appears
+twice at \code{v = 0} or \code{1}). With \code{prob = TRUE} the \code{"prob"} attribute is
+equal over each row's roots.
 
 \item \code{udpinverse(udplegendre)}: Pre-images of a shifted-Legendre udp transformation:
 a matrix with \code{degree} columns holding, for each \code{v}, the roots in
-\verb{[0, 1]} of \code{L_j(u) = F_j^{-1}(v)}, sorted ascending and left-packed with
-trailing \code{NA}. With \code{prob = TRUE} the \code{"prob"} attribute weights each root
-by \verb{1 / |L_j'(u)|}, normalized over the row.
+\verb{[0, 1]} of \code{L_j(u) = F_j^{-1}(v)}, one per monotone piece of \code{L_j}
+(a turning point appears twice when \code{v} is its value), sorted ascending
+and left-packed with trailing \code{NA}. With \code{prob = TRUE} the \code{"prob"}
+attribute weights each root by \verb{1 / |L_j'(u)|}, normalized over the row.
 
 \item \code{udpinverse(udpcosinebex)}: Pre-images of a udpcosinebex transformation: a
 matrix with \code{degree} columns holding, for each \code{v}, the roots in
-\verb{[0, 1]} of \code{g(u) = F^{-1}(v)}, sorted ascending and left-packed with
-trailing \code{NA}. With \code{prob = TRUE} the \code{"prob"} attribute weights each
+\verb{[0, 1]} of \code{g(u) = F^{-1}(v)}, one per monotone piece of \code{g} (a
+turning point appears twice when \code{v} is its value), sorted ascending and
+left-packed with trailing \code{NA}. With \code{prob = TRUE} the \code{"prob"} attribute weights each
 root by \verb{1 / |g'(u)|}, normalized over the row.
 
 \item \code{udpinverse(udplegendrebex)}: Pre-images of a udplegendrebex transformation: a
 matrix with \code{degree} columns holding, for each \code{v}, the roots in
-\verb{[0, 1]} of \code{g(u) = F^{-1}(v)}, sorted ascending and left-packed with
-trailing \code{NA}. With \code{prob = TRUE} the \code{"prob"} attribute weights each
+\verb{[0, 1]} of \code{g(u) = F^{-1}(v)}, one per monotone piece of \code{g} (a
+turning point appears twice when \code{v} is its value), sorted ascending and
+left-packed with trailing \code{NA}. With \code{prob = TRUE} the \code{"prob"} attribute weights each
 root by \verb{1 / |g'(u)|}, normalized over the row.
 
 \item \code{udpinverse(udpzigzag)}: Pre-images of a zigzag udp transformation: a matrix
-with one column per piece holding the roots \code{\link[=udpzigzaginverse]{udpzigzaginverse()}} of each
-\code{v}, sorted ascending and left-packed, \code{NA}-padded where \code{v} equal to \code{0}
-or \code{1} has fewer roots than pieces. With \code{prob = TRUE} the \code{"prob"}
-attribute weights each root by its piece width (summed over pieces that
-collapse onto it), normalized over the row.
+with one column per piece, holding that piece's root of each \code{v}, in
+piece order (so sorted ascending). At \code{v = 0} or \code{1} neighbouring pieces
+share a trough or peak, which then appears twice. With \code{prob = TRUE} the
+\code{"prob"} attribute weights each root by its piece width.
 
 \item \code{udpinverse(vtransform)}: Pre-images of a v-transform: a two-column matrix with
 the lower-branch pre-image \code{\link[=vinverse]{vinverse()}} in column 1 and \code{v} plus that in

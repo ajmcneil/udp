@@ -153,11 +153,12 @@ poly_sublevel_measure <- function(coef, y, knots, xtou = identity) {
 # Vectorized pre-images: for every y at once, the points u with p(x(u)) = y,
 # as a matrix with one row per y, sorted ascending in u and left-packed,
 # NA-padded (at most one root per monotone piece, so length(knots) - 1
-# columns suffice). A root at a turning point shared by two neighbouring
-# pieces is kept once. 'xtou' maps x to u; 'decreasing' says it reverses
-# order (u = acos(x) / pi), so the pieces are then taken in reverse.
-poly_crossings <- function(coef, y, knots, xtou = identity, decreasing = FALSE,
-                           tol = 1e-7) {
+# columns suffice). Each root belongs to one piece, i.e. one branch: at a
+# turning point shared by two neighbouring pieces, both keep their root, so
+# the turning point appears twice (see udpinverse()'s convention). 'xtou'
+# maps x to u; 'decreasing' says it reverses order (u = acos(x) / pi), so
+# the pieces are then taken in reverse.
+poly_crossings <- function(coef, y, knots, xtou = identity, decreasing = FALSE) {
   coefD <- poly_deriv_coef(coef)
   npc <- length(knots) - 1L
   R <- matrix(NA_real_, length(y), npc)
@@ -168,18 +169,16 @@ poly_crossings <- function(coef, y, knots, xtou = identity, decreasing = FALSE,
     b <- knots[k + 1L]
     pa <- polyval(coef, a)
     pb <- polyval(coef, b)
-    inside <- y >= min(pa, pb) & y <= max(pa, pb)
+    # a small tolerance keeps both roots of an extreme value shared by two
+    # turning points (e.g. the symmetric minima of an even-degree L_j), whose
+    # computed values can differ by rounding
+    inside <- y >= min(pa, pb) - 1e-10 & y <= max(pa, pb) + 1e-10
     if (any(inside)) {
       R[inside, col] <- xtou(piece_crossing(coef, coefD, y[inside], a, b, pb >= pa))
     }
   }
-  # drop a root repeating its left neighbour's (a shared turning point),
-  # then left-pack each row
+  # left-pack each row
   if (npc > 1L) {
-    for (col in 2:npc) {
-      dup <- !is.na(R[, col]) & !is.na(R[, col - 1L]) & abs(R[, col] - R[, col - 1L]) <= tol
-      R[dup, col] <- NA
-    }
     present <- !is.na(R)
     lens <- rowSums(present)
     vals <- t(R)[t(present)]
@@ -392,9 +391,10 @@ setMethod("udpquantile", "udplegendre", function(x, v) {
 
 #' @describeIn udpinverse Pre-images of a shifted-Legendre udp transformation:
 #'   a matrix with `degree` columns holding, for each `v`, the roots in
-#'   `[0, 1]` of `L_j(u) = F_j^{-1}(v)`, sorted ascending and left-packed with
-#'   trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each root
-#'   by `1 / |L_j'(u)|`, normalized over the row.
+#'   `[0, 1]` of `L_j(u) = F_j^{-1}(v)`, one per monotone piece of `L_j`
+#'   (a turning point appears twice when `v` is its value), sorted ascending
+#'   and left-packed with trailing `NA`. With `prob = TRUE` the `"prob"`
+#'   attribute weights each root by `1 / |L_j'(u)|`, normalized over the row.
 #' @export
 setMethod("udpinverse", "udplegendre", function(x, v, prob = FALSE, ...) {
   vv <- as.numeric(v)
@@ -403,18 +403,16 @@ setMethod("udpinverse", "udplegendre", function(x, v, prob = FALSE, ...) {
   }
   k <- x@degree
   y <- pmin(pmax(x@Qfun(vv), x@lbound), 1)
-  roots <- lapply(y, function(yi) {
-    r <- legendre_realroots(x@cfs, yi)
-    if (length(r) > k) r[seq_len(k)] else r
-  })
-  lens <- lengths(roots)
+  # L_j is monotone between its turning points: one root per monotone piece,
+  # all at once, from poly_crossings()
+  R <- poly_crossings(x@cfs, y, c(0, legendre_turnpoints(x@cfsD), 1))
   M <- matrix(NA_real_, length(vv), k)
-  M[cbind(rep(seq_along(roots), lens), sequence(lens))] <-
-    unlist(roots, use.names = FALSE)
+  M[, seq_len(ncol(R))] <- R
   if (prob) {
     present <- !is.na(M)
     w <- matrix(0, nrow(M), k)
     w[present] <- 1 / abs(polyval(x@cfsD, M[present]))
+    w <- mark_turning_weights(w, M, legendre_turnpoints(x@cfsD))
     attr(M, "prob") <- finalise_prob(w, present)
   }
   M
@@ -448,7 +446,11 @@ setMethod("udpderiv", "udplegendre", function(x, u) {
     if (length(tp)) {
       j <- which.min(abs(ui - tp))
       if (abs(ui - tp[j]) < tol) {
-        return(-2 * mult[j] * sign(polyval(cfsDD, tp[j])))
+        # within tol of a turning point the formula is unstable (0 * Inf):
+        # use the exact one-sided slope instead -- the left one at or left of
+        # the turning point, the right one (opposite sign) to its right
+        left <- -2 * mult[j] * sign(polyval(cfsDD, tp[j]))
+        return(if (ui > tp[j]) -left else left)
       }
     }
     y <- polyval(cfs, ui)

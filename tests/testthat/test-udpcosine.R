@@ -79,25 +79,28 @@ test_that("udpcosinverse() gives 'degree' roots for v in (0, 1), each a pre-imag
   }
 })
 
-test_that("udpcosinverse() collapses shared roots at v = 0 and v = 1", {
+test_that("udpcosinverse() keeps one root per piece at v = 0 and v = 1", {
   for (d in 1:6) {
     x <- udpcosine(d)
     r0 <- udpcosinverse(x, 0)[[1]]
     r1 <- udpcosinverse(x, 1)[[1]]
 
-    expect_length(r0, ceiling(d / 2))
-    expect_length(r1, floor(d / 2) + 1)
-    expect_equal(udptrans(x, r0), rep(0, length(r0)), tolerance = 1e-9)
-    expect_equal(udptrans(x, r1), rep(1, length(r1)), tolerance = 1e-9)
-    expect_false(anyDuplicated(r0) > 0)
-    expect_false(anyDuplicated(r1) > 0)
+    # every piece keeps its root, so shared troughs/peaks appear twice
+    expect_length(r0, d)
+    expect_length(r1, d)
+    expect_false(is.unsorted(r0))
+    expect_false(is.unsorted(r1))
+    expect_length(unique(r0), ceiling(d / 2))
+    expect_length(unique(r1), floor(d / 2) + 1)
+    expect_equal(udptrans(x, r0), rep(0, d), tolerance = 1e-9)
+    expect_equal(udptrans(x, r1), rep(1, d), tolerance = 1e-9)
   }
 })
 
 test_that("udpcosinverse() matches a known small case", {
   expect_equal(
     udpcosinverse(udpcosine(3), c(0, 0.4, 1)),
-    list(c(0, 2 / 3), c(2 / 15, 8 / 15, 4 / 5), c(1 / 3, 1))
+    list(c(0, 2 / 3, 2 / 3), c(2 / 15, 8 / 15, 4 / 5), c(1 / 3, 1 / 3, 1))
   )
   expect_equal(udpcosinverse(udpcosine(1), c(0, 0.25, 1)), list(0, 0.25, 1))
 })
