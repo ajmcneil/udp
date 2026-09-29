@@ -396,9 +396,13 @@ basecopula_cdf <- function(v1, v2, basecopula) {
 # Column of udpinverse(x, v, prob = TRUE)'s (sorted-ascending) pre-image
 # matrix M that matches u, within a numerical tolerance. u is assumed
 # consistent with v (v == udptrans(x, u) for the same x), so a match should
-# always exist -- the tolerance only absorbs udpinverse()'s own root-finding
-# imprecision, not genuine ambiguity.
-match_preimage <- function(M, u, tol = 1e-6) {
+# always exist -- the tolerance only absorbs udpinverse()'s own imprecision,
+# not genuine ambiguity. It matches the ~1e-4 accuracy of the spline-based
+# classes (udplegendre, udplegendrebex, udpcosinebex), whose pre-images go
+# through an interpolated F^{-1}: the round trip u -> v -> pre-images is
+# usually good to 1e-9, but near a turning point of g, where roots move
+# like the square root of an error in v, it can be off by 1e-6 or more.
+match_preimage <- function(M, u, tol = 1e-4) {
   d <- abs(M - u)
   d[is.na(d)] <- Inf
   j <- max.col(-d, ties.method = "first")
@@ -416,12 +420,15 @@ match_preimage <- function(M, u, tol = 1e-6) {
 # udpsi() assigns to column j of a udpinverse(..., prob = TRUE) result: the
 # running sum of that row's selection probabilities up to (a, exclusive) and
 # including (b) column j. Mirrors the cumulative construction udpsi() uses
-# internally to turn a randomizer draw into a column choice.
+# internally to turn a randomizer draw into a column choice. The ends are
+# clamped into [0, 1]: a running sum of probabilities that add to 1 can
+# overshoot to 1 + 2e-16 by rounding, and rvinecopulib rejects arguments
+# outside [0, 1].
 preimage_interval <- function(P, j) {
   P[is.na(P)] <- 0
   k <- ncol(P)
   n <- nrow(P)
-  cum <- P %*% upper.tri(matrix(0, k, k), diag = TRUE)
+  cum <- pmin(P %*% upper.tri(matrix(0, k, k), diag = TRUE), 1)
   b <- cum[cbind(seq_len(n), j)]
   a <- ifelse(j == 1L, 0, cum[cbind(seq_len(n), pmax(j - 1L, 1L))])
   list(a = a, b = b)

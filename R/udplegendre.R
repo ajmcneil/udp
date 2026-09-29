@@ -93,6 +93,102 @@ legendre_lbound <- function(coef, coefD, degree) {
   min(polyval(coef, c(legendre_turnpoints(coefD), 0, 1)))
 }
 
+# Where the polynomial p (coefficients 'coef', derivative coefficients
+# 'coefD', both ascending) crosses each y on a piece [a, b] where it is
+# monotone (increasing if 'incr'), for every y at once, clamped to [a, b]
+# when y lies outside p's range there. Found by 30 halvings of [a, b] --
+# robust to the zero slope at a turning point, where Newton alone would
+# stall -- then polished by two Newton steps, each kept only where it stays
+# inside the bracket. A y outside the range gets the exact end, not the
+# bracket's last ~1e-9, which acos() can magnify for udpcosinebex.
+piece_crossing <- function(coef, coefD, y, a, b, incr) {
+  lo <- rep(a, length(y))
+  hi <- rep(b, length(y))
+  for (i in seq_len(30L)) {
+    m <- (lo + hi) / 2
+    below <- polyval(coef, m) <= y
+    if (incr) {
+      lo[below] <- m[below]
+      hi[!below] <- m[!below]
+    } else {
+      hi[below] <- m[below]
+      lo[!below] <- m[!below]
+    }
+  }
+  r <- (lo + hi) / 2
+  for (i in 1:2) {
+    step <- r - (polyval(coef, r) - y) / polyval(coefD, r)
+    ok <- is.finite(step) & step >= lo & step <= hi
+    r[ok] <- step[ok]
+  }
+  pa <- polyval(coef, a)
+  pb <- polyval(coef, b)
+  r[y >= max(pa, pb)] <- if (incr) b else a
+  r[y <= min(pa, pb)] <- if (incr) a else b
+  r
+}
+
+# Vectorized sublevel-set measure: for every y at once, the Lebesgue measure
+# in u of {u : p(x(u)) <= y}, p a polynomial in x and 'knots' the sorted
+# x-interval ends plus p's turning points between them, so that p is
+# monotone on each piece. On a piece [a, b] the set {x : p(x) <= y} is a
+# single interval, [a, r] if p increases and [r, b] if it decreases, r from
+# piece_crossing(). 'xtou' maps x to u (monotone); the piece's contribution
+# is the length of the interval's image. The same values as the per-y
+# polynomial-root measures below, at a fraction of the cost when
+# constructors need F on a whole grid.
+poly_sublevel_measure <- function(coef, y, knots, xtou = identity) {
+  coefD <- poly_deriv_coef(coef)
+  out <- numeric(length(y))
+  for (k in seq_len(length(knots) - 1L)) {
+    a <- knots[k]
+    b <- knots[k + 1L]
+    incr <- polyval(coef, b) >= polyval(coef, a)
+    r <- piece_crossing(coef, coefD, y, a, b, incr)
+    out <- out + if (incr) abs(xtou(r) - xtou(a)) else abs(xtou(b) - xtou(r))
+  }
+  out
+}
+
+# Vectorized pre-images: for every y at once, the points u with p(x(u)) = y,
+# as a matrix with one row per y, sorted ascending in u and left-packed,
+# NA-padded (at most one root per monotone piece, so length(knots) - 1
+# columns suffice). A root at a turning point shared by two neighbouring
+# pieces is kept once. 'xtou' maps x to u; 'decreasing' says it reverses
+# order (u = acos(x) / pi), so the pieces are then taken in reverse.
+poly_crossings <- function(coef, y, knots, xtou = identity, decreasing = FALSE,
+                           tol = 1e-7) {
+  coefD <- poly_deriv_coef(coef)
+  npc <- length(knots) - 1L
+  R <- matrix(NA_real_, length(y), npc)
+  pieces <- if (decreasing) rev(seq_len(npc)) else seq_len(npc)
+  for (col in seq_along(pieces)) {
+    k <- pieces[col]
+    a <- knots[k]
+    b <- knots[k + 1L]
+    pa <- polyval(coef, a)
+    pb <- polyval(coef, b)
+    inside <- y >= min(pa, pb) & y <= max(pa, pb)
+    if (any(inside)) {
+      R[inside, col] <- xtou(piece_crossing(coef, coefD, y[inside], a, b, pb >= pa))
+    }
+  }
+  # drop a root repeating its left neighbour's (a shared turning point),
+  # then left-pack each row
+  if (npc > 1L) {
+    for (col in 2:npc) {
+      dup <- !is.na(R[, col]) & !is.na(R[, col - 1L]) & abs(R[, col] - R[, col - 1L]) <= tol
+      R[dup, col] <- NA
+    }
+    present <- !is.na(R)
+    lens <- rowSums(present)
+    vals <- t(R)[t(present)]
+    R[] <- NA_real_
+    R[cbind(rep(seq_len(nrow(R)), lens), sequence(lens))] <- vals
+  }
+  R
+}
+
 # Exact F_j(y) = |{u in [0, 1] : L_j(u) <= y}| for a single y. Between
 # consecutive roots of L_j(u) - y the polynomial keeps one side of y, so the
 # measure is the total length of the sub-intervals whose midpoint sits at or
@@ -210,6 +306,9 @@ udplegendre <- function(degree, ngrid = 257L) {
     # sqrt(|b - y|) behaviour at the two ends, so F_j is smooth in theta and a
     # modest monotone spline (and its inverse) capture it. udptrans() then
     # evaluates F_j(L_j(u)); udpinverse() evaluates F_j^{-1}.
+    # L_j is monotone between its turning points, so F_j on each panel's grid
+    # comes from poly_sublevel_measure() in one vectorized call.
+    knots <- c(0, legendre_turnpoints(cfsD), 1)
     panel <- lapply(seq_len(npan), function(p) {
       a <- ypanels[p]
       b <- ypanels[p + 1L]
@@ -218,9 +317,7 @@ udplegendre <- function(degree, ngrid = 257L) {
       th <- seq(0, pi, length.out = per)
       yy <- mid - half * cos(th)
       yy[c(1L, per)] <- c(a, b)
-      fv <- cummax(vapply(yy, legendre_measure, numeric(1),
-        coef = cfs, lbound = lbound
-      ))
+      fv <- cummax(poly_sublevel_measure(cfs, yy, knots))
       kp <- c(TRUE, diff(fv) > 0)
       list(
         mid = mid, half = half, vhi = fv[per],

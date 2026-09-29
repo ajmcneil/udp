@@ -407,3 +407,35 @@ setMethod("udp_setfitpars", "udp", function(x, value) x)
 
 # The udp_fitpars() value of a class with no estimable parameters.
 no_fitpars <- list(value = numeric(0), lower = numeric(0), upper = numeric(0))
+
+# udp_fitpars() for a weight vector constrained to unit length (a
+# udplegendrebex's or udpcosinebex's coef), whose direction -- but not scale
+# -- determines T. The weights are normalized, and all of them are reported
+# (coef1, ..., coefd), but they have d - 1 degrees of freedom, carried by a
+# gnomonic chart: the largest-magnitude weight is the pivot, its sign held
+# fixed, and the free parameters are the other weights divided by the
+# pivot's magnitude; mapping back puts the pivot's sign in its slot and
+# rescales to unit length. The chart covers the open hemisphere around the
+# pivot axis -- every direction reachable without the pivot weight changing
+# sign, which would pass through its opposite, the reflection 1 - T. A single
+# weight has nothing to estimate.
+unit_weight_fitpars <- function(coef) {
+  d <- length(coef)
+  if (d < 2L) {
+    return(no_fitpars)
+  }
+  coef <- coef / sqrt(sum(coef^2))
+  j <- which.max(abs(coef))
+  s <- sign(coef[j])
+  list(
+    value = stats::setNames(coef, paste0("coef", seq_len(d))),
+    maps = list(
+      to_free = function(cf) unname(cf[-j]) / abs(cf[[j]]),
+      from_free = function(z) {
+        cf <- append(z, s, after = j - 1L)
+        cf / sqrt(sum(cf^2))
+      },
+      nudge = function(cf) cf / sqrt(sum(cf^2))
+    )
+  )
+}

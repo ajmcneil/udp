@@ -65,7 +65,10 @@ percentile intervals.}
 
 \item{\code{nobs}}{number of observations.}
 
-\item{\code{npar}}{number of estimated parameters.}
+\item{\code{npar}}{number of free parameters, as used by AIC and BIC. It is one
+fewer than the number of weights reported for each
+\linkS4class{udplegendrebex} or \linkS4class{udpcosinebex}, whose
+weights are constrained to unit length.}
 
 \item{\code{convergence}}{the \code{\link[stats:optim]{stats::optim()}} convergence code (\code{0} for success).}
 

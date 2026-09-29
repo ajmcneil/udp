@@ -74,7 +74,18 @@ for \linkS4class{udpzigzag} objects, whose interior breakpoints are
 estimated (reported as \code{break1}, \code{break2}, ...) while the number of
 pieces and the direction of the first piece, \code{up}, are held at their
 given values -- set them from a priori knowledge, \code{\link[=aceshuffle]{aceshuffle()}} output
-or a plot. udps with no continuous parameters -- \code{\link[=vsymmetric]{vsymmetric()}}, shuffles such as
+or a plot -- and for \linkS4class{udplegendrebex} and
+\linkS4class{udpcosinebex} objects, whose weights are estimated
+(reported as \code{coef1}, \code{coef2}, ...) with the degree held fixed. Only the
+direction of the weight vector matters (\code{T} is unchanged by a positive
+rescaling), so the weights are normalized to unit length and have one
+fewer free parameter than weights, which is what \code{npar}, AIC and BIC
+count; starting weights from \code{basisexpand()} in the \pkg{basiscor}
+package are already normalized. The fit keeps the sign of the
+largest-magnitude starting weight, so it stays in the starting
+orientation: negating every weight gives the reflection \code{1 - T}, the
+counterpart of flipping a zigzag's \code{up}. The fitted object is rebuilt with
+the constructor's default \code{ngrid}. udps with no continuous parameters -- \code{\link[=vsymmetric]{vsymmetric()}}, shuffles such as
 \code{\link[=udpid]{udpid()}} and \code{\link[=udpflip]{udpflip()}}, and \linkS4class{udpcosine} or
 \linkS4class{udplegendre} objects, whose degree is regarded as fixed --
 simply contribute nothing. For other classes use \code{udpfix = TRUE}, which

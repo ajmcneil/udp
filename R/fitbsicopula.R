@@ -177,20 +177,29 @@ bsicopula_negll <- function(U, object, vfloor) {
 }
 
 # One maximum likelihood fit of 'object' over the parameters in 'blocks',
-# with Hessian-based standard errors when 'hessian' is TRUE.
+# with Hessian-based standard errors when 'hessian' is TRUE. A block's
+# natural values can outnumber its free parameters -- a udplegendrebex's
+# unit-length weights have one fewer degree of freedom than weights -- so
+# natural and free vectors are split into blocks separately, and 'npar'
+# counts the free parameters.
 fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
-  sizes <- vapply(blocks, function(b) length(b$value), integer(1))
-  idx <- rep(seq_along(blocks), sizes)
+  nat_sizes <- vapply(blocks, function(b) length(b$value), integer(1))
+  free_sizes <- vapply(blocks, function(b) length(b$maps$to_free(b$value)), integer(1))
+  idx <- rep(seq_along(blocks), nat_sizes)
+  free_idx <- rep(seq_along(blocks), free_sizes)
   labels <- unlist(lapply(blocks, function(b) paste(b$label, b$names, sep = ".")))
-  by_block <- function(v) split(v, factor(idx, levels = seq_along(blocks)))
+  by_block <- function(v, i) split(v, factor(i, levels = seq_along(blocks)))
   all_to_free <- function(nat) {
-    unlist(Map(function(b, v) b$maps$to_free(v), blocks, by_block(nat)), use.names = FALSE)
+    unlist(Map(function(b, v) b$maps$to_free(v), blocks, by_block(nat, idx)), use.names = FALSE)
   }
   all_from_free <- function(th) {
-    unlist(Map(function(b, v) b$maps$from_free(v), blocks, by_block(th)), use.names = FALSE)
+    unlist(Map(function(b, v) b$maps$from_free(v), blocks, by_block(th, free_idx)),
+      use.names = FALSE
+    )
   }
   start <- unlist(lapply(blocks, function(b) b$maps$nudge(b$value)), use.names = FALSE)
-  npar <- length(start)
+  npar <- sum(free_sizes)
+  nnat <- length(start)
 
   build <- function(nat) {
     obj <- object
@@ -204,7 +213,7 @@ fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
 
   if (npar == 0L) {
     return(list(
-      object = object, estimate = numeric(0), se = numeric(0),
+      object = object, estimate = numeric(0), se = numeric(0), boot = NULL,
       vcov = matrix(numeric(0), 0, 0), loglik = -bsicopula_negll(U, object, vfloor),
       npar = 0L, convergence = 0L, message = "no free parameters",
       counts = c(`function` = NA_integer_, gradient = NA_integer_), method = NA_character_
@@ -228,16 +237,23 @@ fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
   }
   est <- stats::setNames(all_from_free(opt$par), labels)
 
-  V <- matrix(NA_real_, npar, npar, dimnames = list(labels, labels))
-  sds <- stats::setNames(rep(NA_real_, npar), labels)
+  V <- matrix(NA_real_, nnat, nnat, dimnames = list(labels, labels))
+  sds <- stats::setNames(rep(NA_real_, nnat), labels)
   if (hessian) {
-    H <- stats::optimHess(unname(est), negll_nat)
-    Vinv <- tryCatch(solve(H), error = function(e) NULL)
-    if (is.null(Vinv) || any(diag(Vinv) <= 0)) {
+    # Inverse Hessian on the free scale, carried to the natural scale by the
+    # delta method (J the Jacobian of the free-to-natural map).
+    H <- stats::optimHess(opt$par, fn)
+    Vfree <- tryCatch(solve(H), error = function(e) NULL)
+    if (is.null(Vfree) || any(diag(Vfree) <= 0)) {
       warning("Hessian is not positive definite; standard errors are NA.", call. = FALSE)
     } else {
-      V[] <- Vinv
-      sds[] <- sqrt(diag(Vinv))
+      h <- 1e-6
+      J <- vapply(seq_len(npar), function(k) {
+        e <- replace(numeric(npar), k, h)
+        (all_from_free(opt$par + e) - all_from_free(opt$par - e)) / (2 * h)
+      }, numeric(nnat))
+      V[] <- J %*% Vfree %*% t(J)
+      sds[] <- sqrt(pmax(diag(V), 0))
     }
   }
 
@@ -272,7 +288,10 @@ fit_stage <- function(U, object, blocks, vfloor, hessian, method, control) {
 #'   percentile intervals.
 #' @slot loglik the maximized log-likelihood.
 #' @slot nobs number of observations.
-#' @slot npar number of estimated parameters.
+#' @slot npar number of free parameters, as used by AIC and BIC. It is one
+#'   fewer than the number of weights reported for each
+#'   \linkS4class{udplegendrebex} or \linkS4class{udpcosinebex}, whose
+#'   weights are constrained to unit length.
 #' @slot convergence the [stats::optim()] convergence code (`0` for success).
 #' @slot message the [stats::optim()] message, if any.
 #' @slot counts the [stats::optim()] function/gradient evaluation counts.
@@ -294,7 +313,7 @@ setClass("fitbsicopula", slots = list(
 
 new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NULL) {
   boot <- if (is.null(res$boot)) {
-    matrix(numeric(0), 0, res$npar, dimnames = list(NULL, names(res$estimate)))
+    matrix(numeric(0), 0, length(res$estimate), dimnames = list(NULL, names(res$estimate)))
   } else {
     res$boot
   }
@@ -327,7 +346,18 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' estimated (reported as `break1`, `break2`, ...) while the number of
 #' pieces and the direction of the first piece, `up`, are held at their
 #' given values -- set them from a priori knowledge, [aceshuffle()] output
-#' or a plot. udps with no continuous parameters -- [vsymmetric()], shuffles such as
+#' or a plot -- and for \linkS4class{udplegendrebex} and
+#' \linkS4class{udpcosinebex} objects, whose weights are estimated
+#' (reported as `coef1`, `coef2`, ...) with the degree held fixed. Only the
+#' direction of the weight vector matters (`T` is unchanged by a positive
+#' rescaling), so the weights are normalized to unit length and have one
+#' fewer free parameter than weights, which is what `npar`, AIC and BIC
+#' count; starting weights from `basisexpand()` in the \pkg{basiscor}
+#' package are already normalized. The fit keeps the sign of the
+#' largest-magnitude starting weight, so it stays in the starting
+#' orientation: negating every weight gives the reflection `1 - T`, the
+#' counterpart of flipping a zigzag's `up`. The fitted object is rebuilt with
+#' the constructor's default `ngrid`. udps with no continuous parameters -- [vsymmetric()], shuffles such as
 #' [udpid()] and [udpflip()], and \linkS4class{udpcosine} or
 #' \linkS4class{udplegendre} objects, whose degree is regarded as fixed --
 #' simply contribute nothing. For other classes use `udpfix = TRUE`, which
@@ -559,7 +589,7 @@ fit_continued <- function(U, object, udpfix, vfloor, hessian, method, control) {
 bootstrap_se <- function(res, start, n, B, pseudo, udpfix, twostage, vfloor, method,
                          control) {
   fitted <- res$object
-  est <- matrix(NA_real_, B, res$npar, dimnames = list(NULL, names(res$estimate)))
+  est <- matrix(NA_real_, B, length(res$estimate), dimnames = list(NULL, names(res$estimate)))
   for (b in seq_len(B)) {
     Ub <- rbsicopula(n, fitted)
     if (pseudo) Ub <- apply(Ub, 2, rank) / (n + 1)

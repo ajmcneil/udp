@@ -73,9 +73,17 @@ test_that("fitbsicopula() validates its arguments", {
   expect_error(fitbsicopula(U, bsicopula(bc@basecopula, vlinear(0.4), vlinear(0.6), rmix)),
     "randomizermod = NULL or a 'randsdvine'"
   )
+  # every udp class in the package is supported; a new one without a
+  # udp_fitpars() method gets the default, which points to udpfix = TRUE
+  setClass("udpnewclass", contains = "udp", where = environment())
+  setMethod("udptrans", "udpnewclass", function(x, u) u, where = environment())
+  newudp <- new("udpnewclass")
   expect_error(
-    fitbsicopula(U, bsicopula(bc@basecopula, udplegendrebex(c(0, 1)), vlinear(0.6))),
-    "use udpfix = TRUE"
+    fitbsicopula(U, bsicopula(bc@basecopula, newudp, vlinear(0.6))),
+    "estimating the parameters of a 'udpnewclass' object is not yet supported; use udpfix = TRUE"
+  )
+  expect_s4_class(fitbsicopula(U, bsicopula(bc@basecopula, newudp, vlinear(0.6)), udpfix = TRUE),
+    "fitbsicopula"
   )
   expect_error(
     fitbsicopula(U, bsicopula(rvinecopulib::bicop_dist("tll"), vlinear(0.4), vlinear(0.6))),
@@ -240,4 +248,70 @@ test_that("with pseudo = FALSE extreme observations are allowed and the bootstra
   fq <- fitbsicopula(U, truth, pseudo = TRUE, se = "bootstrap", B = 4)
   expect_equal(coef(fp), coef(fq))
   expect_false(isTRUE(all.equal(fp@boot, fq@boot)))
+})
+
+test_that("the unit-weight chart normalizes, round-trips and keeps the pivot's sign", {
+  fp <- unit_weight_fitpars(c(3, -4, 1))
+  expect_equal(unname(fp$value), c(3, -4, 1) / sqrt(26))
+  expect_identical(names(fp$value), c("coef1", "coef2", "coef3"))
+  m <- fp$maps
+  expect_length(m$to_free(fp$value), 2L)
+  expect_equal(m$from_free(m$to_free(fp$value)), unname(fp$value))
+  cf <- m$from_free(c(50, -80))
+  expect_equal(sum(cf^2), 1)
+  expect_true(cf[2] < 0) # the pivot (coef2, largest in magnitude) stays negative
+  expect_identical(unit_weight_fitpars(2), no_fitpars)
+})
+
+test_that("vectorized crossings and sublevel measures agree with polynomial roots", {
+  set.seed(10)
+  for (r in 1:5) {
+    x <- udplegendrebex(rnorm(4))
+    y <- seq(x@lbound, x@ubound, length.out = 50)
+    knots <- c(0, legendre_turnpoints(x@cfsD), 1)
+    R <- poly_crossings(x@cfs, y, knots)
+    for (i in seq_along(y)) {
+      expect_equal(R[i, !is.na(R[i, ])], legendre_realroots(x@cfs, y[i]), tolerance = 1e-6)
+    }
+    expect_equal(
+      poly_sublevel_measure(x@cfs, y, knots),
+      vapply(y, legendre_measure_bounded, 0, coef = x@cfs, lbound = x@lbound, ubound = x@ubound),
+      tolerance = 1e-8
+    )
+  }
+})
+
+test_that("the weights of udplegendrebex and udpcosinebex objects are estimated at unit length", {
+  skip_if_not_installed("rvinecopulib")
+  nrm <- function(x) x / sqrt(sum(x^2))
+  cf <- nrm(c(0.3, -0.8, 0.5))
+  cf0 <- nrm(cf + c(0.15, 0.1, -0.2))
+  for (ctor in list(udplegendrebex, udpcosinebex)) {
+    truth <- bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.6), udpid(), ctor(cf))
+    set.seed(1)
+    U <- pobs(rbsicopula(1000, truth))
+    fit <- fitbsicopula(U, bsicopula(truth@basecopula, udpid(), ctor(cf0)), se = "hessian")
+    expect_identical(
+      names(coef(fit)),
+      c("basecopula.rho", "udp2.coef1", "udp2.coef2", "udp2.coef3")
+    )
+    expect_identical(fit@npar, 3L)
+    expect_equal(AIC(fit), -2 * fit@loglik + 6)
+    expect_equal(sum(coef(fit)[2:4]^2), 1)
+    expect_equal(unname(coef(fit)[2:4]), cf, tolerance = 0.15)
+    expect_equal(fit@bsicopula@udp2@coef, unname(coef(fit)[2:4]))
+    expect_length(fit@se, 4L)
+    expect_equal(dim(vcov(fit)), c(4L, 4L))
+  }
+})
+
+test_that("dbsicopula() handles randsdvine models with an expansion udp", {
+  skip_if_not_installed("rvinecopulib")
+  bc <- bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.5), vlinear(0.4),
+    udplegendrebex(c(0.3, -0.8, 0.5)), randsdvine(rvinecopulib::bicop_dist("gaussian", 0, 0.7))
+  )
+  set.seed(2)
+  U <- pobs(rbsicopula(1000, bc))
+  d <- dbsicopula(U[, 1], U[, 2], bc)
+  expect_true(all(is.finite(d) & d > 0))
 })
