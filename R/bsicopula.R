@@ -396,9 +396,13 @@ basecopula_cdf <- function(v1, v2, basecopula) {
 # Column of udpinverse(x, v, prob = TRUE)'s (sorted-ascending) pre-image
 # matrix M that matches u, within a numerical tolerance. u is assumed
 # consistent with v (v == udptrans(x, u) for the same x), so a match should
-# always exist -- the tolerance only absorbs udpinverse()'s own root-finding
-# imprecision, not genuine ambiguity.
-match_preimage <- function(M, u, tol = 1e-6) {
+# always exist -- the tolerance only absorbs udpinverse()'s own imprecision,
+# not genuine ambiguity. It matches the ~1e-4 accuracy of the spline-based
+# classes (udplegendre, udplegendrebex, udpcosinebex), whose pre-images go
+# through an interpolated F^{-1}: the round trip u -> v -> pre-images is
+# usually good to 1e-9, but near a turning point of g, where roots move
+# like the square root of an error in v, it can be off by 1e-6 or more.
+match_preimage <- function(M, u, tol = 1e-4) {
   d <- abs(M - u)
   d[is.na(d)] <- Inf
   j <- max.col(-d, ties.method = "first")
@@ -416,12 +420,15 @@ match_preimage <- function(M, u, tol = 1e-6) {
 # udpsi() assigns to column j of a udpinverse(..., prob = TRUE) result: the
 # running sum of that row's selection probabilities up to (a, exclusive) and
 # including (b) column j. Mirrors the cumulative construction udpsi() uses
-# internally to turn a randomizer draw into a column choice.
+# internally to turn a randomizer draw into a column choice. The ends are
+# clamped into [0, 1]: a running sum of probabilities that add to 1 can
+# overshoot to 1 + 2e-16 by rounding, and rvinecopulib rejects arguments
+# outside [0, 1].
 preimage_interval <- function(P, j) {
   P[is.na(P)] <- 0
   k <- ncol(P)
   n <- nrow(P)
-  cum <- P %*% upper.tri(matrix(0, k, k), diag = TRUE)
+  cum <- pmin(P %*% upper.tri(matrix(0, k, k), diag = TRUE), 1)
   b <- cum[cbind(seq_len(n), j)]
   a <- ifelse(j == 1L, 0, cum[cbind(seq_len(n), pmax(j - 1L, 1L))])
   list(a = a, b = b)
@@ -552,9 +559,36 @@ dbsicopula <- function(u1, u2, object) {
     stop("'u1' and 'u2' must have the same length.", call. = FALSE)
   }
 
+  dbsicopula_eval(u1, u2, object)
+}
+
+# Clamp carrier values V into [f, 1 - f], but only for observations whose u
+# is itself inside [f, 1 - f]. An observation that close to 0 or 1 sits
+# next to one of the fixed endpoints every udp maps to 0 or 1 whatever its
+# parameters, so its extreme V is genuine data, not the product of a moving
+# breakpoint, and is left exact. For pseudo-observations (all u in
+# [1/(n+1), n/(n+1)]) and f = 1/(2n), every observation is clamped.
+clamp_v <- function(V, u, f) {
+  inside <- u >= f & u <= 1 - f
+  V[inside] <- pmin(pmax(V[inside], f), 1 - f)
+  V
+}
+
+# dbsicopula()'s computation, minus argument checking, with one extra option
+# for fitbsicopula(): when vfloor is non-NULL, the carrier values are clamped
+# into [vfloor, 1 - vfloor] (see clamp_v()) before the base copula density is
+# evaluated -- and only there. The weight w(u1, u2) still sees the exact
+# V1, V2, since match_preimage() needs u_i and V_i to be consistent.
+dbsicopula_eval <- function(u1, u2, object, vfloor = NULL) {
   V1 <- udptrans(object@udp1, u1)
   V2 <- udptrans(object@udp2, u2)
-  cV <- basecopula_density(V1, V2, object@basecopula)
+  cV <- if (is.null(vfloor)) {
+    basecopula_density(V1, V2, object@basecopula)
+  } else {
+    basecopula_density(
+      clamp_v(V1, u1, vfloor), clamp_v(V2, u2, vfloor), object@basecopula
+    )
+  }
 
   if (is.null(object@randomizermod)) {
     return(cV)

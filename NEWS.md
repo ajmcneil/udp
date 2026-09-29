@@ -1,5 +1,42 @@
 # udp 0.1.1
 
+* Added `fitbsicopula()`, maximum likelihood estimation of a `bsicopula`
+  from copula data -- pseudo-observations, or probability integral
+  transforms from fitted margins (`pseudo = FALSE`) -- returning a new
+  `fitbsicopula` class (with `show`, `coef`, `logLik` and `vcov` methods).
+  The base copula must be an `rvinecopulib` `bicop_dist`; `randomizermod`
+  may be `NULL` or a `randsdvine`, whose parametric copulas are all
+  estimated (by default only `copZ1Z2_V1V2`, the tree-2 copulas being
+  parameter-free independence copulas), from a two-stage fit by default.
+  Unless `udpfix = TRUE`, the udp parameters are estimated too: those of
+  v-transforms, the interior breakpoints of `udpzigzag` objects (their
+  number of pieces and `up` held fixed), and the weights of
+  `udplegendrebex` and `udpcosinebex` objects, normalized to unit length
+  (their degree held fixed); parameter-free udps (shuffles, `vsymmetric()`,
+  fixed-degree `udpcosine`/`udplegendre`) contribute none. Because the
+  likelihood has a kink or cusp wherever a udp breakpoint crosses an
+  observation, udp parameters are fitted by continuation, first with the
+  carrier values coarsely clamped, which stops the optimizer stalling short
+  of the main peak. Standard errors are optional: a parametric bootstrap
+  of the whole procedure (`se = "bootstrap"`), or a quicker Hessian
+  (`se = "hessian"`) that is unreliable for udp breakpoints. For base
+  copulas whose density is unbounded at some corner of the unit square,
+  carrier values are clamped into `[1 / (2n), 1 - 1 / (2n)]` in the base
+  density during fitting (`vfloor = "auto"`), which stops the optimizer
+  being trapped where both udps send one observation to that corner.
+* `udpinverse()` for `udpzigzag` objects is vectorized, and several hundred
+  times faster.
+* `udplegendre()`, `udplegendrebex()` and `udpcosinebex()` build `F` from a
+  vectorized sublevel-set measure (bisection plus safeguarded Newton on each
+  monotone piece of `g`) instead of one polynomial root-finding per grid
+  point, and `udpinverse()` for the two expansion classes finds all
+  pre-images the same way: construction is about 6-8 times faster and
+  `udpinverse()` about 10 times faster, with results unchanged to within
+  the classes' interpolation accuracy.
+* Fixed two failures of `dbsicopula()` for `randsdvine` models: pre-image
+  matching was stricter (`1e-6`) than the spline-based classes' own
+  accuracy, and cumulative selection probabilities could exceed `1` by
+  rounding, which `rvinecopulib` rejected.
 * License changed from MIT to GPL-3, matching `basiscor`, which depends on
   `udp`.
 * Every `plot()` method whose axes are both `[0, 1]` (`shuffle`, `udpcosine`,

@@ -262,6 +262,11 @@ udpcosinebex <- function(coef, ngrid = 513L) {
   npan <- length(ypanels) - 1L
   per <- max(40L, ceiling(ngrid / npan))
 
+  # h is monotone in x between its turning points, so F on each panel's grid
+  # comes from poly_sublevel_measure() in one vectorized call, with measure
+  # taken in u = acos(x) / pi (see chebyshev_measure_bounded()).
+  knots <- c(-1, chebyshev_turnpoints(cfsD), 1)
+  xtou <- function(x) acos(pmin(pmax(x, -1), 1)) / pi
   panel <- lapply(seq_len(npan), function(p) {
     a <- ypanels[p]
     b <- ypanels[p + 1L]
@@ -270,9 +275,7 @@ udpcosinebex <- function(coef, ngrid = 513L) {
     th <- seq(0, pi, length.out = per)
     yy <- mid - half * cos(th)
     yy[c(1L, per)] <- c(a, b)
-    fv <- cummax(vapply(yy, chebyshev_measure_bounded, numeric(1),
-      coef = cfs, lbound = lbound, ubound = ubound
-    ))
+    fv <- cummax(poly_sublevel_measure(cfs, yy, knots, xtou))
     kp <- c(TRUE, diff(fv) > 0)
     list(
       mid = mid, half = half, vhi = fv[per],
@@ -333,15 +336,14 @@ setMethod("udpinverse", "udpcosinebex", function(x, v, prob = FALSE, ...) {
   }
   k <- x@degree
   y <- pmin(pmax(x@Qfun(vv), x@lbound), x@ubound)
-  roots <- lapply(y, function(yi) {
-    rx <- chebyshev_realroots(x@cfs, yi)
-    ru <- sort(acos(pmin(pmax(rx, -1), 1)) / pi)
-    if (length(ru) > k) ru[seq_len(k)] else ru
-  })
-  lens <- lengths(roots)
+  # h is monotone in x between its turning points, so all pre-images come
+  # from poly_crossings() at once, converted to u = acos(x) / pi (which
+  # reverses order), matching chebyshev_realroots() row by row.
+  R <- poly_crossings(x@cfs, y, c(-1, chebyshev_turnpoints(x@cfsD), 1),
+    xtou = function(z) acos(pmin(pmax(z, -1), 1)) / pi, decreasing = TRUE
+  )
   M <- matrix(NA_real_, length(vv), k)
-  M[cbind(rep(seq_along(roots), lens), sequence(lens))] <-
-    unlist(roots, use.names = FALSE)
+  M[, seq_len(ncol(R))] <- R
   if (prob) {
     present <- !is.na(M)
     w <- matrix(0, nrow(M), k)
@@ -437,6 +439,13 @@ setMethod("udpbreaks", "udpcosinebex", function(x) {
   pts <- sort(c(base, cross))
   pts[c(TRUE, diff(pts) > tol)]
 })
+
+# Estimable parameters, for fitbsicopula(): the weights, normalized to unit
+# length (see unit_weight_fitpars()); the degree is held fixed. New weights
+# rebuild the object with the default ngrid.
+setMethod("udp_fitpars", "udpcosinebex", function(x) unit_weight_fitpars(x@coef))
+
+setMethod("udp_setfitpars", "udpcosinebex", function(x, value) udpcosinebex(value))
 
 #' @describeIn pcoincide Integrate `sum_j p_j(v)^2` as in the default method,
 #'   but split the range at the images of the turning points of `g`, where the

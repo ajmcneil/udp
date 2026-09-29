@@ -36,6 +36,7 @@ Config/testthat/edition: 3
 Collate:
     'udp-package.R'
     'bsicopula.R'
+    'fitbsicopula.R'
     'shuffle.R'
     'udpcosine.R'
     'udplegendre.R'

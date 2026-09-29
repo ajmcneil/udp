@@ -381,3 +381,61 @@ setGeneric("udpbreaks", function(x) standardGeneric("udpbreaks"))
 # Default: no class-specific break points are known, so T is taken to be
 # smooth on all of [0, 1].
 setMethod("udpbreaks", "udp", function(x) c(0, 1))
+
+# Estimable parameters of a udp object, for fitbsicopula(): a list with the
+# named natural-scale values and their lower/upper bounds. Internal -- not
+# exported. Classes whose only parameters are discrete (a degree, a
+# permutation) have none; the default is for classes whose continuous
+# parameters are not yet supported, and stops with a pointer to udpfix = TRUE.
+setGeneric("udp_fitpars", function(x) standardGeneric("udp_fitpars"))
+
+setMethod("udp_fitpars", "udp", function(x) {
+  stop(
+    sprintf(
+      "estimating the parameters of a '%s' object is not yet supported; use udpfix = TRUE.",
+      class(x)
+    ),
+    call. = FALSE
+  )
+})
+
+# Write new natural-scale values (in udp_fitpars() order) back into x. The
+# default suits every class with no estimable parameters.
+setGeneric("udp_setfitpars", function(x, value) standardGeneric("udp_setfitpars"))
+
+setMethod("udp_setfitpars", "udp", function(x, value) x)
+
+# The udp_fitpars() value of a class with no estimable parameters.
+no_fitpars <- list(value = numeric(0), lower = numeric(0), upper = numeric(0))
+
+# udp_fitpars() for a weight vector constrained to unit length (a
+# udplegendrebex's or udpcosinebex's coef), whose direction -- but not scale
+# -- determines T. The weights are normalized, and all of them are reported
+# (coef1, ..., coefd), but they have d - 1 degrees of freedom, carried by a
+# gnomonic chart: the largest-magnitude weight is the pivot, its sign held
+# fixed, and the free parameters are the other weights divided by the
+# pivot's magnitude; mapping back puts the pivot's sign in its slot and
+# rescales to unit length. The chart covers the open hemisphere around the
+# pivot axis -- every direction reachable without the pivot weight changing
+# sign, which would pass through its opposite, the reflection 1 - T. A single
+# weight has nothing to estimate.
+unit_weight_fitpars <- function(coef) {
+  d <- length(coef)
+  if (d < 2L) {
+    return(no_fitpars)
+  }
+  coef <- coef / sqrt(sum(coef^2))
+  j <- which.max(abs(coef))
+  s <- sign(coef[j])
+  list(
+    value = stats::setNames(coef, paste0("coef", seq_len(d))),
+    maps = list(
+      to_free = function(cf) unname(cf[-j]) / abs(cf[[j]]),
+      from_free = function(z) {
+        cf <- append(z, s, after = j - 1L)
+        cf / sqrt(sum(cf^2))
+      },
+      nudge = function(cf) cf / sqrt(sum(cf^2))
+    )
+  )
+}
