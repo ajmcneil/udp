@@ -49,15 +49,16 @@ setMethod("udptrans", "udpcosine", function(x, u) {
 #' Roots of a cosine udp transformation
 #'
 #' `udptrans()` is a degree-fold triangle wave and so is not injective: a
-#' value `v` in `(0, 1)` has `degree` pre-images, one in each linear piece,
-#' while `v = 0` and `v = 1` have fewer (the shared troughs and peaks
-#' respectively).
+#' value `v` has `degree` pre-images, one in each linear piece. At `v = 0`
+#' and `v = 1` neighbouring pieces share a trough or peak, which is then the
+#' pre-image of both and appears twice.
 #'
 #' @param x an object of class \linkS4class{udpcosine}.
 #' @param v a vector with values in `[0, 1]`.
 #'
-#' @return A list the same length as `v`; element `j` is the sorted vector of
-#'   `u` in `[0, 1]` with `udptrans(x, u)` equal to `v[j]`.
+#' @return A list the same length as `v`; element `j` is the vector, one per
+#'   piece in piece order (so sorted ascending), of `u` in `[0, 1]` with
+#'   `udptrans(x, u)` equal to `v[j]`.
 #' @keywords internal
 udpcosinverse <- function(x, v) {
   if (anyNA(v) || any(v < 0 | v > 1)) {
@@ -67,15 +68,15 @@ udpcosinverse <- function(x, v) {
   k <- seq_len(d)
   increasing <- (k %% 2L) == (d %% 2L)
   lapply(v, function(vi) {
-    sort(unique(ifelse(increasing, (vi + k - 1) / d, (k - vi) / d)))
+    ifelse(increasing, (vi + k - 1) / d, (k - vi) / d)
   })
 }
 
 #' @describeIn udpinverse Pre-images of a cosine udp transformation: a matrix
 #'   with `degree` columns holding the roots [udpcosinverse()] of each `v`,
-#'   sorted ascending and left-packed, `NA`-padded where `v` equal to `0` or
-#'   `1` has fewer than `degree` roots. With `prob = TRUE` the `"prob"`
-#'   attribute is equal over each row's roots.
+#'   one per piece and sorted ascending (a shared trough or peak appears
+#'   twice at `v = 0` or `1`). With `prob = TRUE` the `"prob"` attribute is
+#'   equal over each row's roots.
 #' @export
 setMethod("udpinverse", "udpcosine", function(x, v, prob = FALSE, ...) {
   vv <- as.numeric(v)

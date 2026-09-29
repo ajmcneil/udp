@@ -271,7 +271,10 @@ test_that("vectorized crossings and sublevel measures agree with polynomial root
     knots <- c(0, legendre_turnpoints(x@cfsD), 1)
     R <- poly_crossings(x@cfs, y, knots)
     for (i in seq_along(y)) {
-      expect_equal(R[i, !is.na(R[i, ])], legendre_realroots(x@cfs, y[i]), tolerance = 1e-6)
+      # legendre_realroots() merges a turning point's two roots; poly_crossings()
+      # keeps one per branch
+      expect_equal(unique(signif(R[i, !is.na(R[i, ])], 9)),
+        signif(legendre_realroots(x@cfs, y[i]), 9), tolerance = 1e-6)
     }
     expect_equal(
       poly_sublevel_measure(x@cfs, y, knots),

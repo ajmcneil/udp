@@ -325,8 +325,9 @@ setMethod("udptrans", "udpcosinebex", function(x, u) {
 
 #' @describeIn udpinverse Pre-images of a udpcosinebex transformation: a
 #'   matrix with `degree` columns holding, for each `v`, the roots in
-#'   `[0, 1]` of `g(u) = F^{-1}(v)`, sorted ascending and left-packed with
-#'   trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each
+#'   `[0, 1]` of `g(u) = F^{-1}(v)`, one per monotone piece of `g` (a
+#'   turning point appears twice when `v` is its value), sorted ascending and
+#'   left-packed with trailing `NA`. With `prob = TRUE` the `"prob"` attribute weights each
 #'   root by `1 / |g'(u)|`, normalized over the row.
 #' @export
 setMethod("udpinverse", "udpcosinebex", function(x, v, prob = FALSE, ...) {
@@ -337,8 +338,8 @@ setMethod("udpinverse", "udpcosinebex", function(x, v, prob = FALSE, ...) {
   k <- x@degree
   y <- pmin(pmax(x@Qfun(vv), x@lbound), x@ubound)
   # h is monotone in x between its turning points, so all pre-images come
-  # from poly_crossings() at once, converted to u = acos(x) / pi (which
-  # reverses order), matching chebyshev_realroots() row by row.
+  # from poly_crossings() at once, one per monotone piece, converted to
+  # u = acos(x) / pi (which reverses order).
   R <- poly_crossings(x@cfs, y, c(-1, chebyshev_turnpoints(x@cfsD), 1),
     xtou = function(z) acos(pmin(pmax(z, -1), 1)) / pi, decreasing = TRUE
   )
@@ -348,6 +349,9 @@ setMethod("udpinverse", "udpcosinebex", function(x, v, prob = FALSE, ...) {
     present <- !is.na(M)
     w <- matrix(0, nrow(M), k)
     w[present] <- 1 / abs(cosine_sum_gderiv(x@cfsD, M[present]))
+    w <- mark_turning_weights(w, M,
+      acos(pmin(pmax(chebyshev_turnpoints(x@cfsD), -1), 1)) / pi
+    )
     attr(M, "prob") <- finalise_prob(w, present)
   }
   M
@@ -371,9 +375,15 @@ setMethod("udpderiv", "udpcosinebex", function(x, u) {
   cfsD <- x@cfsD
   tp_x <- chebyshev_turnpoints(cfsD)
   cfsDD <- if (length(tp_x)) poly_deriv_coef(cfsD) else numeric(0)
-  tp_u <- if (length(tp_x)) sort(acos(pmin(pmax(tp_x, -1), 1)) / pi) else numeric(0)
   tpval <- if (length(tp_x)) polyval(cfs, tp_x) else numeric(0)
   mult <- vapply(tpval, function(v) sum(abs(tpval - v) < 1e-6), integer(1))
+  # u = acos(x) / pi reverses order: put tp_x, mult (and tpval) in the same
+  # ascending-u order as tp_u, so tp_u[j] is paired with its own h'' and
+  # multiplicity
+  ord <- order(acos(pmin(pmax(tp_x, -1), 1)))
+  tp_x <- tp_x[ord]
+  mult <- mult[ord]
+  tp_u <- if (length(tp_x)) acos(pmin(pmax(tp_x, -1), 1)) / pi else numeric(0)
   tol <- 1e-5
   hp1 <- polyval(cfsD, 1)
   hpm1 <- polyval(cfsD, -1)
@@ -397,7 +407,13 @@ setMethod("udpderiv", "udpcosinebex", function(x, u) {
     if (length(tp_u)) {
       j <- which.min(abs(ui - tp_u))
       if (abs(ui - tp_u[j]) < tol) {
-        return(-2 * mult[j] * sign(polyval(cfsDD, tp_x[j])))
+        # within tol of a turning point the formula is unstable (0 * Inf):
+        # use the exact one-sided slope instead -- the left one at or left of
+        # the turning point, the right one (opposite sign) to its right.
+        # g(u) = h(cos(pi u)) has g'' = h'' * (pi sin(pi u))^2 there, the
+        # same sign as h'', so the left slope is -2 * mult * sign(h'').
+        left <- -2 * mult[j] * sign(polyval(cfsDD, tp_x[j]))
+        return(if (ui > tp_u[j]) -left else left)
       }
     }
     y <- polyval(cfs, cos(pi * ui))

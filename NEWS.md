@@ -1,5 +1,24 @@
 # udp 0.1.1
 
+* `udpinverse()` now records a pre-image at a turning point of `T` once per
+  branch meeting there, for every class: each column is always one branch,
+  and at a turning value the selection probabilities are the one-sided
+  limits. Previously v-transforms did this, but `udpzigzag` and `udpcosine`
+  merged a shared peak or trough into one root (for `udpcosine` with the
+  wrong probability, since the merged root counted as a single branch), and
+  the polynomial classes merged a turning point into one root whose
+  probability could fall back to an equal split over all of the row's
+  pre-images when `g'` rounded to exactly `0`. `finalise_prob()` now shares
+  the probability among infinite weights, and the polynomial classes mark
+  every pre-image at a turning point of `g` as infinitely weighted. The
+  internal `udpzigzaginverse()`, which existed only to merge roots, is gone.
+* Fixed `udpderiv()` near turning points for `udplegendre`,
+  `udplegendrebex` and `udpcosinebex`: within `1e-5` of a turning point it
+  returned the left-hand slope on both sides, so the sign was wrong just to
+  the right; for `udpcosinebex` with more than one turning point, each was
+  also paired with another's `h''`, so the sign could be wrong on either
+  side. The slope is now the left one at and left of the turning point and
+  the right one to its right.
 * Added `fitbsicopula()`, maximum likelihood estimation of a `bsicopula`
   from copula data -- pseudo-observations, or probability integral
   transforms from fitted margins (`pseudo = FALSE`) -- returning a new

@@ -117,50 +117,11 @@ setMethod("udptrans", "udpzigzag", function(x, u) {
   out
 })
 
-#' Roots of a zigzag udp transformation
-#'
-#' `udptrans()` is an unequal-width triangle wave and so is not injective: a
-#' value `v` in `(0, 1)` has one pre-image per piece, while `v = 0` and
-#' `v = 1` have fewer (pieces sharing a trough or peak breakpoint collapse to
-#' the same root). Each root carries the width of every piece that collapsed
-#' onto it, for use as the raw `1 / |T'|` selection weight in
-#' [udpinverse()].
-#'
-#' @param x an object of class \linkS4class{udpzigzag}.
-#' @param v a vector with values in `[0, 1]`.
-#'
-#' @return A list the same length as `v`; element `j` is a list with `u`, the
-#'   sorted distinct roots of `udptrans(x, u) == v[j]`, and `w`, the matching
-#'   summed piece widths.
-#' @keywords internal
-udpzigzaginverse <- function(x, v) {
-  if (anyNA(v) || any(v < 0 | v > 1)) {
-    stop("every element of 'v' must be in [0, 1].", call. = FALSE)
-  }
-  b <- x@breaks
-  n <- length(b) - 1L
-  w <- diff(b)
-  k <- seq_len(n)
-  increasing <- x@up == ((k %% 2L) == 1L)
-  lapply(v, function(vi) {
-    u <- ifelse(increasing, b[k] + vi * w, b[k + 1L] - vi * w)
-    o <- order(u)
-    u <- u[o]
-    wt <- w[o]
-    grp <- cumsum(c(TRUE, diff(u) > 1e-9))
-    list(
-      u = unname(vapply(split(u, grp), `[`, 1, FUN.VALUE = 0)),
-      w = unname(vapply(split(wt, grp), sum, FUN.VALUE = 0))
-    )
-  })
-}
-
 #' @describeIn udpinverse Pre-images of a zigzag udp transformation: a matrix
-#'   with one column per piece holding the roots [udpzigzaginverse()] of each
-#'   `v`, sorted ascending and left-packed, `NA`-padded where `v` equal to `0`
-#'   or `1` has fewer roots than pieces. With `prob = TRUE` the `"prob"`
-#'   attribute weights each root by its piece width (summed over pieces that
-#'   collapse onto it), normalized over the row.
+#'   with one column per piece, holding that piece's root of each `v`, in
+#'   piece order (so sorted ascending). At `v = 0` or `1` neighbouring pieces
+#'   share a trough or peak, which then appears twice. With `prob = TRUE` the
+#'   `"prob"` attribute weights each root by its piece width.
 #' @export
 setMethod("udpinverse", "udpzigzag", function(x, v, prob = FALSE, ...) {
   vv <- as.numeric(v)
@@ -172,30 +133,19 @@ setMethod("udpinverse", "udpzigzag", function(x, v, prob = FALSE, ...) {
   w <- diff(b)
   k <- seq_len(n)
   increasing <- x@up == ((k %% 2L) == 1L)
-  # For v strictly inside (0, 1) every piece has its own root, inside that
-  # piece's interval, so the roots are distinct and already ascending in
-  # piece order: build them all at once. Only v = 0 or 1, where neighbouring
-  # pieces' roots collapse onto a shared breakpoint, needs
-  # udpzigzaginverse()'s per-value merging.
-  M <- matrix(NA_real_, length(vv), n)
-  W <- matrix(NA_real_, length(vv), n)
-  inner <- vv > 0 & vv < 1
-  if (any(inner)) {
-    vi <- vv[inner]
-    M[inner, ] <- t(ifelse(increasing, b[k], b[k + 1L]) +
-      outer(ifelse(increasing, w, -w), vi))
-    W[inner, ] <- rep(w, each = sum(inner))
-  }
-  if (any(!inner)) {
-    res <- udpzigzaginverse(x, vv[!inner])
-    roots <- lapply(res, `[[`, "u")
-    lens <- lengths(roots)
-    rows <- which(!inner)[rep(seq_along(roots), lens)]
-    M[cbind(rows, sequence(lens))] <- unlist(roots, use.names = FALSE)
-    W[cbind(rows, sequence(lens))] <- unlist(lapply(res, `[[`, "w"), use.names = FALSE)
+  # Every piece maps onto the whole of [0, 1], so each has exactly one root
+  # of every v, inside its own interval: the roots come out in piece order,
+  # already ascending, all at once. (At v = 0 or 1 a shared trough or peak is
+  # the root of both neighbouring pieces and so appears twice.)
+  M <- if (length(vv)) {
+    matrix(t(ifelse(increasing, b[k], b[k + 1L]) + outer(ifelse(increasing, w, -w), vv)),
+      ncol = n
+    )
+  } else {
+    matrix(numeric(0), 0L, n)
   }
   if (prob) {
-    attr(M, "prob") <- finalise_prob(W, !is.na(M))
+    attr(M, "prob") <- finalise_prob(matrix(rep(w, each = nrow(M)), nrow(M), n), !is.na(M))
   }
   M
 })
