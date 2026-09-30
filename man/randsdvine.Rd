@@ -12,11 +12,15 @@ randsdvine(
 }
 \arguments{
 \item{copZ1Z2_V1V2}{a bicop_dist object (\pkg{rvinecopulib}), the tree-3
-pair-copula of \code{Z1} and \code{Z2} given \verb{(V1, V2)}. Must be supplied.}
+pair-copula of \verb{(Z1, Z2)} given \verb{(V1, V2)}, in that order. Must be
+supplied.}
 
 \item{copZ1V2_V1, copV1Z2_V2}{bicop_dist objects, the two tree-2
-pair-copulas. Default to \code{rvinecopulib::bicop_dist()}, the independence
-copula.}
+pair-copulas: of \verb{(Z1, V2)} given \code{V1}, and of \verb{(V1, Z2)} given \code{V2}, each
+in the order shown, which is the order of the variables in the D-vine
+\verb{(Z1, V1, V2, Z2)}. The order matters for copulas that are not
+exchangeable, such as the 90 and 270 degree rotations. Default to
+\code{rvinecopulib::bicop_dist()}, the independence copula.}
 }
 \value{
 An object of class \linkS4class{randsdvine}.

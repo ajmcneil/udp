@@ -10,12 +10,26 @@
   (the other `NULL`), or on neither, in which case they are the copula's
   mass on each rectangle of cells, with the cell widths as row and column
   sums.
-* Fixed `rbsicopula()` and `dbsicopula()` for `randsdvine` models whose
-  base copula is not symmetric in its arguments (a 90 or 270 degree
-  rotation): `P(V1 <= v1 | V2 = v2)` was evaluated with the base copula's
-  arguments swapped. With the default independence tree-2 copulas this made
-  no difference, but with a parametric `copV1Z2_V2` the second margin was
-  not uniform.
+* Fixed two argument-order errors in the `randsdvine` code of
+  `rbsicopula()` and `dbsicopula()`, both invisible for exchangeable
+  copulas and so absent from the tests:
+  * `P(V1 <= v1 | V2 = v2)` was evaluated with the base copula's arguments
+    swapped, wrong for a base copula that is not symmetric in its arguments
+    (a 90 or 270 degree rotation). With the default independence tree-2
+    copulas this made no difference, but with a parametric `copV1Z2_V2` the
+    second margin was not uniform.
+  * `copZ1V2_V1` was used in the order `(V2, Z1)` although documented, and
+    now used, as the copula of `(Z1, V2)` given `V1`. Every pair-copula of a
+    `randsdvine` is now specified in the order its variables appear in the
+    D-vine `(Z1, V1, V2, Z2)` -- `copZ1Z2_V1V2` as `(Z1, Z2)`, `copZ1V2_V1`
+    as `(Z1, V2)`, `copV1Z2_V2` as `(V1, Z2)` -- which the documentation now
+    states. This changes results only for a 90 or 270 degree rotation in
+    `copZ1V2_V1`, whose two rotations swap roles; models previously fitted
+    with one should be refitted or have the rotation exchanged.
+  New tests compare the sampler with `pbicop()` alone (conditional
+  distributions by numerical differentiation, never `hbicop()`), for 90 and
+  270 degree rotations in every slot, so a swapped argument cannot be
+  repeated in the test.
 * `dbsicopula()`'s randomizer weight now uses copula CDF and h-function
   values that are exact on the boundary of the unit square
   (`rvinecopulib` clips its arguments to `[1e-10, 1 - 1e-10]`).

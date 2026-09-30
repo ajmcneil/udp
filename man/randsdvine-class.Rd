@@ -14,17 +14,24 @@ must stay independent of the value it randomizes. \code{copZ1Z2_V1V2} is the
 tree-3 edge; \code{copZ1V2_V1} and \code{copV1Z2_V2} are the two remaining tree-2
 edges.
 }
+\details{
+Each pair-copula is specified in the order its variables appear in the
+D-vine \verb{(Z1, V1, V2, Z2)}: the first argument of \code{copZ1Z2_V1V2} is \code{Z1}
+and the second \code{Z2}; of \code{copZ1V2_V1}, \code{Z1} then \code{V2}; of \code{copV1Z2_V2},
+\code{V1} then \code{Z2}. This matters only for copulas that are not exchangeable,
+such as the 90 and 270 degree rotations: transposing one swaps the two.
+}
 \section{Slots}{
 
 \describe{
 \item{\code{copZ1Z2_V1V2}}{a bicop_dist object (\pkg{rvinecopulib}), the tree-3
-pair-copula of \code{Z1} and \code{Z2} given \verb{(V1, V2)}.}
+pair-copula of \verb{(Z1, Z2)} given \verb{(V1, V2)}, in that order.}
 
-\item{\code{copZ1V2_V1}}{a bicop_dist object, the tree-2 pair-copula of \code{Z1} and
-\code{V2} given \code{V1}.}
+\item{\code{copZ1V2_V1}}{a bicop_dist object, the tree-2 pair-copula of \verb{(Z1, V2)}
+given \code{V1}, in that order.}
 
-\item{\code{copV1Z2_V2}}{a bicop_dist object, the tree-2 pair-copula of \code{V1} and
-\code{Z2} given \code{V2}.}
+\item{\code{copV1Z2_V2}}{a bicop_dist object, the tree-2 pair-copula of \verb{(V1, Z2)}
+given \code{V2}, in that order.}
 }}
 
 \references{

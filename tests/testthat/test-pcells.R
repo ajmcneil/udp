@@ -140,22 +140,32 @@ test_that("conditioning on one carrier averages the fully conditional probabilit
   expect_equal(unname(rowSums(P[, , 1])), c(0.4, 0.6), tolerance = 1e-6)
 })
 
-test_that("conditional probabilities agree with simulated selections", {
+test_that("conditional probabilities agree with simulated selections, for unsymmetric copulas in every slot", {
   skip_if_not_installed("rvinecopulib")
-  # a base copula that is not symmetric in its arguments (regression: the
-  # randsdvine code once evaluated P(V1 <= v1 | V2 = v2) with them swapped)
-  o <- pcells_models()$zz
+  # regression: the randsdvine code once evaluated P(V1 <= v1 | V2 = v2) with
+  # the base copula's arguments swapped, and used copZ1V2_V1 in the order
+  # (V2, Z1) instead of (Z1, V2) -- both invisible for exchangeable copulas
+  bd <- rvinecopulib::bicop_dist
   set.seed(2)
   N <- 1e5
-  Z <- randsdvine_sample(rep(0.3, N), rep(0.5, N), o@basecopula, o@randomizermod)
-  U1 <- udpsi(o@udp1, rep(0.3, N), Z[, "Z1"])
-  U2 <- udpsi(o@udp2, rep(0.5, N), Z[, "Z2"])
-  P <- pcells(o, 0.3, 0.5)
-  sim <- table(
-    factor(findInterval(U1, attr(P, "breaks1"), all.inside = TRUE), 1:2),
-    factor(findInterval(U2, attr(P, "breaks2"), all.inside = TRUE), 1:3)
-  ) / N
-  expect_equal(unclass(P)[, ], unclass(sim)[, ], tolerance = 0.01, ignore_attr = TRUE)
+  for (rm in list(
+    randsdvine(bd("gaussian", 0, 0.7), bd("clayton", 0, 1.5), bd("gumbel", 0, 1.8)),
+    randsdvine(bd("clayton", 90, 3), bd("clayton", 90, 3), bd("gumbel", 270, 2)),
+    randsdvine(bd("clayton", 270, 3), bd("clayton", 270, 3), bd("clayton", 90, 2))
+  )) {
+    o <- bsicopula(bd("clayton", 90, 2), vlinear(0.4), udpzigzag(widths = c(0.3, 0.45, 0.25)), rm)
+    for (v in list(c(0.3, 0.5), c(0.7, 0.2))) {
+      Z <- randsdvine_sample(rep(v[1], N), rep(v[2], N), o@basecopula, o@randomizermod)
+      U1 <- udpsi(o@udp1, rep(v[1], N), Z[, "Z1"])
+      U2 <- udpsi(o@udp2, rep(v[2], N), Z[, "Z2"])
+      P <- pcells(o, v[1], v[2])
+      sim <- table(
+        factor(findInterval(U1, attr(P, "breaks1"), all.inside = TRUE), 1:2),
+        factor(findInterval(U2, attr(P, "breaks2"), all.inside = TRUE), 1:3)
+      ) / N
+      expect_lt(max(abs(unclass(P)[, ] - unclass(sim)[, ])), 0.006)
+    }
+  }
 })
 
 test_that("a parCopula base copula gives the same integrated probabilities as a bicop_dist", {

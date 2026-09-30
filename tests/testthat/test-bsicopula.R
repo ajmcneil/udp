@@ -214,34 +214,6 @@ test_that("rbsicopula() with randomizermod = NULL returns an n x 2 matrix, unifo
   expect_gt(ks.test(samp[, "U2"], "punif")$p.value, 0.001)
 })
 
-test_that("rbsicopula() with a randsdvine matches a direct hand-rolled implementation of the algorithm", {
-  skip_if_not_installed("rvinecopulib")
-  bic <- rvinecopulib::bicop_dist
-  hbicop <- rvinecopulib::hbicop
-  basecop <- bic("gumbel", 0, 1.6)
-  sdv <- randsdvine(bic("t", 0, c(0.4, 5)), bic("clayton", 0, 1.3), bic("joe", 0, 2.0))
-
-  set.seed(11)
-  n <- 500
-  V1 <- runif(n)
-  V2 <- runif(n)
-
-  set.seed(22)
-  w1 <- runif(n)
-  w2 <- runif(n)
-  e21 <- hbicop(cbind(V1, V2), cond_var = 1, family = basecop)
-  e12 <- hbicop(cbind(V2, V1), cond_var = 1, family = basecop)
-  z1 <- hbicop(cbind(e21, w1), cond_var = 1, family = sdv@copZ1V2_V1, inverse = TRUE)
-  y <- hbicop(cbind(w1, w2), cond_var = 1, family = sdv@copZ1Z2_V1V2, inverse = TRUE)
-  z2 <- hbicop(cbind(e12, y), cond_var = 1, family = sdv@copV1Z2_V2, inverse = TRUE)
-
-  set.seed(22)
-  Z <- randsdvine_sample(V1, V2, basecop, sdv)
-
-  expect_equal(as.numeric(Z[, "Z1"]), z1)
-  expect_equal(as.numeric(Z[, "Z2"]), z2)
-})
-
 test_that("rbsicopula() with a randsdvine still gives uniform margins and matches udpsi() directly", {
   skip_if_not_installed("rvinecopulib")
   sdv <- randsdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)),
