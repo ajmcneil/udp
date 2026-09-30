@@ -498,6 +498,11 @@ setMethod("udpbreaks", "udplegendre", function(x) {
   pts[c(TRUE, diff(pts) > tol)]
 })
 
+# Monotone branches: between the turning points of L_j.
+setMethod("udpmonobreaks", "udplegendre", function(x) {
+  c(0, legendre_turnpoints(x@cfsD), 1)
+})
+
 # No continuous parameters: the degree is fixed.
 setMethod("udp_fitpars", "udplegendre", function(x) no_fitpars)
 

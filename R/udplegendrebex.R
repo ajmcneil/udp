@@ -351,6 +351,11 @@ setMethod("udpbreaks", "udplegendrebex", function(x) {
   pts[c(TRUE, diff(pts) > tol)]
 })
 
+# Monotone branches: between the turning points of g.
+setMethod("udpmonobreaks", "udplegendrebex", function(x) {
+  c(0, legendre_turnpoints(x@cfsD), 1)
+})
+
 # Estimable parameters, for fitbsicopula(): the weights, normalized to unit
 # length (see unit_weight_fitpars()); the degree is held fixed. New weights
 # rebuild the object with the default ngrid.

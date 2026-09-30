@@ -1,5 +1,24 @@
 # udp 0.1.1
 
+* Added `pcells()`: the probabilities that stochastic inversion puts `U1`
+  and `U2` in each pair of cells of the two udp transformations, for any
+  `bsicopula` (`randomizermod` `NULL`, a `randsdvine` or a `randmixture`).
+  Cells are the monotone branches of each transformation
+  (`cells = "monotone"`) or its intervals of continuous differentiability
+  (`cells = "smooth"`). The probabilities are conditional on both carriers
+  (paired values, or every combination with `grid = TRUE`), on one of them
+  (the other `NULL`), or on neither, in which case they are the copula's
+  mass on each rectangle of cells, with the cell widths as row and column
+  sums.
+* Fixed `rbsicopula()` and `dbsicopula()` for `randsdvine` models whose
+  base copula is not symmetric in its arguments (a 90 or 270 degree
+  rotation): `P(V1 <= v1 | V2 = v2)` was evaluated with the base copula's
+  arguments swapped. With the default independence tree-2 copulas this made
+  no difference, but with a parametric `copV1Z2_V2` the second margin was
+  not uniform.
+* `dbsicopula()`'s randomizer weight now uses copula CDF and h-function
+  values that are exact on the boundary of the unit square
+  (`rvinecopulib` clips its arguments to `[1e-10, 1 - 1e-10]`).
 * `udpinverse()` now records a pre-image at a turning point of `T` once per
   branch meeting there, for every class: each column is always one branch,
   and at a turning value the selection probabilities are the one-sided

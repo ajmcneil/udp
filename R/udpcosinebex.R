@@ -456,6 +456,13 @@ setMethod("udpbreaks", "udpcosinebex", function(x) {
   pts[c(TRUE, diff(pts) > tol)]
 })
 
+# Monotone branches: between the turning points of g, those of h mapped to
+# u = acos(x) / pi.
+setMethod("udpmonobreaks", "udpcosinebex", function(x) {
+  tp_x <- chebyshev_turnpoints(x@cfsD)
+  c(0, sort(acos(pmin(pmax(tp_x, -1), 1)) / pi), 1)
+})
+
 # Estimable parameters, for fitbsicopula(): the weights, normalized to unit
 # length (see unit_weight_fitpars()); the degree is held fixed. New weights
 # rebuild the object with the default ngrid.

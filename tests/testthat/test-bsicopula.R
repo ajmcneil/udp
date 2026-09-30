@@ -565,3 +565,27 @@ test_that("plot(type = \"contour\") floors density below the lowest level before
   expect_gt(sum(below), 0) # sanity check the test setup actually has a "background"
   expect_equal(length(unique(as.vector(captured[below]))), 1L)
 })
+
+test_that("randsdvine models keep uniform margins when the base copula is not symmetric", {
+  skip_if_not_installed("rvinecopulib")
+  # regression: P(V1 <= v1 | V2 = v2) was evaluated with the base copula's
+  # arguments swapped, which is wrong for a 90 or 270 degree rotation and,
+  # with a parametric tree-2 copula, left U2 non-uniform
+  bd <- rvinecopulib::bicop_dist
+  rm3 <- randsdvine(bd("gaussian", 0, 0.7), bd("clayton", 0, 1.5), bd("gumbel", 0, 1.8))
+  for (rot in c(90, 270)) {
+    bc <- bsicopula(bd("clayton", rot, 2), vlinear(0.4), vlinear(0.6), rm3)
+    set.seed(1)
+    U <- rbsicopula(5e4, bc)
+    expect_gt(suppressWarnings(stats::ks.test(U[, 1], "punif")$p.value), 1e-3)
+    expect_gt(suppressWarnings(stats::ks.test(U[, 2], "punif")$p.value), 1e-3)
+    # and the density matches the sample on a coarse grid of boxes
+    g <- (seq_len(100) - 0.5) / 100
+    G <- expand.grid(u1 = g, u2 = g)
+    box1 <- cut(G$u1, seq(0, 1, 0.25))
+    box2 <- cut(G$u2, seq(0, 1, 0.25))
+    dens <- tapply(dbsicopula(G$u1, G$u2, bc), list(box1, box2), mean) / 16
+    samp <- table(cut(U[, 1], seq(0, 1, 0.25)), cut(U[, 2], seq(0, 1, 0.25))) / nrow(U)
+    expect_lt(max(abs(dens - samp)), 0.01)
+  }
+})

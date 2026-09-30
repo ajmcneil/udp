@@ -415,6 +415,19 @@ setGeneric("udpbreaks", function(x) standardGeneric("udpbreaks"))
 # smooth on all of [0, 1].
 setMethod("udpbreaks", "udp", function(x) c(0, 1))
 
+# The boundaries of the monotone branches of T, including 0 and 1: the points
+# where T changes direction or jumps. Internal -- not exported -- for
+# pcells(cells = "monotone"). These are a subset of udpbreaks(x), which also
+# holds any point where T merely has a kink while keeping its direction; the
+# two coincide except for the polynomial classes, whose udpbreaks() include
+# the points where another branch of g starts or stops.
+setGeneric("udpmonobreaks", function(x) standardGeneric("udpmonobreaks"))
+
+# Default: every break point bounds a monotone branch. True of v-transforms
+# (the fulcrum), zigzags and udpcosine (the peaks and troughs) and shuffles
+# (the strip boundaries, where T jumps).
+setMethod("udpmonobreaks", "udp", function(x) udpbreaks(x))
+
 # Estimable parameters of a udp object, for fitbsicopula(): a list with the
 # named natural-scale values and their lower/upper bounds. Internal -- not
 # exported. Classes whose only parameters are discrete (a degree, a
