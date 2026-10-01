@@ -4,15 +4,19 @@
 \alias{dbsicopula}
 \title{Density of a bivariate stochastic inversion copula}
 \usage{
-dbsicopula(u1, u2, object)
+dbsicopula(u1, u2 = NULL, object)
 }
 \arguments{
-\item{u1, u2}{numeric vectors of equal length with values in \verb{[0, 1]}.}
+\item{u1, u2}{numeric vectors with values in \verb{[0, 1]}, of equal length or
+with a length-1 argument recycled to the length of the other. \code{u1} may
+instead be a two-column matrix (or data frame) with \code{u2} omitted, as for
+\code{\link[rvinecopulib:dbicop]{rvinecopulib::dbicop()}}: \code{dbsicopula(U, object = bc)}, or
+\code{dbsicopula(U, bc)}.}
 
 \item{object}{an object of class \linkS4class{bsicopula}.}
 }
 \value{
-A numeric vector, the same length as \code{u1}, of density values.
+A numeric vector of density values, one per observation.
 }
 \description{
 The population density of a \linkS4class{bsicopula}. When \code{randomizermod}

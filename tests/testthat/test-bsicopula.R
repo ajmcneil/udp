@@ -238,11 +238,12 @@ test_that("rbsicopula() with a randsdvine still gives uniform margins and matche
   expect_equal(samp[, "U2"], udpsi(udpcosine(3), V[, 2], Z[, "Z2"]))
 })
 
-test_that("dbsicopula() requires a bsicopula object and matching-length u1/u2", {
+test_that("dbsicopula() requires a bsicopula object and matching-length u1/u2 (a length-1 one recycles)", {
   skip_if_not_installed("rvinecopulib")
   bc <- bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3))
   expect_error(dbsicopula(0.2, 0.3, list()), "class 'bsicopula'")
-  expect_error(dbsicopula(c(0.2, 0.3), 0.3, bc), "same length")
+  expect_error(dbsicopula(c(0.2, 0.3, 0.4), c(0.3, 0.5), bc), "same length")
+  expect_equal(dbsicopula(c(0.2, 0.3), 0.3, bc), dbsicopula(c(0.2, 0.3), c(0.3, 0.3), bc))
 })
 
 test_that("dbsicopula() with randomizermod = NULL is exactly c_V(T1(u1), T2(u2))", {

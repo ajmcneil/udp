@@ -428,6 +428,25 @@ setGeneric("udpmonobreaks", function(x) standardGeneric("udpmonobreaks"))
 # (the strip boundaries, where T jumps).
 setMethod("udpmonobreaks", "udp", function(x) udpbreaks(x))
 
+# The linear pieces of a piecewise-linear udp transformation, for the exact
+# CDF and h-functions of a bsicopula (pbsicopula(), hbsicopula()); NULL for a
+# transformation that is not piecewise linear, which is the default. Piece k
+# maps u in [a_k, b_k] linearly onto the v-interval [c_k, d_k], increasing if
+# incr_k and decreasing otherwise, with slope of absolute value 1 / w_k: given
+# V = v in [c_k, d_k], udpsi() selects piece k with probability w_k, since
+# the selection probabilities are 1 / |T'|. Pieces run in increasing order of
+# u. For vlinear, vsymmetric, udpzigzag and udpcosine every piece maps onto
+# the whole of [0, 1], so w_k is its width; for a shuffle a piece maps onto a
+# strip of the same width and w_k = 1.
+setGeneric("udplinpieces", function(x) standardGeneric("udplinpieces"))
+
+setMethod("udplinpieces", "udp", function(x) NULL)
+
+# Assemble the list udplinpieces() returns from the vectors a, b, c, d, incr.
+linear_pieces <- function(a, b, c, d, incr) {
+  list(a = a, b = b, c = c, d = d, incr = incr, w = (b - a) / (d - c), K = length(a))
+}
+
 # Estimable parameters of a udp object, for fitbsicopula(): a list with the
 # named natural-scale values and their lower/upper bounds. Internal -- not
 # exported. Classes whose only parameters are discrete (a degree, a

@@ -137,6 +137,15 @@ setMethod("udpbreaks", "shuffle", function(x) {
   (0:length(x@perm)) / length(x@perm)
 })
 
+# Linear pieces: strip i of the domain maps onto strip perm[i] of the range,
+# with slope +1 or -1 (so weight 1).
+setMethod("udplinpieces", "shuffle", function(x) {
+  m <- length(x@perm)
+  linear_pieces(
+    (seq_len(m) - 1) / m, seq_len(m) / m, (x@perm - 1) / m, x@perm / m, x@signs > 0
+  )
+})
+
 # No continuous parameters: the permutation and signs are fixed.
 setMethod("udp_fitpars", "shuffle", function(x) no_fitpars)
 

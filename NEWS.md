@@ -1,5 +1,29 @@
 # udp 0.1.1
 
+* Added `pbsicopula()` and `hbsicopula()`, the CDF and the h-functions
+  (both conditioning variables, and their inverses via `inverse = TRUE`, with
+  the conventions of `rvinecopulib::hbicop()`) of a `bsicopula`, to go with
+  `dbsicopula()`. This first stage covers independent randomizers
+  (`randomizermod = NULL`) and piecewise-linear transformations -- `vlinear()`,
+  `vsymmetric()`, `udpzigzag()`, `udpcosine()` and shuffles including
+  `udpid()` and `udpflip()` -- for which every quantity is a finite, exact
+  sum over pairs of linear pieces, generalising Proposition S3 in the
+  supplement to Dias, Han and McNeil (linear v-transforms, `delta1` and
+  `delta2`). An h-function needs only the margin it integrates over to be
+  piecewise linear; the conditioning margin may be any udp. Base copulas may
+  be `bicop_dist` objects (fast, `rvinecopulib` called with the copula's
+  arguments in its own order, so 90 and 270 degree rotations are correct)
+  or `parCopula` objects (central differences of `pCopula()` and bisection:
+  `copula::cCopula()` conditions only on the first coordinate, has no inverse
+  for rotated copulas, and disagrees with the derivative of the CDF for
+  rotations flipping the conditioned coordinate). Non-linear transformations
+  and models with a randomizer are not yet supported and raise an error.
+  `dbsicopula()` now also accepts a two-column matrix (`dbsicopula(U, bc)`)
+  and recycles a length-1 argument, as the new functions do.
+* Internal: `udplinpieces()`, the linear pieces of a piecewise-linear udp;
+  `exact_copula_cdf()` now calls the copula only at interior points, which
+  makes the randomizer weight of `dbsicopula()` and `pcells()` somewhat
+  faster.
 * Added `pcells()`: the probabilities that stochastic inversion puts `U1`
   and `U2` in each pair of cells of the two udp transformations, for any
   `bsicopula` (`randomizermod` `NULL`, a `randsdvine` or a `randmixture`).
