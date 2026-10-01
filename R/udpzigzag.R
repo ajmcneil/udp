@@ -171,6 +171,14 @@ setMethod("udpderiv", "udpzigzag", function(x, u) {
 # Breakpoints: the piece boundaries, where the slope switches sign.
 setMethod("udpbreaks", "udpzigzag", function(x) x@breaks)
 
+# Linear pieces: the pieces themselves, alternating in direction.
+setMethod("udplinpieces", "udpzigzag", function(x) {
+  b <- x@breaks
+  n <- length(b) - 1L
+  k <- seq_len(n)
+  linear_pieces(b[-length(b)], b[-1L], rep(0, n), rep(1, n), x@up == ((k %% 2L) == 1L))
+})
+
 # Estimable parameters, for fitbsicopula(): the interior breakpoints, the
 # number of pieces and `up` being held fixed. They must stay ordered, so
 # rather than box bounds they come with their own maps: the additive

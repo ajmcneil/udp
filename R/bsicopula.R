@@ -464,12 +464,16 @@ preimage_interval <- function(P, j) {
 # by ~1e-10 -- enough to stop rectangle probabilities over a partition of
 # [0, 1]^2 summing to exactly 1.
 exact_copula_cdf <- function(a, b, cop) {
-  out <- basecopula_cdf(a, b, cop)
-  out[a <= 0 | b <= 0] <- 0
-  hi <- a >= 1
+  out <- numeric(length(a))
+  # known on the boundary, so call the copula only at interior points
+  hi <- a >= 1 & b > 0
   out[hi] <- b[hi]
-  hi <- b >= 1
+  hi <- b >= 1 & a > 0
   out[hi] <- a[hi]
+  i <- which(a > 0 & a < 1 & b > 0 & b < 1)
+  if (length(i)) {
+    out[i] <- basecopula_cdf(a[i], b[i], cop)
+  }
   out
 }
 
@@ -593,10 +597,14 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
 #' call, so the value returned at a breakpoint is the (well-defined) value
 #' for the merged branch there, not an arbitrary one-sided limit.
 #'
-#' @param u1,u2 numeric vectors of equal length with values in `[0, 1]`.
+#' @param u1,u2 numeric vectors with values in `[0, 1]`, of equal length or
+#'   with a length-1 argument recycled to the length of the other. `u1` may
+#'   instead be a two-column matrix (or data frame) with `u2` omitted, as for
+#'   [rvinecopulib::dbicop()]: `dbsicopula(U, object = bc)`, or
+#'   `dbsicopula(U, bc)`.
 #' @param object an object of class \linkS4class{bsicopula}.
 #'
-#' @return A numeric vector, the same length as `u1`, of density values.
+#' @return A numeric vector of density values, one per observation.
 #' @references
 #' McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
 #' multivariate uniform-distribution-preserving transformations.
@@ -608,17 +616,48 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
 #'   bc <- bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.5), udpcosine(2), udpcosine(3))
 #'   dbsicopula(c(0.2, 0.5), c(0.3, 0.5), bc)
 #' }
-dbsicopula <- function(u1, u2, object) {
+dbsicopula <- function(u1, u2 = NULL, object) {
+  a <- bsicopula_args(u1, u2, object, if (missing(object)) NULL else object)
+  dbsicopula_eval(a$u1, a$u2, a$object)
+}
+
+# Common argument handling of dbsicopula(), pbsicopula() and hbsicopula():
+# (u1, u2) as two vectors, or u1 as a two-column matrix with u2 omitted (and
+# then, when 'object' is omitted too, the object may sit in the u2 position:
+# dbsicopula(U, bc)); a length-1 vector is recycled to the length of the
+# other. 'range' additionally requires every value to be a number in [0, 1].
+bsicopula_args <- function(u1, u2, object, object_given, range = FALSE) {
+  if (is.null(object_given)) {
+    if (!methods::is(u2, "bsicopula")) {
+      stop("'object' must be an object of class 'bsicopula'.", call. = FALSE)
+    }
+    object <- u2
+    u2 <- NULL
+  }
   if (!methods::is(object, "bsicopula")) {
     stop("'object' must be an object of class 'bsicopula'.", call. = FALSE)
   }
-  u1 <- as.numeric(u1)
-  u2 <- as.numeric(u2)
-  if (length(u1) != length(u2)) {
-    stop("'u1' and 'u2' must have the same length.", call. = FALSE)
+  if (is.null(u2)) {
+    if (!(is.matrix(u1) || is.data.frame(u1)) || ncol(u1) != 2L) {
+      stop("when 'u2' is omitted, 'u1' must be a two-column matrix.", call. = FALSE)
+    }
+    u1 <- as.matrix(u1)
+    u2 <- as.numeric(u1[, 2L])
+    u1 <- as.numeric(u1[, 1L])
+  } else {
+    u1 <- as.numeric(u1)
+    u2 <- as.numeric(u2)
+    n <- max(length(u1), length(u2))
+    if (length(u1) == 1L && n != 1L) u1 <- rep(u1, n)
+    if (length(u2) == 1L && n != 1L) u2 <- rep(u2, n)
+    if (length(u1) != length(u2)) {
+      stop("'u1' and 'u2' must have the same length (or one of them length 1).", call. = FALSE)
+    }
   }
-
-  dbsicopula_eval(u1, u2, object)
+  if (range && (anyNA(u1) || anyNA(u2) || any(u1 < 0 | u1 > 1) || any(u2 < 0 | u2 > 1))) {
+    stop("'u1' and 'u2' must be numbers in [0, 1], without missing values.", call. = FALSE)
+  }
+  list(u1 = u1, u2 = u2, object = object)
 }
 
 # Clamp carrier values V into [f, 1 - f], but only for observations whose u

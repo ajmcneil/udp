@@ -118,6 +118,14 @@ setMethod("udpbreaks", "udpcosine", function(x) {
   (0:x@degree) / x@degree
 })
 
+# Linear pieces: `degree` equal-width pieces alternating in direction, the
+# last increasing (the direction convention of udpcosinverse()).
+setMethod("udplinpieces", "udpcosine", function(x) {
+  d <- x@degree
+  k <- seq_len(d)
+  linear_pieces((k - 1) / d, k / d, rep(0, d), rep(1, d), (k %% 2L) == (d %% 2L))
+})
+
 # No continuous parameters: the degree is fixed.
 setMethod("udp_fitpars", "udpcosine", function(x) no_fitpars)
 

@@ -282,6 +282,17 @@ setMethod("udpbreaks", "vtransform", function(x) {
   c(0, delta, 1)
 })
 
+# Linear pieces: only the linear and symmetric v-transforms are piecewise
+# linear. A decreasing piece on [0, delta] and an increasing one on
+# [delta, 1], each onto [0, 1].
+setMethod("udplinpieces", "vtransform", function(x) {
+  if (!(x@name %in% c("vlinear", "vsymmetric"))) {
+    return(NULL)
+  }
+  delta <- if (x@name == "vsymmetric") 0.5 else unname(x@pars["delta"])
+  linear_pieces(c(0, delta), c(delta, 1), c(0, 0), c(1, 1), c(FALSE, TRUE))
+})
+
 # Estimable parameters, for fitbsicopula(): all of `pars` (none for
 # vsymmetric()). delta lies in (0, 1); kappa and xi are positive.
 setMethod("udp_fitpars", "vtransform", function(x) {
