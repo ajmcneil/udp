@@ -214,34 +214,6 @@ test_that("rbsicopula() with randomizermod = NULL returns an n x 2 matrix, unifo
   expect_gt(ks.test(samp[, "U2"], "punif")$p.value, 0.001)
 })
 
-test_that("rbsicopula() with a randsdvine matches a direct hand-rolled implementation of the algorithm", {
-  skip_if_not_installed("rvinecopulib")
-  bic <- rvinecopulib::bicop_dist
-  hbicop <- rvinecopulib::hbicop
-  basecop <- bic("gumbel", 0, 1.6)
-  sdv <- randsdvine(bic("t", 0, c(0.4, 5)), bic("clayton", 0, 1.3), bic("joe", 0, 2.0))
-
-  set.seed(11)
-  n <- 500
-  V1 <- runif(n)
-  V2 <- runif(n)
-
-  set.seed(22)
-  w1 <- runif(n)
-  w2 <- runif(n)
-  e21 <- hbicop(cbind(V1, V2), cond_var = 1, family = basecop)
-  e12 <- hbicop(cbind(V2, V1), cond_var = 1, family = basecop)
-  z1 <- hbicop(cbind(e21, w1), cond_var = 1, family = sdv@copZ1V2_V1, inverse = TRUE)
-  y <- hbicop(cbind(w1, w2), cond_var = 1, family = sdv@copZ1Z2_V1V2, inverse = TRUE)
-  z2 <- hbicop(cbind(e12, y), cond_var = 1, family = sdv@copV1Z2_V2, inverse = TRUE)
-
-  set.seed(22)
-  Z <- randsdvine_sample(V1, V2, basecop, sdv)
-
-  expect_equal(as.numeric(Z[, "Z1"]), z1)
-  expect_equal(as.numeric(Z[, "Z2"]), z2)
-})
-
 test_that("rbsicopula() with a randsdvine still gives uniform margins and matches udpsi() directly", {
   skip_if_not_installed("rvinecopulib")
   sdv <- randsdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)),
@@ -564,4 +536,28 @@ test_that("plot(type = \"contour\") floors density below the lowest level before
   below <- dens < min(levels)
   expect_gt(sum(below), 0) # sanity check the test setup actually has a "background"
   expect_equal(length(unique(as.vector(captured[below]))), 1L)
+})
+
+test_that("randsdvine models keep uniform margins when the base copula is not symmetric", {
+  skip_if_not_installed("rvinecopulib")
+  # regression: P(V1 <= v1 | V2 = v2) was evaluated with the base copula's
+  # arguments swapped, which is wrong for a 90 or 270 degree rotation and,
+  # with a parametric tree-2 copula, left U2 non-uniform
+  bd <- rvinecopulib::bicop_dist
+  rm3 <- randsdvine(bd("gaussian", 0, 0.7), bd("clayton", 0, 1.5), bd("gumbel", 0, 1.8))
+  for (rot in c(90, 270)) {
+    bc <- bsicopula(bd("clayton", rot, 2), vlinear(0.4), vlinear(0.6), rm3)
+    set.seed(1)
+    U <- rbsicopula(5e4, bc)
+    expect_gt(suppressWarnings(stats::ks.test(U[, 1], "punif")$p.value), 1e-3)
+    expect_gt(suppressWarnings(stats::ks.test(U[, 2], "punif")$p.value), 1e-3)
+    # and the density matches the sample on a coarse grid of boxes
+    g <- (seq_len(100) - 0.5) / 100
+    G <- expand.grid(u1 = g, u2 = g)
+    box1 <- cut(G$u1, seq(0, 1, 0.25))
+    box2 <- cut(G$u2, seq(0, 1, 0.25))
+    dens <- tapply(dbsicopula(G$u1, G$u2, bc), list(box1, box2), mean) / 16
+    samp <- table(cut(U[, 1], seq(0, 1, 0.25)), cut(U[, 2], seq(0, 1, 0.25))) / nrow(U)
+    expect_lt(max(abs(dens - samp)), 0.01)
+  }
 })

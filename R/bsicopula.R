@@ -37,12 +37,18 @@ basecopula_sample <- function(n, basecopula) {
 #' tree-3 edge; `copZ1V2_V1` and `copV1Z2_V2` are the two remaining tree-2
 #' edges.
 #'
+#' Each pair-copula is specified in the order its variables appear in the
+#' D-vine `(Z1, V1, V2, Z2)`: the first argument of `copZ1Z2_V1V2` is `Z1`
+#' and the second `Z2`; of `copZ1V2_V1`, `Z1` then `V2`; of `copV1Z2_V2`,
+#' `V1` then `Z2`. This matters only for copulas that are not exchangeable,
+#' such as the 90 and 270 degree rotations: transposing one swaps the two.
+#'
 #' @slot copZ1Z2_V1V2 a bicop_dist object (\pkg{rvinecopulib}), the tree-3
-#'   pair-copula of `Z1` and `Z2` given `(V1, V2)`.
-#' @slot copZ1V2_V1 a bicop_dist object, the tree-2 pair-copula of `Z1` and
-#'   `V2` given `V1`.
-#' @slot copV1Z2_V2 a bicop_dist object, the tree-2 pair-copula of `V1` and
-#'   `Z2` given `V2`.
+#'   pair-copula of `(Z1, Z2)` given `(V1, V2)`, in that order.
+#' @slot copZ1V2_V1 a bicop_dist object, the tree-2 pair-copula of `(Z1, V2)`
+#'   given `V1`, in that order.
+#' @slot copV1Z2_V2 a bicop_dist object, the tree-2 pair-copula of `(V1, Z2)`
+#'   given `V2`, in that order.
 #'
 #' @seealso [randsdvine()] to construct one; \linkS4class{bsicopula} to use it.
 #' @references
@@ -59,10 +65,14 @@ setClass("randsdvine", slots = list(
 #' Construct a simplified D-vine randomizer model
 #'
 #' @param copZ1Z2_V1V2 a bicop_dist object (\pkg{rvinecopulib}), the tree-3
-#'   pair-copula of `Z1` and `Z2` given `(V1, V2)`. Must be supplied.
+#'   pair-copula of `(Z1, Z2)` given `(V1, V2)`, in that order. Must be
+#'   supplied.
 #' @param copZ1V2_V1,copV1Z2_V2 bicop_dist objects, the two tree-2
-#'   pair-copulas. Default to `rvinecopulib::bicop_dist()`, the independence
-#'   copula.
+#'   pair-copulas: of `(Z1, V2)` given `V1`, and of `(V1, Z2)` given `V2`, each
+#'   in the order shown, which is the order of the variables in the D-vine
+#'   `(Z1, V1, V2, Z2)`. The order matters for copulas that are not
+#'   exchangeable, such as the 90 and 270 degree rotations. Default to
+#'   `rvinecopulib::bicop_dist()`, the independence copula.
 #'
 #' @return An object of class \linkS4class{randsdvine}.
 #' @export
@@ -256,20 +266,34 @@ bsicopula <- function(basecopula, udp1, udp2, randomizermod = NULL) {
 # (Z1, Z2) given (V1, V2) from the simplified D-vine: basecopula is
 # C_{V1,V2} (tree 1), randomizermod's three slots are the tree-2/tree-3
 # edges; the two tree-1 outer edges C_{Z1,V1} and C_{V2,Z2} are the
-# independence copula, not stored anywhere (see randsdvine()). Uses the
-# rvinecopulib h-function convention throughout: hbicop(cbind(cond, target),
-# cond_var = 1, family = bicop) is C(target | cond), and inverse = TRUE
-# solves it for target given a probability level.
+# independence copula, not stored anywhere (see randsdvine()).
+#
+# rvinecopulib h-function convention: for (A, B) ~ bicop, hbicop(cbind(a, b),
+# cond_var = 1) is P(B <= b | A = a) and cond_var = 2 is P(A <= a | B = b);
+# with inverse = TRUE, cond_var = 1 takes cbind(a, level) and returns b, and
+# cond_var = 2 takes cbind(level, b) and returns a. Every copula is used in
+# the order its variables appear in the D-vine (Z1, V1, V2, Z2) -- base
+# (V1, V2), copZ1V2_V1 (Z1, V2), copV1Z2_V2 (V1, Z2), copZ1Z2_V1V2
+# (Z1, Z2) -- and the arguments are never swapped: transposing a copula
+# that is not exchangeable (a 90 or 270 degree rotation) gives another
+# copula. So:
+#   e21 = P(V2 <= v2 | V1 = v1)            hbicop(cbind(v1, v2), 1, base)
+#   e12 = P(V1 <= v1 | V2 = v2)            hbicop(cbind(v1, v2), 2, base)
+#   Z1 | (V1, V2): P(Z1 <= z1 | V2-level e21) under copZ1V2_V1 (Z1, V2),
+#                  conditioning on the second variable: cond_var = 2
+#   Z2 | (V1, V2, Z1): tree 3 conditions on the first variable, Z1
+#   Z2 from P(Z2 <= z2 | V1-level e12) under copV1Z2_V2 (V1, Z2),
+#                  conditioning on the first variable: cond_var = 1
 randsdvine_sample <- function(V1, V2, basecopula, randomizermod) {
   n <- length(V1)
   w1 <- runif(n)
   w2 <- runif(n)
 
   e21 <- rvinecopulib::hbicop(cbind(V1, V2), cond_var = 1, family = basecopula)
-  e12 <- rvinecopulib::hbicop(cbind(V2, V1), cond_var = 1, family = basecopula)
+  e12 <- rvinecopulib::hbicop(cbind(V1, V2), cond_var = 2, family = basecopula)
 
-  Z1 <- rvinecopulib::hbicop(cbind(e21, w1),
-    cond_var = 1, family = randomizermod@copZ1V2_V1, inverse = TRUE
+  Z1 <- rvinecopulib::hbicop(cbind(w1, e21),
+    cond_var = 2, family = randomizermod@copZ1V2_V1, inverse = TRUE
   )
   e1 <- w1
 
@@ -434,34 +458,79 @@ preimage_interval <- function(P, j) {
   list(a = a, b = b)
 }
 
-# Joint conditional CDF F(z1, z2 | V1 = v1, V2 = v2) implied by the
-# simplified D-vine: the tree-3 copula applied to the two tree-2
-# h-functions, each conditioned on the matching tree-1 h-function of
-# (v1, v2). e21 = P(V2 <= v2 | V1 = v1), e12 = P(V1 <= v1 | V2 = v2) -- the
-# same quantities randsdvine_sample() computes for simulation.
-randsdvine_cdf <- function(z1, z2, e21, e12, randomizermod) {
-  a <- rvinecopulib::hbicop(cbind(e21, z1), cond_var = 1, family = randomizermod@copZ1V2_V1)
-  b <- rvinecopulib::hbicop(cbind(e12, z2), cond_var = 1, family = randomizermod@copV1Z2_V2)
-  rvinecopulib::pbicop(cbind(a, b), family = randomizermod@copZ1Z2_V1V2)
+# CDF of a copula (parCopula or bicop_dist), exact on the boundary of the
+# unit square: C(a, 0) = C(0, b) = 0, C(a, 1) = a, C(1, b) = b. rvinecopulib
+# clips its arguments to [1e-10, 1 - 1e-10], so its own values there are off
+# by ~1e-10 -- enough to stop rectangle probabilities over a partition of
+# [0, 1]^2 summing to exactly 1.
+exact_copula_cdf <- function(a, b, cop) {
+  out <- basecopula_cdf(a, b, cop)
+  out[a <= 0 | b <= 0] <- 0
+  hi <- a >= 1
+  out[hi] <- b[hi]
+  hi <- b >= 1
+  out[hi] <- a[hi]
+  out
 }
 
-# Joint conditional CDF F(z1, z2 | V1 = v1, V2 = v2) implied by a randmixture
-# model: given the realized (v1, v2), selector(v1, v2) deterministically
-# picks cop1 or cop2, and (Z1, Z2) | that choice is an ordinary draw from
-# the picked copula -- so the conditional CDF is just that copula's own
-# CDF, no h-function composition needed (unlike randsdvine_cdf()). Takes
-# the already-evaluated sel = selector(v1, v2) rather than v1/v2 themselves
-# -- see bsicopula_weight(), which calls this 4 times per point with the
-# same (v1, v2) and would otherwise re-run selector() redundantly.
-randmixture_cdf <- function(z1, z2, sel, randomizermod) {
-  out <- numeric(length(z1))
-  if (any(sel)) {
-    out[sel] <- basecopula_cdf(z1[sel], z2[sel], randomizermod@cop1)
+# h-function P(Z <= z | E = e) of a bicop_dist with variables (E, Z) if
+# z_second is TRUE, (Z, E) otherwise, exact at z = 0 and z = 1 for the same
+# reason as exact_copula_cdf().
+exact_hfunc <- function(e, z, cop, z_second = TRUE) {
+  h <- if (z_second) {
+    rvinecopulib::hbicop(cbind(e, z), cond_var = 1, family = cop)
+  } else {
+    rvinecopulib::hbicop(cbind(z, e), cond_var = 2, family = cop)
   }
-  if (any(!sel)) {
-    out[!sel] <- basecopula_cdf(z1[!sel], z2[!sel], randomizermod@cop2)
+  h[z <= 0] <- 0
+  h[z >= 1] <- 1
+  h
+}
+
+# The joint conditional CDF of the randomizers, F(z1, z2 | V1 = v1, V2 = v2),
+# as a function F(z1, z2, idx) evaluating it at the (v1, v2) pairs indexed by
+# idx (all of them, in order, by default). Everything that depends only on
+# (v1, v2) is computed once here, however many times F is then called.
+#   NULL        independent uniform randomizers: z1 * z2.
+#   randsdvine  the tree-3 copula applied to the two tree-2 h-functions, each
+#               conditioned on the matching tree-1 h-function of (v1, v2):
+#               e21 = P(V2 <= v2 | V1 = v1), e12 = P(V1 <= v1 | V2 = v2), the
+#               same quantities randsdvine_sample() uses for simulation.
+#               copZ1V2_V1 has variables (Z1, V2), so its h-function for Z1
+#               conditions on the second one; copV1Z2_V2 has (V1, Z2), so its
+#               h-function for Z2 conditions on the first.
+#   randmixture selector(v1, v2) picks cop1 or cop2, and (Z1, Z2) given that
+#               choice is an ordinary draw from the picked copula, so F is
+#               that copula's own CDF.
+randomizer_cdf <- function(v1, v2, basecopula, randomizermod) {
+  all_idx <- seq_along(v1)
+  if (is.null(randomizermod)) {
+    return(function(z1, z2, idx = all_idx) z1 * z2)
   }
-  out
+  if (methods::is(randomizermod, "randsdvine")) {
+    e21 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 1, family = basecopula)
+    e12 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 2, family = basecopula)
+    return(function(z1, z2, idx = all_idx) {
+      exact_copula_cdf(
+        exact_hfunc(e21[idx], z1, randomizermod@copZ1V2_V1, z_second = FALSE),
+        exact_hfunc(e12[idx], z2, randomizermod@copV1Z2_V2, z_second = TRUE),
+        randomizermod@copZ1Z2_V1V2
+      )
+    })
+  }
+  sel <- randomizermod@selector(v1, v2)
+  validate_selector_result(sel, length(v1))
+  function(z1, z2, idx = all_idx) {
+    s <- sel[idx]
+    out <- numeric(length(z1))
+    if (any(s)) {
+      out[s] <- exact_copula_cdf(z1[s], z2[s], randomizermod@cop1)
+    }
+    if (any(!s)) {
+      out[!s] <- exact_copula_cdf(z1[!s], z2[!s], randomizermod@cop2)
+    }
+    out
+  }
 }
 
 # w(u1, u2): the ratio of (1) the probability that the joint stochastic
@@ -469,7 +538,7 @@ randmixture_cdf <- function(z1, z2, sel, randomizermod) {
 # containing (u1, u2), given V1 = v1, V2 = v2, under randomizermod, to (2)
 # the same probability under independent randomizers -- a rectangle
 # probability under the joint conditional law of (Z1, Z2) | (V1, V2)
-# (numerator, via randsdvine_cdf()'s closed form) over the product of the two
+# (numerator, via randomizer_cdf()) over the product of the two
 # marginal selection probabilities already in udpinverse()'s "prob"
 # attribute (denominator). See McNeil and Nešlehová (2026), arXiv:2607.07174,
 # also cited via dbsicopula()'s @references.
@@ -486,17 +555,7 @@ bsicopula_weight <- function(u1, u2, v1, v2, udp1, udp2, basecopula, randomizerm
 
   denom <- P1[cbind(seq_along(u1), j1)] * P2[cbind(seq_along(u2), j2)]
 
-  if (methods::is(randomizermod, "randsdvine")) {
-    e21 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 1, family = basecopula)
-    e12 <- rvinecopulib::hbicop(cbind(v2, v1), cond_var = 1, family = basecopula)
-    joint_cdf <- function(z1, z2) randsdvine_cdf(z1, z2, e21, e12, randomizermod)
-  } else {
-    # (v1, v2) don't change across the four corner calls below, so
-    # selector(v1, v2) only needs evaluating once here, not once per call.
-    sel <- randomizermod@selector(v1, v2)
-    validate_selector_result(sel, length(v1))
-    joint_cdf <- function(z1, z2) randmixture_cdf(z1, z2, sel, randomizermod)
-  }
+  joint_cdf <- randomizer_cdf(v1, v2, basecopula, randomizermod)
 
   numer <- joint_cdf(I1$b, I2$b) - joint_cdf(I1$a, I2$b) -
     joint_cdf(I1$b, I2$a) + joint_cdf(I1$a, I2$a)
