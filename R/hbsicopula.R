@@ -19,58 +19,22 @@
 # D-vines for stochastic volatility".
 
 # P(X <= x | G = given) under the base copula, X being the carrier other than
-# carrier 'given_var' (1 or 2), exact at x = 0 and x = 1. A bicop_dist uses
-# rvinecopulib's h-function with the arguments in the copula's own order.
-# A parCopula uses central differences of pCopula() in the conditioning
-# argument: copula::cCopula() is not used, since it can condition only on the
-# first coordinate, has no inverse for rotated copulas, and for a rotation
-# that flips the conditioned coordinate disagrees with the derivative of
-# pCopula() (copula 1.1.7).
+# carrier 'given_var' (1 or 2), exact at x = 0 and x = 1 and clipped to
+# [0, 1]; the interior values come from basecopula_h().
 basecopula_cond_cdf <- function(cop, given, x, given_var) {
   out <- numeric(length(x))
   out[x >= 1] <- 1
   i <- which(x > 0 & x < 1) # at x = 0 and 1 the value is known, so skip the call
   if (length(i)) {
-    g <- given[i]
-    xi <- x[i]
-    out[i] <- if (is_bicop_dist(cop)) {
-      if (given_var == 1L) {
-        rvinecopulib::hbicop(cbind(g, xi), cond_var = 1, family = cop)
-      } else {
-        rvinecopulib::hbicop(cbind(xi, g), cond_var = 2, family = cop)
-      }
-    } else {
-      lo <- pmax(g - 1e-5, 0)
-      hi <- pmin(g + 1e-5, 1)
-      cdf <- function(gg) {
-        copula::pCopula(if (given_var == 1L) cbind(gg, xi) else cbind(xi, gg), cop)
-      }
-      (cdf(hi) - cdf(lo)) / (hi - lo)
-    }
+    out[i] <- basecopula_h(cop, given[i], x[i], given_var)
   }
   pmin(pmax(out, 0), 1)
 }
 
 # The inverse in x of basecopula_cond_cdf(): the x with P(X <= x | G = given)
-# equal to q. rvinecopulib's inverse h-function for a bicop_dist; bisection
-# (the conditional CDF being increasing) for a parCopula.
+# equal to q, from basecopula_hinv().
 basecopula_cond_quantile <- function(cop, given, q, given_var) {
-  q <- pmin(pmax(q, 0), 1)
-  if (is_bicop_dist(cop)) {
-    if (given_var == 1L) {
-      return(rvinecopulib::hbicop(cbind(given, q), cond_var = 1, family = cop, inverse = TRUE))
-    }
-    return(rvinecopulib::hbicop(cbind(q, given), cond_var = 2, family = cop, inverse = TRUE))
-  }
-  lo <- rep(0, length(q))
-  hi <- rep(1, length(q))
-  for (i in seq_len(50L)) {
-    mid <- (lo + hi) / 2
-    below <- basecopula_cond_cdf(cop, given, mid, given_var) < q
-    lo[below] <- mid[below]
-    hi[!below] <- mid[!below]
-  }
-  (lo + hi) / 2
+  basecopula_hinv(cop, given, pmin(pmax(q, 0), 1), given_var)
 }
 
 # The v-interval swept by piece k of P as the argument runs from 0 up to u,
@@ -222,7 +186,7 @@ h_integrand <- function(g, udp_t, object, given_var) {
     cop <- object@basecopula
     return(function(t, idx) {
       vt <- pmin(pmax(udptrans(udp_t, t), 0), 1)
-      if (given_var == 1L) basecopula_density(g[idx], vt, cop) else basecopula_density(vt, g[idx], cop)
+      if (given_var == 1L) basecopula_density(cop, g[idx], vt) else basecopula_density(cop, vt, g[idx])
     })
   }
   function(t, idx) {

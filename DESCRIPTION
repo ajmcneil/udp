@@ -34,6 +34,7 @@ Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.0
 Config/testthat/edition: 3
 Collate:
+    'basecopula.R'
     'udp-package.R'
     'bsicopula.R'
     'fitbsicopula.R'

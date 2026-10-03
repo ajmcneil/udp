@@ -6,26 +6,6 @@
 # through requireNamespace()/inherits() and the :: operator rather than a
 # formal S4 class union or NAMESPACE import.
 
-# TRUE if x is a parCopula object from the copula package -- FALSE, not an
-# error, when copula isn't installed.
-is_parCopula <- function(x) {
-  requireNamespace("copula", quietly = TRUE) && methods::is(x, "parCopula")
-}
-
-# TRUE if x is a bicop_dist object from rvinecopulib. inherits() only looks
-# at the class attribute, so this needs no namespace load.
-is_bicop_dist <- function(x) inherits(x, "bicop_dist")
-
-# Sample n draws from a base copula that is either a parCopula or a
-# bicop_dist object, dispatching to the matching package's own sampler.
-basecopula_sample <- function(n, basecopula) {
-  if (is_parCopula(basecopula)) {
-    copula::rCopula(n, basecopula)
-  } else {
-    rvinecopulib::rbicop(n, basecopula)
-  }
-}
-
 #' Class of simplified D-vine randomizer models
 #'
 #' A randomizer model for \linkS4class{bsicopula}: the three non-trivial
@@ -166,10 +146,9 @@ setClass("randmixture", slots = list(
 #'   )
 #' }
 randmixture <- function(cop1, cop2, selector) {
-  if (!(is_parCopula(cop1) || is_bicop_dist(cop1)) ||
-    !(is_parCopula(cop2) || is_bicop_dist(cop2))) {
+  if (!basecopula_supported(cop1) || !basecopula_supported(cop2)) {
     stop(
-      "'cop1' and 'cop2' must each be a parCopula object (copula package) or a bicop_dist object (rvinecopulib).",
+      "'cop1' and 'cop2' must each be a parCopula object (copula package), a bicop_dist object (rvinecopulib) or another supported base copula.",
       call. = FALSE
     )
   }
@@ -235,9 +214,9 @@ setClass("bsicopula", slots = list(
 #'   bsicopula(rvinecopulib::bicop_dist("gaussian", 0, 0.5), udpcosine(2), udpcosine(3))
 #' }
 bsicopula <- function(basecopula, udp1, udp2, randomizermod = NULL) {
-  if (!is_parCopula(basecopula) && !is_bicop_dist(basecopula)) {
+  if (!basecopula_supported(basecopula)) {
     stop(
-      "'basecopula' must be a parCopula object (copula package) or a bicop_dist object (rvinecopulib).",
+      "'basecopula' must be a parCopula object (copula package), a bicop_dist object (rvinecopulib) or another supported base copula.",
       call. = FALSE
     )
   }
@@ -337,12 +316,12 @@ randmixture_sample <- function(V1, V2, randomizermod) {
   Z1 <- numeric(n)
   Z2 <- numeric(n)
   if (any(sel)) {
-    Z <- basecopula_sample(sum(sel), randomizermod@cop1)
+    Z <- basecopula_sample(randomizermod@cop1, sum(sel))
     Z1[sel] <- Z[, 1]
     Z2[sel] <- Z[, 2]
   }
   if (any(!sel)) {
-    Z <- basecopula_sample(sum(!sel), randomizermod@cop2)
+    Z <- basecopula_sample(randomizermod@cop2, sum(!sel))
     Z1[!sel] <- Z[, 1]
     Z2[!sel] <- Z[, 2]
   }
@@ -378,7 +357,7 @@ rbsicopula <- function(n, object) {
   if (!methods::is(object, "bsicopula")) {
     stop("'object' must be an object of class 'bsicopula'.", call. = FALSE)
   }
-  V <- basecopula_sample(n, object@basecopula)
+  V <- basecopula_sample(object@basecopula, n)
   V1 <- V[, 1]
   V2 <- V[, 2]
 
@@ -395,26 +374,6 @@ rbsicopula <- function(n, object) {
     U2 <- udpsi(object@udp2, V2, Z[, "Z2"])
   }
   cbind(U1 = U1, U2 = U2)
-}
-
-# Density of a base copula that is either a parCopula or a bicop_dist
-# object, dispatching to the matching package's own density function.
-basecopula_density <- function(v1, v2, basecopula) {
-  if (is_parCopula(basecopula)) {
-    copula::dCopula(cbind(v1, v2), basecopula)
-  } else {
-    rvinecopulib::dbicop(cbind(v1, v2), basecopula)
-  }
-}
-
-# CDF of a base copula that is either a parCopula or a bicop_dist object,
-# dispatching to the matching package's own CDF function.
-basecopula_cdf <- function(v1, v2, basecopula) {
-  if (is_parCopula(basecopula)) {
-    copula::pCopula(cbind(v1, v2), basecopula)
-  } else {
-    rvinecopulib::pbicop(cbind(v1, v2), basecopula)
-  }
 }
 
 # Column of udpinverse(x, v, prob = TRUE)'s (sorted-ascending) pre-image
@@ -472,7 +431,7 @@ exact_copula_cdf <- function(a, b, cop) {
   out[hi] <- a[hi]
   i <- which(a > 0 & a < 1 & b > 0 & b < 1)
   if (length(i)) {
-    out[i] <- basecopula_cdf(a[i], b[i], cop)
+    out[i] <- basecopula_cdf(cop, a[i], b[i])
   }
   out
 }
@@ -682,10 +641,10 @@ dbsicopula_eval <- function(u1, u2, object, vfloor = NULL) {
   V1 <- pmin(pmax(udptrans(object@udp1, u1), 0), 1)
   V2 <- pmin(pmax(udptrans(object@udp2, u2), 0), 1)
   cV <- if (is.null(vfloor)) {
-    basecopula_density(V1, V2, object@basecopula)
+    basecopula_density(object@basecopula, V1, V2)
   } else {
     basecopula_density(
-      clamp_v(V1, u1, vfloor), clamp_v(V2, u2, vfloor), object@basecopula
+      object@basecopula, clamp_v(V1, u1, vfloor), clamp_v(V2, u2, vfloor)
     )
   }
 

@@ -89,20 +89,16 @@ conditional_nodes <- function(basecopula, given, which, N) {
   n <- length(given)
   t <- (seq_len(N) - 0.5) / N
   g <- rep(given, each = N)
-  if (is_bicop_dist(basecopula)) {
+  if (basecopula_fast_hinv(basecopula)) {
     w <- rep(t, times = n)
-    other <- if (which == 1L) {
-      rvinecopulib::hbicop(cbind(g, w), cond_var = 1, family = basecopula, inverse = TRUE)
-    } else {
-      rvinecopulib::hbicop(cbind(w, g), cond_var = 2, family = basecopula, inverse = TRUE)
-    }
+    other <- basecopula_hinv(basecopula, g, w, which)
     weight <- rep(1 / N, n * N)
   } else {
     other <- rep(stats::qbeta(t, 0.5, 0.5), times = n)
     dens <- if (which == 1L) {
-      basecopula_density(g, other, basecopula)
+      basecopula_density(basecopula, g, other)
     } else {
-      basecopula_density(other, g, basecopula)
+      basecopula_density(basecopula, other, g)
     }
     raw <- matrix(dens / stats::dbeta(other, 0.5, 0.5), N, n)
     weight <- as.vector(sweep(raw, 2, colSums(raw), "/"))
