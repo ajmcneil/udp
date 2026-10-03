@@ -160,21 +160,148 @@ h_inverse_exact <- function(p, v_g, Pt, cop, given_var) {
   pmin(pmax(u, Pt$a[piece]), Pt$b[piece])
 }
 
+# ---- Quadrature tier: margins that are not piecewise linear ----------------
+#
+# With independent randomizers the density is c_V(T1(u1), T2(u2)), so
+#
+#   h(u_t | v_g) = integral_0^{u_t} c_V(v_g, T_t(x)) dx
+#
+# is a sum of integrals over the cells of udpbreaks(T_t), on each of which the
+# integrand is smooth up to its ends (where it can be singular: T' may be
+# infinite there). They are done by tanh-sinh quadrature, which is insensitive
+# to endpoint singularities. The CDF is the integral over one margin of the
+# h-function of the other, conditioning on that margin's carrier value; the
+# inner margin may be piecewise linear (exact h) or not.
+
+# Tanh-sinh nodes on (0, 1): x with the complement 1 - x computed separately,
+# so nodes near 1 keep their relative accuracy, and weights summing to ~1.
+tanh_sinh_nodes <- function(N) {
+  t <- seq(-3.2, 3.2, length.out = N)
+  s <- pi * sinh(t)
+  list(
+    x = 1 / (1 + exp(-s)), xc = 1 / (1 + exp(s)),
+    w = (t[2] - t[1]) * pi * cosh(t) / ((1 + exp(-s)) * (1 + exp(s)))
+  )
+}
+
+# The integral of f over [a, upper[i]] for each i. f(t, idx) takes the nodes t
+# and the index idx of the row each belongs to, and returns the integrand
+# there. Rows go through in chunks to bound memory.
+cell_quad <- function(a, upper, N, f, chunk = 2e5) {
+  n <- length(upper)
+  a <- rep_len(a, n)
+  out <- numeric(n)
+  live <- which(upper > a)
+  if (!length(live)) {
+    return(out)
+  }
+  nd <- tanh_sinh_nodes(N)
+  per <- max(1L, floor(chunk / N))
+  for (start in seq(1L, length(live), by = per)) {
+    i <- live[start:min(start + per - 1L, length(live))]
+    m <- length(i)
+    L <- matrix(upper[i] - a[i], N, m, byrow = TRUE)
+    X <- matrix(nd$x, N, m)
+    XC <- matrix(nd$xc, N, m)
+    t <- ifelse(X < 0.5, matrix(a[i], N, m, byrow = TRUE) + L * X, matrix(upper[i], N, m, byrow = TRUE) - L * XC)
+    val <- f(as.vector(t), rep(i, each = N))
+    val[!is.finite(val)] <- 0
+    out[i] <- L[1L, ] * colSums(matrix(val, N) * nd$w)
+  }
+  out
+}
+
+# h(u_t | v_g) = integral_0^{u_t} c_V(v_g, T_t(x)) dx over the cells of udp_t.
+h_quad <- function(u_t, v_g, udp_t, cop, given_var, N) {
+  br <- udpbreaks(udp_t)
+  dens <- function(t, idx) {
+    vt <- udptrans(udp_t, t)
+    if (given_var == 1L) basecopula_density(v_g[idx], vt, cop) else basecopula_density(vt, v_g[idx], cop)
+  }
+  out <- numeric(length(u_t))
+  for (k in seq_len(length(br) - 1L)) {
+    out <- out + cell_quad(br[k], pmin(pmax(u_t, br[k]), br[k + 1L]), N, dens)
+  }
+  pmin(pmax(out, 0), 1)
+}
+
+# Inverse of h_quad() in u_t. Cumulative cell masses locate the cell that
+# holds the level; within it a bracketed Newton iteration (the derivative is
+# the density, bisection when a step leaves the bracket) solves for u_t.
+h_inverse_quad <- function(p, v_g, udp_t, cop, given_var, N, tol = 1e-12, maxit = 100L) {
+  n <- length(p)
+  if (!n) {
+    return(numeric(0))
+  }
+  br <- udpbreaks(udp_t)
+  K <- length(br) - 1L
+  p <- pmin(pmax(p, 0), 1)
+  dens <- function(t, idx) {
+    vt <- udptrans(udp_t, t)
+    if (given_var == 1L) basecopula_density(v_g[idx], vt, cop) else basecopula_density(vt, v_g[idx], cop)
+  }
+  cm <- matrix(0, n, K)
+  for (k in seq_len(K)) {
+    cm[, k] <- cell_quad(br[k], rep(br[k + 1L], n), N, dens) + if (k > 1L) cm[, k - 1L] else 0
+  }
+  piece <- if (K > 1L) pmin(1L + rowSums(p > cm[, -K, drop = FALSE]), K) else rep(1L, n)
+  before <- ifelse(piece == 1L, 0, cm[cbind(seq_len(n), pmax(piece - 1L, 1L))])
+  lo <- br[piece]
+  hi <- br[piece + 1L]
+  mass <- cm[cbind(seq_len(n), piece)] - before
+  u <- lo + (hi - lo) * pmin(pmax((p - before) / pmax(mass, 1e-300), 0), 1)
+  active <- which(p > 0 & p < 1)
+  for (it in seq_len(maxit)) {
+    if (!length(active)) break
+    r <- active
+    f <- before[r] + cell_quad(br[piece[r]], u[r], N, function(t, idx) dens(t, r[idx])) - p[r]
+    below <- f < 0
+    lo[r[below]] <- u[r[below]]
+    hi[r[!below]] <- u[r[!below]]
+    done <- abs(f) < tol | (hi[r] - lo[r]) < 1e-15
+    step <- u[r] - f / pmax(dens(u[r], r), 1e-300)
+    unew <- ifelse(step > lo[r] & step < hi[r], step, (lo[r] + hi[r]) / 2)
+    u[r] <- ifelse(done, u[r], unew)
+    active <- r[!done]
+  }
+  pmin(pmax(u, 0), 1)
+}
+
+# h(u_t | v_g) for the target margin t of 'object', exact if it is piecewise
+# linear and by quadrature otherwise.
+h_any <- function(u_t, v_t, v_g, udp_t, cop, given_var, N) {
+  Pt <- udplinpieces(udp_t)
+  if (is.null(Pt)) h_quad(u_t, v_g, udp_t, cop, given_var, N) else h_exact(u_t, v_t, v_g, Pt, cop, given_var)
+}
+
+# CDF when a margin is not piecewise linear: integrate over that (outer)
+# margin the h-function of the other, conditioning on the outer margin's
+# carrier value. Two such margins nest two quadratures, N^2 nodes per pair of
+# cells.
+pbsicopula_quad <- function(u1, u2, object, N) {
+  o <- if (is.null(udplinpieces(object@udp2))) 2L else 1L
+  udp_o <- slot(object, paste0("udp", o))
+  udp_i <- slot(object, paste0("udp", 3L - o))
+  u_o <- if (o == 1L) u1 else u2
+  u_i <- if (o == 1L) u2 else u1
+  v_i <- udptrans(udp_i, u_i)
+  cop <- object@basecopula
+  inner <- function(t, idx) h_any(u_i[idx], v_i[idx], udptrans(udp_o, t), udp_i, cop, o, N)
+  br <- udpbreaks(udp_o)
+  out <- numeric(length(u_o))
+  for (k in seq_len(length(br) - 1L)) {
+    out <- out + cell_quad(br[k], pmin(pmax(u_o, br[k]), br[k + 1L]), N, inner)
+  }
+  pmin(pmax(out, 0), 1)
+}
+
 # Argument checks shared by pbsicopula() and hbsicopula().
-check_bsi_tier <- function(object, what, margins) {
+check_bsi_tier <- function(object, what) {
   if (!is.null(object@randomizermod)) {
     stop(sprintf("%s is not yet implemented for a bsicopula with a randomizer; ", what),
       "'randomizermod' must be NULL.",
       call. = FALSE
     )
-  }
-  for (m in margins) {
-    if (is.null(udplinpieces(slot(object, paste0("udp", m))))) {
-      stop(sprintf(
-        "%s is not yet implemented when udp%d, which it integrates over, is not piecewise linear.",
-        what, m
-      ), call. = FALSE)
-    }
   }
 }
 
@@ -203,6 +330,17 @@ check_nodes <- function(nodes) {
 #' supplementary material of Dias, Han and McNeil. The result is exact to the
 #' accuracy of the base copula's CDF.
 #'
+#' Any other transformation (the non-linear v-transforms [v2p()], [v2b()],
+#' [v3p()], [v3b()], and the polynomial and cosine families) is handled by
+#' quadrature. The CDF is the integral over one non-linear margin of the
+#' h-function of the other, conditioning on the carrier value of the first;
+#' each integral is split at the break points of the transformation
+#' (where it stops being smooth) and done by tanh-sinh quadrature with
+#' `nodes` nodes per cell, which copes with the infinite slopes at cell ends.
+#' With one non-linear margin the cost is `nodes` base-copula evaluations per
+#' cell and point; with two it is `nodes^2` per pair of cells, so lower
+#' `nodes` for large samples. Accuracy is about `1e-8` at the default.
+#'
 #' Exactly on the boundary of the unit square the result is exact; for a
 #' `bicop_dist` base copula values elsewhere inherit \pkg{rvinecopulib}'s
 #' clipping of its arguments to `[1e-10, 1 - 1e-10]`.
@@ -214,7 +352,7 @@ check_nodes <- function(nodes) {
 #' @param object an object of class \linkS4class{bsicopula} with
 #'   `randomizermod = NULL`. Its base copula may be a `bicop_dist` or a
 #'   `parCopula` (via [copula::pCopula()]).
-#' @param nodes number of quadrature nodes per cell, reserved for
+#' @param nodes number of tanh-sinh quadrature nodes per cell for
 #'   transformations that are not piecewise linear; ignored where the result
 #'   is exact.
 #'
@@ -236,7 +374,10 @@ check_nodes <- function(nodes) {
 pbsicopula <- function(u1, u2 = NULL, object, nodes = 101L) {
   a <- bsicopula_args(u1, u2, object, if (missing(object)) NULL else object, range = TRUE)
   check_nodes(nodes)
-  check_bsi_tier(a$object, "pbsicopula()", 1:2)
+  check_bsi_tier(a$object, "pbsicopula()")
+  if (is.null(udplinpieces(a$object@udp1)) || is.null(udplinpieces(a$object@udp2))) {
+    return(pbsicopula_quad(a$u1, a$u2, a$object, as.integer(nodes)))
+  }
   pbsicopula_exact(a$u1, a$u2, a$object)
 }
 
@@ -265,6 +406,14 @@ pbsicopula <- function(u1, u2 = NULL, object, nodes = 101L) {
 #' v-transforms these are the formulas of Proposition S3 in the supplementary
 #' material of Dias, Han and McNeil, which are those used by `tscopula` for
 #' vt-D-vines.
+#'
+#' When `udp2` (the margin integrated over) is not piecewise linear, `h` is
+#' the integral of the density `c_V(v1, T2(x))` over `x` up to `u2`, computed
+#' cell by cell with tanh-sinh quadrature (`nodes` per cell), and the inverse
+#' finds the cell holding the level from the cumulative cell masses and then
+#' solves for `u2` by a bracketed Newton iteration, the density being the
+#' derivative. This path is several times slower than the exact one, and the
+#' inverse slower again.
 #'
 #' For a `bicop_dist` base copula the base h-functions are those of
 #' \pkg{rvinecopulib}, called with the copula's arguments in its own order
@@ -310,11 +459,19 @@ hbsicopula <- function(u1, u2 = NULL, object, cond_var = 1L, inverse = FALSE, no
   object <- a$object
   # target margin t: the one integrated over (2 when conditioning on U1)
   t <- 3L - as.integer(cond_var)
-  check_bsi_tier(object, "hbsicopula()", t)
+  check_bsi_tier(object, "hbsicopula()")
   u_g <- if (cond_var == 1L) a$u1 else a$u2
   u_t <- if (cond_var == 1L) a$u2 else a$u1
   v_g <- udptrans(slot(object, paste0("udp", cond_var)), u_g)
   Pt <- udplinpieces(slot(object, paste0("udp", t)))
+  if (is.null(Pt)) {
+    udp_t <- slot(object, paste0("udp", t))
+    N <- as.integer(nodes)
+    if (inverse) {
+      return(h_inverse_quad(u_t, v_g, udp_t, object@basecopula, as.integer(cond_var), N))
+    }
+    return(h_quad(u_t, v_g, udp_t, object@basecopula, as.integer(cond_var), N))
+  }
   if (inverse) {
     return(h_inverse_exact(u_t, v_g, Pt, object@basecopula, as.integer(cond_var)))
   }
