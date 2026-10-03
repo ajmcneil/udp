@@ -1,5 +1,8 @@
 # udp 0.1.1
 
+* A `randsdvine` randomizer model no longer requires a `bicop_dist` base copula: the base copula's h-functions come from the base-copula interface, so a `parCopula` (central differences, slower) or an `astcopula` can be the base copula.
+* New `astcopula(nu)`: the absolute spherical t copula, the copula of `(|X1|, |X2|)` for a bivariate t distribution with correlation zero (Dias, Han and McNeil). It can be the `basecopula` of a `bsicopula` (with independent randomizers or a `randsdvine`/`randmixture` randomizer model). `dastcopula()`, `pastcopula()`, `hastcopula()` (with closed-form inverse) and `rastcopula()` give the density, CDF, h-functions and random numbers, valid for every `nu > 0`; the CDF integrates the h-function, since the t copula CDF in other packages restricts `nu`. `astcopula_tau()` gives Kendall's tau, and `astcopula_nu()` calibrates `nu` to a given tau, both by monotone spline interpolation of a precomputed table (about a microsecond per value, error below 1e-9) with the asymptote `tau * nu = 4 / pi^2` beyond it.
+
 * Internal: the base copula of a `bsicopula` (and the copulas of a `randmixture`) is now accessed through a small set of S4 generics (`basecopula_density()`, `basecopula_cdf()`, `basecopula_h()`, `basecopula_hinv()`, `basecopula_sample()`, ...; see `R/basecopula.R`) with methods for `bicop_dist` and `parCopula`, so further families can be plugged in. No change in behaviour.
 
 * Added `pbsicopula()` and `hbsicopula()`, the CDF and the h-functions

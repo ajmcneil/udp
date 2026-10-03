@@ -18,8 +18,8 @@ dependence when \code{udp1}/\code{udp2} are many-to-one.
 \section{Slots}{
 
 \describe{
-\item{\code{basecopula}}{a parCopula object (\pkg{copula}) or a bicop_dist object
-(\pkg{rvinecopulib}), the copula of \verb{(V1, V2)}.}
+\item{\code{basecopula}}{a parCopula object (\pkg{copula}), a bicop_dist object
+(\pkg{rvinecopulib}) or an \linkS4class{astcopula}, the copula of \verb{(V1, V2)}.}
 
 \item{\code{udp1,udp2}}{objects of class \linkS4class{udp}, applied via
 stochastic inversion (\code{\link[=udpsi]{udpsi()}}) to \code{V1} and \code{V2} respectively.}

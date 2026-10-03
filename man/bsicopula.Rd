@@ -7,19 +7,19 @@
 bsicopula(basecopula, udp1, udp2, randomizermod = NULL)
 }
 \arguments{
-\item{basecopula}{a parCopula object (\pkg{copula}) or a bicop_dist
-object (\pkg{rvinecopulib}), the copula of the two transformations'
+\item{basecopula}{a parCopula object (\pkg{copula}), a bicop_dist
+object (\pkg{rvinecopulib}) or an \linkS4class{astcopula}, the copula of the two transformations'
 carrier uniforms \verb{(V1, V2)}.}
 
 \item{udp1, udp2}{objects of class \linkS4class{udp}.}
 
 \item{randomizermod}{\code{NULL} (the default; independent randomizers), an
-\linkS4class{randsdvine} object, or a \linkS4class{randmixture} object. When
-a \linkS4class{randsdvine}, \code{basecopula} must additionally be a
-bicop_dist object -- the D-vine sampling machinery uses
-\pkg{rvinecopulib}'s h-functions throughout. A \linkS4class{randmixture}
-has no such restriction: it only needs the realized \verb{(V1, V2)} draw,
-which either backend already provides.}
+\linkS4class{randsdvine} object, or a \linkS4class{randmixture} object. A
+\linkS4class{randsdvine} needs the h-functions of the base copula, which
+any base copula supplies; for a parCopula they are central differences of
+its CDF (accurate to about \code{1e-9} but slower), for a bicop_dist and an
+\linkS4class{astcopula} they are exact. The copulas inside a
+\linkS4class{randsdvine} must be bicop_dist objects.}
 }
 \value{
 An object of class \linkS4class{bsicopula}.

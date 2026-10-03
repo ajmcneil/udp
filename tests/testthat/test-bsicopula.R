@@ -36,22 +36,17 @@ test_that("bsicopula() rejects non-udp margins and non-copula basecopula", {
   expect_error(bsicopula(matrix(1), udpcosine(2), udpcosine(3)), "parCopula.*bicop_dist")
 })
 
-test_that("bsicopula() requires basecopula to be bicop_dist when randomizermod is a randsdvine", {
+test_that("bsicopula() validates the randomizer model, and any base copula may carry a randsdvine", {
   skip_if_not_installed("copula")
   skip_if_not_installed("rvinecopulib")
   sdv <- randsdvine(rvinecopulib::bicop_dist("t", 0, c(0.4, 5)))
   expect_error(
-    bsicopula(copula::claytonCopula(2), udpcosine(2), udpcosine(3), randomizermod = sdv),
-    "bicop_dist object when 'randomizermod'"
-  )
-  expect_error(
     bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3), randomizermod = "x"),
     "class 'randsdvine'"
   )
-  expect_s4_class(
-    bsicopula(rvinecopulib::bicop_dist("clayton", 0, 2), udpcosine(2), udpcosine(3), randomizermod = sdv),
-    "bsicopula"
-  )
+  for (base in list(rvinecopulib::bicop_dist("clayton", 0, 2), copula::claytonCopula(2), astcopula(3))) {
+    expect_s4_class(bsicopula(base, udpcosine(2), udpcosine(3), randomizermod = sdv), "bsicopula")
+  }
 })
 
 ## randmixture() / randmixture_sample() --------------------------------------------
