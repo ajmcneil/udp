@@ -1,5 +1,7 @@
 # udp 0.1.1
 
+* Internal: the base copula of a `bsicopula` (and the copulas of a `randmixture`) is now accessed through a small set of S4 generics (`basecopula_density()`, `basecopula_cdf()`, `basecopula_h()`, `basecopula_hinv()`, `basecopula_sample()`, ...; see `R/basecopula.R`) with methods for `bicop_dist` and `parCopula`, so further families can be plugged in. No change in behaviour.
+
 * Added `pbsicopula()` and `hbsicopula()`, the CDF and the h-functions
   (both conditioning variables, and their inverses via `inverse = TRUE`, with
   the conventions of `rvinecopulib::hbicop()`) of a `bsicopula`, to go with
