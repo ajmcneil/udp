@@ -77,7 +77,6 @@ test_that("stochastic inversion of vsymmetric() on both margins gives the t copu
   est <- vapply(1:2, function(i) mean(X[, 1] <= pts[i, 1] & X[, 2] <= pts[i, 2]), 0)
   expect_lt(max(abs(pbsicopula(pts, object = bc) - est)), 5e-3)
   expect_error(randsdvine(astcopula(3)), "bicop_dist")
-  expect_error(bsicopula(astcopula(3), vlinear(0.4), vlinear(0.6), randsdvine(bd("gaussian", 0, 0.5))), "bicop_dist")
 })
 
 test_that("Kendall's tau reproduces the published values and the limits", {
@@ -120,4 +119,30 @@ test_that("arguments are checked", {
   expect_error(astcopula_nu(1), "in \\(0, 1\\)")
   expect_error(astcopula_nu(0.99), "supports")
   expect_equal(dim(rastcopula(7, astcopula(2))), c(7, 2))
+})
+
+test_that("astcopula can be the base copula of a bsicopula with a randsdvine randomizer", {
+  skip_if_not_installed("rvinecopulib")
+  skip_if_not_installed("copula")
+  rs <- randsdvine(bd("gaussian", 0, 0.7), bd("clayton", 90, 1.5), bd("gumbel", 270, 1.8))
+  # same copula through two backends: identical density, weight and h
+  set.seed(7)
+  u <- runif(40)
+  v <- runif(40)
+  a <- bsicopula(bd("clayton", 0, 2), v2p(0.4, 1.4), udpcosine(3), rs)
+  b <- bsicopula(copula::claytonCopula(2), v2p(0.4, 1.4), udpcosine(3), rs)
+  expect_equal(dbsicopula(u, v, a), dbsicopula(u, v, b), tolerance = 1e-6)
+  # ast against simulation, and with a hand-built equivalent: the t copula is
+  # what vsymmetric margins recover, so d, p and r must agree with each other
+  bc <- bsicopula(astcopula(2.5), vlinear(0.4), v2p(0.6, 1.3), rs)
+  set.seed(8)
+  X <- rbsicopula(2e5, bc)
+  expect_lt(max(abs(c(mean(X[, 1] <= 0.3), mean(X[, 2] <= 0.7)) - c(0.3, 0.7))), 3e-3) # uniform margins
+  pts <- cbind(c(0.2, 0.5, 0.8), c(0.3, 0.5, 0.6))
+  est <- vapply(1:3, function(i) mean(X[, 1] <= pts[i, 1] & X[, 2] <= pts[i, 2]), 0)
+  expect_lt(max(abs(pbsicopula(pts, object = bc, nodes = 31) - est)), 4e-3)
+  # the weight is a density: integrates to one over the unit square
+  g <- (seq_len(120) - 0.5) / 120
+  G <- expand.grid(g, g)
+  expect_equal(mean(dbsicopula(G[, 1], G[, 2], bc)), 1, tolerance = 5e-3)
 })

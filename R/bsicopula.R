@@ -171,8 +171,8 @@ randmixture <- function(cop1, cop2, selector) {
 #' further dependence between the two margins, including non-monotonic
 #' dependence when `udp1`/`udp2` are many-to-one.
 #'
-#' @slot basecopula a parCopula object (\pkg{copula}) or a bicop_dist object
-#'   (\pkg{rvinecopulib}), the copula of `(V1, V2)`.
+#' @slot basecopula a parCopula object (\pkg{copula}), a bicop_dist object
+#'   (\pkg{rvinecopulib}) or an \linkS4class{astcopula}, the copula of `(V1, V2)`.
 #' @slot udp1,udp2 objects of class \linkS4class{udp}, applied via
 #'   stochastic inversion ([udpsi()]) to `V1` and `V2` respectively.
 #' @slot randomizermod `NULL` (independent randomizers), an
@@ -194,17 +194,17 @@ setClass("bsicopula", slots = list(
 
 #' Construct a bivariate stochastic inversion copula
 #'
-#' @param basecopula a parCopula object (\pkg{copula}) or a bicop_dist
-#'   object (\pkg{rvinecopulib}), the copula of the two transformations'
+#' @param basecopula a parCopula object (\pkg{copula}), a bicop_dist
+#'   object (\pkg{rvinecopulib}) or an \linkS4class{astcopula}, the copula of the two transformations'
 #'   carrier uniforms `(V1, V2)`.
 #' @param udp1,udp2 objects of class \linkS4class{udp}.
 #' @param randomizermod `NULL` (the default; independent randomizers), an
-#'   \linkS4class{randsdvine} object, or a \linkS4class{randmixture} object. When
-#'   a \linkS4class{randsdvine}, `basecopula` must additionally be a
-#'   bicop_dist object -- the D-vine sampling machinery uses
-#'   \pkg{rvinecopulib}'s h-functions throughout. A \linkS4class{randmixture}
-#'   has no such restriction: it only needs the realized `(V1, V2)` draw,
-#'   which either backend already provides.
+#'   \linkS4class{randsdvine} object, or a \linkS4class{randmixture} object. A
+#'   \linkS4class{randsdvine} needs the h-functions of the base copula, which
+#'   any base copula supplies; for a parCopula they are central differences of
+#'   its CDF (accurate to about `1e-9` but slower), for a bicop_dist and an
+#'   \linkS4class{astcopula} they are exact. The copulas inside a
+#'   \linkS4class{randsdvine} must be bicop_dist objects.
 #'
 #' @return An object of class \linkS4class{bsicopula}.
 #' @export
@@ -230,12 +230,6 @@ bsicopula <- function(basecopula, udp1, udp2, randomizermod = NULL) {
         call. = FALSE
       )
     }
-    if (methods::is(randomizermod, "randsdvine") && !is_bicop_dist(basecopula)) {
-      stop(
-        "'basecopula' must be a bicop_dist object when 'randomizermod' is a 'randsdvine'.",
-        call. = FALSE
-      )
-    }
   }
   new("bsicopula",
     basecopula = basecopula, udp1 = udp1, udp2 = udp2, randomizermod = randomizermod
@@ -256,8 +250,8 @@ bsicopula <- function(basecopula, udp1, udp2, randomizermod = NULL) {
 # (Z1, Z2) -- and the arguments are never swapped: transposing a copula
 # that is not exchangeable (a 90 or 270 degree rotation) gives another
 # copula. So:
-#   e21 = P(V2 <= v2 | V1 = v1)            hbicop(cbind(v1, v2), 1, base)
-#   e12 = P(V1 <= v1 | V2 = v2)            hbicop(cbind(v1, v2), 2, base)
+#   e21 = P(V2 <= v2 | V1 = v1)            basecopula_cond_cdf(base, v1, v2, 1)
+#   e12 = P(V1 <= v1 | V2 = v2)            basecopula_cond_cdf(base, v2, v1, 2)
 #   Z1 | (V1, V2): P(Z1 <= z1 | V2-level e21) under copZ1V2_V1 (Z1, V2),
 #                  conditioning on the second variable: cond_var = 2
 #   Z2 | (V1, V2, Z1): tree 3 conditions on the first variable, Z1
@@ -268,8 +262,8 @@ randsdvine_sample <- function(V1, V2, basecopula, randomizermod) {
   w1 <- runif(n)
   w2 <- runif(n)
 
-  e21 <- rvinecopulib::hbicop(cbind(V1, V2), cond_var = 1, family = basecopula)
-  e12 <- rvinecopulib::hbicop(cbind(V1, V2), cond_var = 2, family = basecopula)
+  e21 <- basecopula_cond_cdf(basecopula, V1, V2, 1L)
+  e12 <- basecopula_cond_cdf(basecopula, V2, V1, 2L)
 
   Z1 <- rvinecopulib::hbicop(cbind(w1, e21),
     cond_var = 2, family = randomizermod@copZ1V2_V1, inverse = TRUE
@@ -471,8 +465,8 @@ randomizer_cdf <- function(v1, v2, basecopula, randomizermod) {
     return(function(z1, z2, idx = all_idx) z1 * z2)
   }
   if (methods::is(randomizermod, "randsdvine")) {
-    e21 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 1, family = basecopula)
-    e12 <- rvinecopulib::hbicop(cbind(v1, v2), cond_var = 2, family = basecopula)
+    e21 <- basecopula_cond_cdf(basecopula, v1, v2, 1L)
+    e12 <- basecopula_cond_cdf(basecopula, v2, v1, 2L)
     return(function(z1, z2, idx = all_idx) {
       exact_copula_cdf(
         exact_hfunc(e21[idx], z1, randomizermod@copZ1V2_V1, z_second = FALSE),
