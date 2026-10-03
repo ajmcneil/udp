@@ -16,8 +16,14 @@
   or `parCopula` objects (central differences of `pCopula()` and bisection:
   `copula::cCopula()` conditions only on the first coordinate, has no inverse
   for rotated copulas, and disagrees with the derivative of the CDF for
-  rotations flipping the conditioned coordinate). Non-linear transformations
-  and models with a randomizer are not yet supported and raise an error.
+  rotations flipping the conditioned coordinate).
+* `pbsicopula()` and `hbsicopula()` also handle every other udp
+  (`v2p()`, `v3p()`, the polynomial and cosine families, ...) by tanh-sinh
+  quadrature on the smooth cells of the transformation (`nodes` per cell),
+  and models with a `randsdvine` or `randmixture` randomizer, for which the
+  integrand is `dbsicopula()` itself (the CDF is then a double integral costing
+  `nodes^2` per pair of cells). `demo("hbsicopula")` illustrates all cases.
+* New vignette, "Fitting bivariate stochastic inversion copulas".
   `dbsicopula()` now also accepts a two-column matrix (`dbsicopula(U, bc)`)
   and recycles a length-1 argument, as the new functions do.
 * Internal: `udplinpieces()`, the linear pieces of a piecewise-linear udp;

@@ -1,0 +1,236 @@
+---
+title: "Fitting bivariate stochastic inversion copulas"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fitting bivariate stochastic inversion copulas}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 3.8,
+  fig.align = "center"
+)
+```
+
+```{r guard, include = FALSE}
+knitr::opts_chunk$set(eval = requireNamespace("rvinecopulib", quietly = TRUE))
+```
+
+```{r library}
+library(udp)
+library(rvinecopulib)
+```
+
+`fitbsicopula()` fits a `bsicopula` model to copula data by maximum
+likelihood. The object you give it fixes the *structure* of the model -- the
+family and rotation of the base copula, the class of each udp
+transformation, and the kind of randomizer model -- and supplies the
+*starting values* of the parameters. Everything continuous is then estimated.
+This vignette fits two models to simulated data, in each case starting
+well away from the truth:
+
+1. independent randomizers, with a three-piece zigzag and a `v2p`
+   v-transform as the udp transformations;
+2. a `randsdvine` randomizer model, with v-transforms for the udps.
+
+Each follows the same recipe: simulate from a known model, estimate it from
+poor starting values, and compare the true and fitted densities.
+
+The data given to `fitbsicopula()` are pseudo-observations, ranks scaled into
+`(0, 1)`, as is usual for copula estimation. In practice they would come from
+a data set through `pseudo_obs()`; here we simulate copula data and take the
+ranks.
+
+## Example 1: independent randomizers, a zigzag and a v-transform
+
+### The true model and the data
+
+The first margin uses `udpzigzag()`, a piecewise-linear transformation
+whose pieces alternately rise and fall; here it has three pieces, of widths
+`2/7`, `3/7` and `2/7`. The second uses `v2p()`, a smooth v-transform with
+fulcrum `delta` and shape `kappa`. The base copula is Gaussian.
+
+```{r truth1}
+truth1 <- bsicopula(bicop_dist("gaussian", 0, 0.7),
+  udp1 = udpzigzag(widths = c(2, 3, 2)),
+  udp2 = v2p(delta = 0.35, kappa = 1.5)
+)
+set.seed(11)
+U1 <- pseudo_obs(rbsicopula(1000, truth1))
+plot(U1, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1)
+```
+
+### Fitting from poor starting values
+
+The starting object has the same structure but a weaker correlation, a
+zigzag of three equal pieces, and a v-transform with the fulcrum in the
+middle and no extra curvature.
+
+```{r start1}
+start1 <- bsicopula(bicop_dist("gaussian", 0, 0.3),
+  udp1 = udpzigzag(widths = c(1, 1, 1)),
+  udp2 = v2p(delta = 0.5, kappa = 1)
+)
+fit1 <- fitbsicopula(U1, start1)
+fit1
+```
+
+The parameters are reported on their natural scale: `rho` for the Gaussian
+copula, the two interior breakpoints of the zigzag (the true ones are
+`2/7 = 0.286` and `5/7 = 0.714`) and `delta` and `kappa` for the
+v-transform. The number of pieces of the zigzag and its direction (`up`) are
+part of the structure and come from the starting object.
+
+Standard errors come from a parametric bootstrap: new samples are drawn from
+the fitted model, ranked, and put through the whole procedure again. It
+takes a little while, so we use a modest number of replicates here.
+
+```{r boot1, cache = FALSE}
+set.seed(1)
+fit1se <- fitbsicopula(U1, start1, se = "bootstrap", B = 40)
+true1 <- c(0.7, 2 / 7, 5 / 7, 0.35, 1.5)
+cbind(truth = true1, signif(cbind(estimate = coef(fit1se), se = fit1se@se), 3))
+```
+
+### True and fitted densities
+
+The fitted model is the `bsicopula` stored in the fit.
+
+```{r dens1, fig.height = 4.2}
+fitted1 <- fit1@bsicopula
+op <- par(mfrow = c(1, 2))
+plot(truth1, main = "True density")
+plot(fitted1, main = "Fitted density")
+par(op)
+```
+
+### h-functions and the joint CDF
+
+Since the fitted object is an ordinary `bsicopula`, the other functions of
+the package apply to it. `hbsicopula()` gives the conditional distribution
+function `h(u2 | u1) = P(U2 <= u2 | U1 = u1)`. Because the second margin is a
+smooth v-transform rather than a piecewise-linear one, `hbsicopula()`
+computes it by numerical quadrature (with piecewise-linear transformations
+and independent randomizers it is an exact finite sum); the true and fitted
+models are equally easy to evaluate.
+
+```{r h1}
+u2 <- seq(0, 1, length.out = 201)
+u1s <- c(0.15, 0.5, 0.85)
+plot(NA, xlim = c(0, 1), ylim = c(0, 1), xlab = "u2", ylab = "h(u2 | u1)")
+abline(0, 1, col = "grey85")
+for (k in seq_along(u1s)) {
+  lines(u2, hbsicopula(u1s[k], u2, truth1), col = k + 1, lwd = 2)
+  lines(u2, hbsicopula(u1s[k], u2, fitted1), col = k + 1, lwd = 2, lty = 2)
+}
+legend("bottomright", c(paste("u1 =", u1s), "true", "fitted"),
+  col = c(2:4, 1, 1), lwd = 2, lty = c(1, 1, 1, 1, 2), bty = "n"
+)
+```
+
+Conditional on `u1`, the curves rise and fall as the zigzag sends `u1` to
+different parts of the carrier scale. The joint distribution function
+`pbsicopula()` is compared in the same way, through the departure from
+independence `C(u1, u2) - u1 u2`.
+
+```{r cdf1, fig.height = 4.2}
+g <- (1:40 - 0.5) / 40
+G <- expand.grid(u1 = g, u2 = g)
+dep <- function(m) matrix(pbsicopula(G$u1, G$u2, m, nodes = 41) - G$u1 * G$u2, 40)
+Ct <- dep(truth1)
+Cf <- dep(fitted1)
+lev <- pretty(range(Ct, Cf), 10)
+op <- par(mfrow = c(1, 2))
+contour(g, g, Ct, levels = lev, main = "True C(u1, u2) - u1 u2", xlab = "u1", ylab = "u2")
+contour(g, g, Cf, levels = lev, main = "Fitted", xlab = "u1", ylab = "u2")
+par(op)
+max(abs(Ct - Cf))
+```
+
+## Example 2: a `randsdvine` randomizer model with v-transforms
+
+### The true model and the data
+
+In a `bsicopula` with a randomizer model the randomizers `Z1` and `Z2`,
+which select the branch of each udp transformation, are no longer
+independent. `randsdvine()` couples them through a D-vine on
+`(Z1, V1, V2, Z2)`; by default only the tree-3 copula `copZ1Z2_V1V2`,
+the dependence of `Z1` and `Z2` given the carrier values, is non-trivial.
+Here the base copula is Gumbel, which has upper tail dependence, and the
+margins are a `v2p` and a `vlinear` v-transform.
+
+```{r truth2}
+truth2 <- bsicopula(bicop_dist("gumbel", 0, 2),
+  udp1 = v2p(delta = 0.4, kappa = 1.5),
+  udp2 = vlinear(delta = 0.6),
+  randomizermod = randsdvine(bicop_dist("gaussian", 0, 0.6))
+)
+set.seed(12)
+U2 <- pseudo_obs(rbsicopula(800, truth2))
+plot(U2, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1)
+```
+
+### Fitting
+
+The starting object carries the structure: the Gumbel family, the two
+v-transform classes, and a `randsdvine` whose single Gaussian copula starts
+near independence. The starting parameters are all far from the truth.
+
+```{r start2}
+start2 <- bsicopula(bicop_dist("gumbel", 0, 1.4),
+  udp1 = v2p(delta = 0.5, kappa = 1),
+  udp2 = vlinear(delta = 0.5),
+  randomizermod = randsdvine(bicop_dist("gaussian", 0, 0.1))
+)
+fit2 <- fitbsicopula(U2, start2)
+fit2
+```
+
+By default `twostage = TRUE`: the model is first fitted with independent
+randomizers, and that fit supplies the starting values of the full model, so
+the randomizer's copula is estimated last. The parameter `copZ1Z2_V1V2.rho`
+is the correlation of the Gaussian copula coupling `Z1` and `Z2`.
+
+Is the randomizer model needed? The same data fitted with independent
+randomizers gives a markedly lower likelihood, and information criteria
+favour the full model:
+
+```{r indep2}
+fit2null <- fitbsicopula(U2, bsicopula(start2@basecopula, start2@udp1, start2@udp2))
+AIC(fit2null, fit2)
+```
+
+### True and fitted densities
+
+```{r dens2, fig.height = 4.2}
+op <- par(mfrow = c(1, 2))
+plot(truth2, main = "True density")
+plot(fit2@bsicopula, main = "Fitted density")
+par(op)
+```
+
+Even though the model is fitted to ranks only, the fitted density reproduces
+the main features of the true one: the shape imposed by the
+v-transforms and the concentration in the upper-right corner from the
+Gumbel copula's tail dependence.
+
+## Practical notes
+
+* `fitbsicopula()` needs `bicop_dist` base copulas, and the randomizer model
+  must be `NULL` or a `randsdvine`.
+* A udp whose parameters should not be estimated (determined elsewhere, for
+  instance by `aceshuffle()`) is held fixed with `udpfix = TRUE`.
+* The likelihood in a udp breakpoint such as `delta` is only piecewise
+  smooth, with a fine sawtooth for many base copulas. The fit is therefore
+  done by continuation, smoothing the carrier values first, and the
+  breakpoint estimates are accurate to about `1 / n`. See `?fitbsicopula` for
+  the details, and for why `se = "hessian"` should not be trusted for
+  breakpoints.
+* Set `pseudo = FALSE` when the data are probability integral transforms
+  from fitted marginal models rather than ranks; this only changes the
+  bootstrap.
