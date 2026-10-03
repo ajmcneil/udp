@@ -243,10 +243,6 @@ test_that("arguments are validated and unsupported models rejected", {
   nl <- bsicopula(bd("gaussian", 0, 0.5), vlinear(0.4), v2p(0.4, 1.5))
   expect_silent(pbsicopula(0.3, 0.4, nl))
   expect_silent(hbsicopula(0.3, 0.4, nl))
-  # a randomizer is not yet supported
-  r <- bsicopula(bd("gaussian", 0, 0.5), vlinear(0.4), vlinear(0.6), randsdvine(bd("gaussian", 0, 0.5)))
-  expect_error(pbsicopula(0.3, 0.4, r), "randomizer")
-  expect_error(hbsicopula(0.3, 0.4, r), "randomizer")
 })
 
 test_that("input may be a matrix, with the object in the second position, and length-1 arguments recycle", {
@@ -306,7 +302,7 @@ test_that("quadrature and exact tiers agree on a piecewise-linear target", {
   bc <- bsicopula(bd("clayton", 90, 2), vlinear(0.4), udpzigzag(widths = c(3, 4, 3)))
   u1 <- runif(100)
   u2 <- runif(100)
-  q <- udp:::h_quad(u2, udptrans(bc@udp1, u1), bc@udp2, bc@basecopula, 1L, 101L)
+  q <- udp:::h_quad(u2, udptrans(bc@udp1, u1), bc@udp2, bc, 1L, 101L)
   expect_lt(max(abs(q - hbsicopula(u1, u2, bc))), 1e-7)
 })
 
@@ -341,10 +337,58 @@ test_that("non-linear CDF matches simulation, boundaries and the derivative rela
   }
 })
 
-test_that("a randomizer is still rejected", {
+# ---- randomizer models ------------------------------------------------------
+
+randomizer_models <- function() {
+  rs <- randsdvine(bd("gaussian", 0, 0.7), bd("clayton", 90, 1.5), bd("gumbel", 270, 1.8))
+  list(
+    `randsdvine | v2p x v3p` = bsicopula(bd("gumbel", 270, 2), v2p(0.4, 1.5), v3p(0.6, 1.3, 1.2), rs),
+    `randsdvine | vlinear x zigzag` = bsicopula(bd("clayton", 90, 2), vlinear(0.4), udpzigzag(widths = c(3, 4, 3)), rs),
+    `randmixture | vlinear x cosine` = bsicopula(
+      bd("gaussian", 0, 0.5), vlinear(0.3), udpcosine(3),
+      randmixture(bd("gaussian", 0, 0.6), bd("clayton", 0, 2), function(v1, v2) v1 + v2 < 1)
+    )
+  )
+}
+
+test_that("h with a randomizer integrates dbsicopula(), whichever margin is conditioned on", {
   skip_if_not_installed("rvinecopulib")
-  bc <- nonlinear_models()[[1]]
-  bc@randomizermod <- randsdvine(bd("gaussian", 0, 0.5), bd("gaussian", 0, 0.5), bd("gaussian", 0, 0.5))
-  expect_error(hbsicopula(0.3, 0.4, bc), "randomizer")
-  expect_error(pbsicopula(0.3, 0.4, bc), "randomizer")
+  set.seed(7)
+  N <- 20000
+  g <- (seq_len(N) - 0.5) / N
+  for (nm in names(randomizer_models())) {
+    bc <- randomizer_models()[[nm]]
+    tol <- if (grepl("mixture", nm)) 2e-3 else 1e-4 # the mixture selector is discontinuous in v
+    for (i in 1:4) {
+      u <- runif(1)
+      x <- runif(1)
+      expect_equal(hbsicopula(u, x, bc), mean(dbsicopula(rep(u, N), g * x, bc)) * x, tolerance = tol, label = nm)
+      expect_equal(hbsicopula(x, u, bc, cond_var = 2), mean(dbsicopula(g * x, rep(u, N), bc)) * x, tolerance = tol, label = nm)
+    }
+    # uniform margins: h(1 | u) = 1 and C(u, 1) = u
+    u <- runif(5)
+    expect_equal(hbsicopula(u, rep(1, 5), bc), rep(1, 5), tolerance = 1e-6)
+    expect_equal(pbsicopula(u, rep(1, 5), bc, nodes = 41), u, tolerance = 2e-3)
+  }
+})
+
+test_that("h with a randomizer has an inverse (in the sense of h), and CDF matches simulation", {
+  skip_if_not_installed("rvinecopulib")
+  set.seed(8)
+  u1 <- runif(30)
+  u2 <- runif(30)
+  pts <- cbind(c(0.2, 0.5, 0.8, 0.4), c(0.3, 0.5, 0.6, 0.9))
+  for (nm in names(randomizer_models())) {
+    bc <- randomizer_models()[[nm]]
+    tol <- if (grepl("mixture", nm)) 3e-3 else 1e-4
+    # h can be flat where the density vanishes, so compare h values, not arguments
+    h <- hbsicopula(u1, u2, bc)
+    expect_lt(max(abs(hbsicopula(u1, hbsicopula(u1, h, bc, inverse = TRUE), bc) - h)), tol, label = nm)
+    h2 <- hbsicopula(u1, u2, bc, cond_var = 2)
+    back <- hbsicopula(h2, u2, bc, cond_var = 2, inverse = TRUE)
+    expect_lt(max(abs(hbsicopula(back, u2, bc, cond_var = 2) - h2)), tol, label = nm)
+    sim <- rbsicopula(2e5, bc)
+    est <- vapply(1:4, function(i) mean(sim[, 1] <= pts[i, 1] & sim[, 2] <= pts[i, 2]), 0)
+    expect_lt(max(abs(pbsicopula(pts[, 1], pts[, 2], bc, nodes = 41) - est)), 4e-3, label = nm)
+  }
 })

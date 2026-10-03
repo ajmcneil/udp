@@ -11,8 +11,7 @@ hbsicopula(u1, u2 = NULL, object, cond_var = 1L, inverse = FALSE, nodes = 101L)
 with a length-1 argument recycled to the length of the other. \code{u1} may
 instead be a two-column matrix with \code{u2} omitted: \code{pbsicopula(U, object = bc)}.}
 
-\item{object}{an object of class \linkS4class{bsicopula} with
-\code{randomizermod = NULL}. Its base copula may be a \code{bicop_dist} or a
+\item{object}{an object of class \linkS4class{bsicopula}. Its base copula may be a \code{bicop_dist} or a
 \code{parCopula} (via \code{\link[copula:pCopula]{copula::pCopula()}}).}
 
 \item{cond_var}{the conditioning variable, \code{1} or \code{2}.}
