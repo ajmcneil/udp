@@ -211,13 +211,30 @@ cell_quad <- function(a, upper, N, f, chunk = 2e5) {
   out
 }
 
-# h(u_t | v_g) = integral_0^{u_t} c_V(v_g, T_t(x)) dx over the cells of udp_t.
-h_quad <- function(u_t, v_g, udp_t, cop, given_var, N) {
-  br <- udpbreaks(udp_t)
-  dens <- function(t, idx) {
-    vt <- udptrans(udp_t, t)
-    if (given_var == 1L) basecopula_density(v_g[idx], vt, cop) else basecopula_density(vt, v_g[idx], cop)
+# The integrand of the h-function: the density of the target margin at t given
+# the conditioning margin's value g[idx]. With independent randomizers this is
+# c_V(v_g, T_t(t)), g holding the carrier values v_g. With a randomizer model
+# the density carries the weight w(u1, u2), which depends on the branches
+# selected, so g holds the conditioning value u_g and the integrand is
+# dbsicopula() itself.
+h_integrand <- function(g, udp_t, object, given_var) {
+  if (is.null(object@randomizermod)) {
+    cop <- object@basecopula
+    return(function(t, idx) {
+      vt <- pmin(pmax(udptrans(udp_t, t), 0), 1)
+      if (given_var == 1L) basecopula_density(g[idx], vt, cop) else basecopula_density(vt, g[idx], cop)
+    })
   }
+  function(t, idx) {
+    if (given_var == 1L) dbsicopula_eval(g[idx], t, object) else dbsicopula_eval(t, g[idx], object)
+  }
+}
+
+# h(u_t | g) = integral_0^{u_t} of the density over the cells of udp_t; see
+# h_integrand() for what g is.
+h_quad <- function(u_t, g, udp_t, object, given_var, N) {
+  br <- udpbreaks(udp_t)
+  dens <- h_integrand(g, udp_t, object, given_var)
   out <- numeric(length(u_t))
   for (k in seq_len(length(br) - 1L)) {
     out <- out + cell_quad(br[k], pmin(pmax(u_t, br[k]), br[k + 1L]), N, dens)
@@ -228,7 +245,7 @@ h_quad <- function(u_t, v_g, udp_t, cop, given_var, N) {
 # Inverse of h_quad() in u_t. Cumulative cell masses locate the cell that
 # holds the level; within it a bracketed Newton iteration (the derivative is
 # the density, bisection when a step leaves the bracket) solves for u_t.
-h_inverse_quad <- function(p, v_g, udp_t, cop, given_var, N, tol = 1e-12, maxit = 100L) {
+h_inverse_quad <- function(p, g, udp_t, object, given_var, N, tol = 1e-12, maxit = 100L) {
   n <- length(p)
   if (!n) {
     return(numeric(0))
@@ -236,10 +253,7 @@ h_inverse_quad <- function(p, v_g, udp_t, cop, given_var, N, tol = 1e-12, maxit 
   br <- udpbreaks(udp_t)
   K <- length(br) - 1L
   p <- pmin(pmax(p, 0), 1)
-  dens <- function(t, idx) {
-    vt <- udptrans(udp_t, t)
-    if (given_var == 1L) basecopula_density(v_g[idx], vt, cop) else basecopula_density(vt, v_g[idx], cop)
-  }
+  dens <- h_integrand(g, udp_t, object, given_var)
   cm <- matrix(0, n, K)
   for (k in seq_len(K)) {
     cm[, k] <- cell_quad(br[k], rep(br[k + 1L], n), N, dens) + if (k > 1L) cm[, k - 1L] else 0
@@ -267,42 +281,41 @@ h_inverse_quad <- function(p, v_g, udp_t, cop, given_var, N, tol = 1e-12, maxit 
   pmin(pmax(u, 0), 1)
 }
 
-# h(u_t | v_g) for the target margin t of 'object', exact if it is piecewise
-# linear and by quadrature otherwise.
-h_any <- function(u_t, v_t, v_g, udp_t, cop, given_var, N) {
+# h(u_t | g) for the target margin t of 'object', exact if the target is
+# piecewise linear and the randomizers independent, by quadrature otherwise.
+# g is the conditioning margin's carrier value v_g in the first case, its
+# argument u_g in the second (see h_integrand()).
+h_any <- function(u_t, v_t, g, udp_t, object, given_var, N) {
   Pt <- udplinpieces(udp_t)
-  if (is.null(Pt)) h_quad(u_t, v_g, udp_t, cop, given_var, N) else h_exact(u_t, v_t, v_g, Pt, cop, given_var)
+  if (is.null(Pt) || !is.null(object@randomizermod)) {
+    h_quad(u_t, g, udp_t, object, given_var, N)
+  } else {
+    h_exact(u_t, v_t, g, Pt, object@basecopula, given_var)
+  }
 }
 
-# CDF when a margin is not piecewise linear: integrate over that (outer)
-# margin the h-function of the other, conditioning on the outer margin's
-# carrier value. Two such margins nest two quadratures, N^2 nodes per pair of
-# cells.
+# CDF when a margin is not piecewise linear, or the randomizers are not
+# independent: integrate over one (outer) margin the h-function of the other,
+# conditioning on the outer margin's carrier value, or, with a randomizer,
+# on its argument. Two quadratures nest when both margins need one: N^2 nodes
+# per pair of cells.
 pbsicopula_quad <- function(u1, u2, object, N) {
-  o <- if (is.null(udplinpieces(object@udp2))) 2L else 1L
+  o <- if (is.null(udplinpieces(object@udp2)) || !is.null(object@randomizermod)) 2L else 1L
   udp_o <- slot(object, paste0("udp", o))
   udp_i <- slot(object, paste0("udp", 3L - o))
   u_o <- if (o == 1L) u1 else u2
   u_i <- if (o == 1L) u2 else u1
   v_i <- udptrans(udp_i, u_i)
-  cop <- object@basecopula
-  inner <- function(t, idx) h_any(u_i[idx], v_i[idx], udptrans(udp_o, t), udp_i, cop, o, N)
+  rand <- !is.null(object@randomizermod)
+  inner <- function(t, idx) {
+    h_any(u_i[idx], v_i[idx], if (rand) t else udptrans(udp_o, t), udp_i, object, o, N)
+  }
   br <- udpbreaks(udp_o)
   out <- numeric(length(u_o))
   for (k in seq_len(length(br) - 1L)) {
     out <- out + cell_quad(br[k], pmin(pmax(u_o, br[k]), br[k + 1L]), N, inner)
   }
   pmin(pmax(out, 0), 1)
-}
-
-# Argument checks shared by pbsicopula() and hbsicopula().
-check_bsi_tier <- function(object, what) {
-  if (!is.null(object@randomizermod)) {
-    stop(sprintf("%s is not yet implemented for a bsicopula with a randomizer; ", what),
-      "'randomizermod' must be NULL.",
-      call. = FALSE
-    )
-  }
 }
 
 check_nodes <- function(nodes) {
@@ -341,6 +354,19 @@ check_nodes <- function(nodes) {
 #' cell and point; with two it is `nodes^2` per pair of cells, so lower
 #' `nodes` for large samples. Accuracy is about `1e-8` at the default.
 #'
+#' With a randomizer model (a \linkS4class{randsdvine} or
+#' \linkS4class{randmixture}) the density is `c_V(v1, v2) w(u1, u2)`
+#' ([dbsicopula()]), with a weight `w` that depends on which branches of the
+#' transformations are selected, so no piece-by-piece closed form exists even
+#' for linear transformations. `pbsicopula()` and [hbsicopula()] then
+#' integrate [dbsicopula()] itself by the quadrature above, whatever the
+#' transformations are, with the CDF a double integral costing `nodes^2`
+#' evaluations of the density per pair of cells: use a smaller `nodes`
+#' (30 to 40 is usually plenty for a \linkS4class{randsdvine}) for more than
+#' a few points. The integrand of a \linkS4class{randmixture} jumps where its
+#' selector changes value, which tanh-sinh handles poorly: expect about
+#' `1e-3` accuracy there.
+#'
 #' Exactly on the boundary of the unit square the result is exact; for a
 #' `bicop_dist` base copula values elsewhere inherit \pkg{rvinecopulib}'s
 #' clipping of its arguments to `[1e-10, 1 - 1e-10]`.
@@ -349,8 +375,7 @@ check_nodes <- function(nodes) {
 #'   with a length-1 argument recycled to the length of the other. `u1` may
 #'   instead be a two-column matrix with `u2` omitted: `pbsicopula(U, object =
 #'   bc)`.
-#' @param object an object of class \linkS4class{bsicopula} with
-#'   `randomizermod = NULL`. Its base copula may be a `bicop_dist` or a
+#' @param object an object of class \linkS4class{bsicopula}. Its base copula may be a `bicop_dist` or a
 #'   `parCopula` (via [copula::pCopula()]).
 #' @param nodes number of tanh-sinh quadrature nodes per cell for
 #'   transformations that are not piecewise linear; ignored where the result
@@ -374,8 +399,7 @@ check_nodes <- function(nodes) {
 pbsicopula <- function(u1, u2 = NULL, object, nodes = 101L) {
   a <- bsicopula_args(u1, u2, object, if (missing(object)) NULL else object, range = TRUE)
   check_nodes(nodes)
-  check_bsi_tier(a$object, "pbsicopula()")
-  if (is.null(udplinpieces(a$object@udp1)) || is.null(udplinpieces(a$object@udp2))) {
+  if (!is.null(a$object@randomizermod) || is.null(udplinpieces(a$object@udp1)) || is.null(udplinpieces(a$object@udp2))) {
     return(pbsicopula_quad(a$u1, a$u2, a$object, as.integer(nodes)))
   }
   pbsicopula_exact(a$u1, a$u2, a$object)
@@ -459,22 +483,23 @@ hbsicopula <- function(u1, u2 = NULL, object, cond_var = 1L, inverse = FALSE, no
   object <- a$object
   # target margin t: the one integrated over (2 when conditioning on U1)
   t <- 3L - as.integer(cond_var)
-  check_bsi_tier(object, "hbsicopula()")
   u_g <- if (cond_var == 1L) a$u1 else a$u2
   u_t <- if (cond_var == 1L) a$u2 else a$u1
-  v_g <- udptrans(slot(object, paste0("udp", cond_var)), u_g)
-  Pt <- udplinpieces(slot(object, paste0("udp", t)))
-  if (is.null(Pt)) {
-    udp_t <- slot(object, paste0("udp", t))
+  udp_t <- slot(object, paste0("udp", t))
+  Pt <- udplinpieces(udp_t)
+  if (is.null(Pt) || !is.null(object@randomizermod)) {
+    # the conditioning value is u_g itself when a randomizer makes the density depend on branches
+    g <- if (is.null(object@randomizermod)) udptrans(slot(object, paste0("udp", cond_var)), u_g) else u_g
     N <- as.integer(nodes)
     if (inverse) {
-      return(h_inverse_quad(u_t, v_g, udp_t, object@basecopula, as.integer(cond_var), N))
+      return(h_inverse_quad(u_t, g, udp_t, object, as.integer(cond_var), N))
     }
-    return(h_quad(u_t, v_g, udp_t, object@basecopula, as.integer(cond_var), N))
+    return(h_quad(u_t, g, udp_t, object, as.integer(cond_var), N))
   }
+  v_g <- udptrans(slot(object, paste0("udp", cond_var)), u_g)
   if (inverse) {
     return(h_inverse_exact(u_t, v_g, Pt, object@basecopula, as.integer(cond_var)))
   }
-  v_t <- udptrans(slot(object, paste0("udp", t)), u_t)
+  v_t <- udptrans(udp_t, u_t)
   h_exact(u_t, v_t, v_g, Pt, object@basecopula, as.integer(cond_var))
 }

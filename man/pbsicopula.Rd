@@ -11,8 +11,7 @@ pbsicopula(u1, u2 = NULL, object, nodes = 101L)
 with a length-1 argument recycled to the length of the other. \code{u1} may
 instead be a two-column matrix with \code{u2} omitted: \code{pbsicopula(U, object = bc)}.}
 
-\item{object}{an object of class \linkS4class{bsicopula} with
-\code{randomizermod = NULL}. Its base copula may be a \code{bicop_dist} or a
+\item{object}{an object of class \linkS4class{bsicopula}. Its base copula may be a \code{bicop_dist} or a
 \code{parCopula} (via \code{\link[copula:pCopula]{copula::pCopula()}}).}
 
 \item{nodes}{number of tanh-sinh quadrature nodes per cell for
@@ -51,6 +50,19 @@ each integral is split at the break points of the transformation
 With one non-linear margin the cost is \code{nodes} base-copula evaluations per
 cell and point; with two it is \code{nodes^2} per pair of cells, so lower
 \code{nodes} for large samples. Accuracy is about \code{1e-8} at the default.
+
+With a randomizer model (a \linkS4class{randsdvine} or
+\linkS4class{randmixture}) the density is \verb{c_V(v1, v2) w(u1, u2)}
+(\code{\link[=dbsicopula]{dbsicopula()}}), with a weight \code{w} that depends on which branches of the
+transformations are selected, so no piece-by-piece closed form exists even
+for linear transformations. \code{pbsicopula()} and \code{\link[=hbsicopula]{hbsicopula()}} then
+integrate \code{\link[=dbsicopula]{dbsicopula()}} itself by the quadrature above, whatever the
+transformations are, with the CDF a double integral costing \code{nodes^2}
+evaluations of the density per pair of cells: use a smaller \code{nodes}
+(30 to 40 is usually plenty for a \linkS4class{randsdvine}) for more than
+a few points. The integrand of a \linkS4class{randmixture} jumps where its
+selector changes value, which tanh-sinh handles poorly: expect about
+\code{1e-3} accuracy there.
 
 Exactly on the boundary of the unit square the result is exact; for a
 \code{bicop_dist} base copula values elsewhere inherit \pkg{rvinecopulib}'s
