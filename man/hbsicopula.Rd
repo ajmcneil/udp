@@ -19,7 +19,7 @@ instead be a two-column matrix with \code{u2} omitted: \code{pbsicopula(U, objec
 
 \item{inverse}{logical; return the inverse h-function?}
 
-\item{nodes}{number of quadrature nodes per cell, reserved for
+\item{nodes}{number of tanh-sinh quadrature nodes per cell for
 transformations that are not piecewise linear; ignored where the result
 is exact.}
 }
@@ -50,6 +50,14 @@ one inverse base-copula h-function finishes the job. For two linear
 v-transforms these are the formulas of Proposition S3 in the supplementary
 material of Dias, Han and McNeil, which are those used by \code{tscopula} for
 vt-D-vines.
+
+When \code{udp2} (the margin integrated over) is not piecewise linear, \code{h} is
+the integral of the density \code{c_V(v1, T2(x))} over \code{x} up to \code{u2}, computed
+cell by cell with tanh-sinh quadrature (\code{nodes} per cell), and the inverse
+finds the cell holding the level from the cumulative cell masses and then
+solves for \code{u2} by a bracketed Newton iteration, the density being the
+derivative. This path is several times slower than the exact one, and the
+inverse slower again.
 
 For a \code{bicop_dist} base copula the base h-functions are those of
 \pkg{rvinecopulib}, called with the copula's arguments in its own order

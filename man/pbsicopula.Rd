@@ -15,7 +15,7 @@ instead be a two-column matrix with \code{u2} omitted: \code{pbsicopula(U, objec
 \code{randomizermod = NULL}. Its base copula may be a \code{bicop_dist} or a
 \code{parCopula} (via \code{\link[copula:pCopula]{copula::pCopula()}}).}
 
-\item{nodes}{number of quadrature nodes per cell, reserved for
+\item{nodes}{number of tanh-sinh quadrature nodes per cell for
 transformations that are not piecewise linear; ignored where the result
 is exact.}
 }
@@ -40,6 +40,17 @@ puts on the rectangle of carrier values the two pieces sweep up to
 \verb{(u1, u2)}. For two linear v-transforms this is Proposition S3 in the
 supplementary material of Dias, Han and McNeil. The result is exact to the
 accuracy of the base copula's CDF.
+
+Any other transformation (the non-linear v-transforms \code{\link[=v2p]{v2p()}}, \code{\link[=v2b]{v2b()}},
+\code{\link[=v3p]{v3p()}}, \code{\link[=v3b]{v3b()}}, and the polynomial and cosine families) is handled by
+quadrature. The CDF is the integral over one non-linear margin of the
+h-function of the other, conditioning on the carrier value of the first;
+each integral is split at the break points of the transformation
+(where it stops being smooth) and done by tanh-sinh quadrature with
+\code{nodes} nodes per cell, which copes with the infinite slopes at cell ends.
+With one non-linear margin the cost is \code{nodes} base-copula evaluations per
+cell and point; with two it is \code{nodes^2} per pair of cells, so lower
+\code{nodes} for large samples. Accuracy is about \code{1e-8} at the default.
 
 Exactly on the boundary of the unit square the result is exact; for a
 \code{bicop_dist} base copula values elsewhere inherit \pkg{rvinecopulib}'s

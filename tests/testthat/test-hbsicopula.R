@@ -158,8 +158,9 @@ test_that("h integrates the density when the conditioning margin is not linear",
         expect_equal(hbsicopula(u1, u2, o), mean(dbsicopula(rep(u1, N), t, o)) * u2, tolerance = 1e-3)
       }
     }
-    # and conversely, conditioning on U2 with a non-linear udp1 is not yet available
-    expect_error(hbsicopula(0.3, 0.4, o, cond_var = 2), "udp1")
+    # conversely, conditioning on U2 integrates over the non-linear udp1
+    t <- (seq_len(N) - 0.5) / N * 0.55
+    expect_equal(hbsicopula(0.55, 0.4, o, cond_var = 2), mean(dbsicopula(t, rep(0.4, N), o)) * 0.55, tolerance = 1e-3)
   }
 })
 
@@ -238,11 +239,10 @@ test_that("arguments are validated and unsupported models rejected", {
   expect_error(pbsicopula(c(0.1, 0.2, 0.3), c(0.4, 0.5), o), "same length")
   expect_error(pbsicopula(0.3, 0.4, o, nodes = 2), "'nodes' must be")
   expect_error(pbsicopula(c(0.1, 0.2, 0.3), object = o), "two-column matrix")
-  # not piecewise linear: the margin integrated over decides
+  # non-linear margins are handled by quadrature
   nl <- bsicopula(bd("gaussian", 0, 0.5), vlinear(0.4), v2p(0.4, 1.5))
-  expect_error(pbsicopula(0.3, 0.4, nl), "not piecewise linear")
-  expect_error(hbsicopula(0.3, 0.4, nl), "udp2")
-  expect_silent(hbsicopula(0.3, 0.4, nl, cond_var = 2))
+  expect_silent(pbsicopula(0.3, 0.4, nl))
+  expect_silent(hbsicopula(0.3, 0.4, nl))
   # a randomizer is not yet supported
   r <- bsicopula(bd("gaussian", 0, 0.5), vlinear(0.4), vlinear(0.6), randsdvine(bd("gaussian", 0, 0.5)))
   expect_error(pbsicopula(0.3, 0.4, r), "randomizer")
@@ -267,4 +267,84 @@ test_that("input may be a matrix, with the object in the second position, and le
   expect_identical(length(pbsicopula(numeric(0), numeric(0), o)), 0L)
   expect_identical(length(hbsicopula(numeric(0), numeric(0), o, inverse = TRUE)), 0L)
   expect_error(dbsicopula(c(0.1, 0.2, 0.3), c(0.4, 0.5), o), "same length")
+})
+
+# ---- non-linear transformations (tanh-sinh quadrature) ---------------------
+
+nonlinear_models <- function() {
+  list(
+    `gumbel270 | v2p x v3p` = bsicopula(bd("gumbel", 270, 2), v2p(0.4, 1.5), v3p(0.6, 1.3, 1.2)),
+    `clayton90 | vlinear x v2b` = bsicopula(bd("clayton", 90, 2), vlinear(0.4), v2b(0.3, 1.4)),
+    `gaussian | legendre x v2p` = bsicopula(bd("gaussian", 0, 0.6), udplegendre(3), v2p(0.5, 0.8))
+  )
+}
+
+test_that("quadrature h agrees with integrate() of the density", {
+  skip_if_not_installed("rvinecopulib")
+  set.seed(2)
+  u1 <- runif(30)
+  u2 <- runif(30)
+  for (nm in names(nonlinear_models())) {
+    bc <- nonlinear_models()[[nm]]
+    h <- hbsicopula(u1, u2, bc)
+    br <- udp:::udpbreaks(bc@udp2)
+    ref <- vapply(seq_along(u1), function(i) {
+      v1 <- udptrans(bc@udp1, u1[i])
+      g <- function(x) rvinecopulib::dbicop(cbind(rep(v1, length(x)), udptrans(bc@udp2, x)), bc@basecopula)
+      sum(vapply(seq_len(length(br) - 1L), function(k) {
+        hi <- min(max(u2[i], br[k]), br[k + 1L])
+        if (hi > br[k]) integrate(g, br[k], hi, rel.tol = 1e-10, subdivisions = 1000L)$value else 0
+      }, 0))
+    }, 0)
+    expect_lt(max(abs(h - ref)), 1e-5, label = nm)
+  }
+})
+
+test_that("quadrature and exact tiers agree on a piecewise-linear target", {
+  skip_if_not_installed("rvinecopulib")
+  set.seed(3)
+  bc <- bsicopula(bd("clayton", 90, 2), vlinear(0.4), udpzigzag(widths = c(3, 4, 3)))
+  u1 <- runif(100)
+  u2 <- runif(100)
+  q <- udp:::h_quad(u2, udptrans(bc@udp1, u1), bc@udp2, bc@basecopula, 1L, 101L)
+  expect_lt(max(abs(q - hbsicopula(u1, u2, bc))), 1e-7)
+})
+
+test_that("inverse h inverts h for non-linear transformations, both conditioning variables", {
+  skip_if_not_installed("rvinecopulib")
+  set.seed(4)
+  u1 <- runif(50)
+  u2 <- runif(50)
+  for (bc in nonlinear_models()) {
+    for (cv in 1:2) {
+      h <- hbsicopula(u1, u2, bc, cond_var = cv)
+      expect_lt(max(abs(hbsicopula(u1, u2, bc, cond_var = cv) - h)), 1e-15)
+      back <- if (cv == 1L) hbsicopula(u1, h, bc, cond_var = 1, inverse = TRUE) else hbsicopula(h, u2, bc, cond_var = 2, inverse = TRUE)
+      target <- if (cv == 1L) u2 else u1
+      expect_lt(max(abs(back - target)), 1e-6)
+    }
+  }
+})
+
+test_that("non-linear CDF matches simulation, boundaries and the derivative relation", {
+  skip_if_not_installed("rvinecopulib")
+  set.seed(5)
+  pts <- cbind(c(0.2, 0.5, 0.8, 0.4), c(0.3, 0.5, 0.6, 0.9))
+  for (bc in nonlinear_models()) {
+    sim <- rbsicopula(2e5, bc)
+    est <- vapply(1:4, function(i) mean(sim[, 1] <= pts[i, 1] & sim[, 2] <= pts[i, 2]), 0)
+    expect_lt(max(abs(pbsicopula(pts[, 1], pts[, 2], bc) - est)), 4e-3)
+    expect_equal(pbsicopula(c(0, 1, 1, 0.5), c(0.5, 0.5, 1, 1), bc), c(0, 0.5, 1, 0.5), tolerance = 1e-6)
+    e <- 1e-4
+    d <- (pbsicopula(0.5 + e, 0.6, bc) - pbsicopula(0.5 - e, 0.6, bc)) / (2 * e)
+    expect_equal(d, hbsicopula(0.5, 0.6, bc), tolerance = 1e-5)
+  }
+})
+
+test_that("a randomizer is still rejected", {
+  skip_if_not_installed("rvinecopulib")
+  bc <- nonlinear_models()[[1]]
+  bc@randomizermod <- randsdvine(bd("gaussian", 0, 0.5), bd("gaussian", 0, 0.5), bd("gaussian", 0, 0.5))
+  expect_error(hbsicopula(0.3, 0.4, bc), "randomizer")
+  expect_error(pbsicopula(0.3, 0.4, bc), "randomizer")
 })
