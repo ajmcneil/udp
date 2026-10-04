@@ -84,7 +84,7 @@ sums are the cell widths, since \code{U1} and \code{U2} are uniform.
 
 The averages are computed by quadrature with \code{ngrid} nodes per
 integration (so \code{ngrid^2} points in the unconditional case). For a
-\code{bicop_dist} base copula the nodes are conditional quantiles of the
+\code{bicop_dist} or \linkS4class{astcopula} base copula the nodes are conditional quantiles of the
 missing carrier, which handles unbounded copula densities exactly. For a
 parCopula base copula (possible when \code{randomizermod} is \code{NULL} or a
 \linkS4class{randmixture}) the \pkg{copula} package offers no conditional

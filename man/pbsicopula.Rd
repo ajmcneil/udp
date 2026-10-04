@@ -11,8 +11,8 @@ pbsicopula(u1, u2 = NULL, object, nodes = 101L)
 with a length-1 argument recycled to the length of the other. \code{u1} may
 instead be a two-column matrix with \code{u2} omitted: \code{pbsicopula(U, object = bc)}.}
 
-\item{object}{an object of class \linkS4class{bsicopula}. Its base copula may be a \code{bicop_dist} or a
-\code{parCopula} (via \code{\link[copula:pCopula]{copula::pCopula()}}).}
+\item{object}{an object of class \linkS4class{bsicopula}. Its base copula may be a \code{bicop_dist}, an
+\linkS4class{astcopula} or a \code{parCopula} (via \code{\link[copula:pCopula]{copula::pCopula()}}).}
 
 \item{nodes}{number of tanh-sinh quadrature nodes per cell for
 transformations that are not piecewise linear; ignored where the result
@@ -77,8 +77,9 @@ if (requireNamespace("rvinecopulib", quietly = TRUE)) {
 }
 }
 \references{
-Dias, A., Han, J. and McNeil, A. J. (2026). GARCH copulas, v-transforms and
-D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis}.
+Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis},
+\strong{217}, 105695. \doi{10.1016/j.jmva.2026.105695}
 }
 \seealso{
 \code{\link[=hbsicopula]{hbsicopula()}}, \code{\link[=dbsicopula]{dbsicopula()}}, \code{\link[=rbsicopula]{rbsicopula()}}.

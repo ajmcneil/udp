@@ -177,4 +177,8 @@ if (requireNamespace("rvinecopulib", quietly = TRUE)) {
 McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
 multivariate uniform-distribution-preserving transformations.
 \href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
+
+Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis},
+\strong{217}, 105695. \doi{10.1016/j.jmva.2026.105695}
 }

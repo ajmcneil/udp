@@ -62,10 +62,20 @@ fit$correlation          # recovered
 #> [1] 0.7974555
 ```
 
-See `vignette("udp")` for the full tour.
+See `vignette("udp")` for the full tour. The `bsicopula` class builds bivariate
+copulas from udp transformations by stochastic inversion
+(`vignette("bsicopula")`), with density, CDF and h-functions
+(`dbsicopula()`, `pbsicopula()`, `hbsicopula()`), maximum likelihood fitting
+(`vignette("fitbsicopula")`), and a choice of base copulas: families from
+`rvinecopulib` or `copula`, or the absolute spherical t copula
+`astcopula()`, with its Kendall's tau and calibration of the degrees of
+freedom (`astcopula_tau()`, `astcopula_nu()`).
 
 ## References
 
+- Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+  D-vines for stochastic volatility. *Journal of Multivariate Analysis*,
+  **217**, 105695. <https://doi.org/10.1016/j.jmva.2026.105695>
 - McNeil, A. J. (2021). Modelling volatile time series with v-transforms and
   copulas. *Risks*, **9**(1), 14.
   <https://doi.org/10.3390/risks9010014>

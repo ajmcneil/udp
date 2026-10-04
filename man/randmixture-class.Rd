@@ -32,8 +32,9 @@ the closure by value, not by a variable that might be reassigned later.
 \section{Slots}{
 
 \describe{
-\item{\code{cop1,cop2}}{parCopula objects (\pkg{copula}) or bicop_dist objects
-(\pkg{rvinecopulib}), the two copulas of \verb{(Z1, Z2)} to choose between.
+\item{\code{cop1,cop2}}{parCopula objects (\pkg{copula}), bicop_dist objects
+(\pkg{rvinecopulib}) or \linkS4class{astcopula} objects, the two copulas
+of \verb{(Z1, Z2)} to choose between.
 \code{cop1} and \code{cop2} need not share a backend -- one may be a parCopula
 and the other a bicop_dist object -- since sampling and density/CDF
 evaluation dispatch on each of \code{cop1}/\code{cop2} individually.}

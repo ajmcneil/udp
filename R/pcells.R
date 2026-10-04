@@ -161,7 +161,7 @@ pcells_given_one <- function(object, given, which, breaks1, breaks2, N) {
 #'
 #' The averages are computed by quadrature with `ngrid` nodes per
 #' integration (so `ngrid^2` points in the unconditional case). For a
-#' `bicop_dist` base copula the nodes are conditional quantiles of the
+#' `bicop_dist` or \linkS4class{astcopula} base copula the nodes are conditional quantiles of the
 #' missing carrier, which handles unbounded copula densities exactly. For a
 #' parCopula base copula (possible when `randomizermod` is `NULL` or a
 #' \linkS4class{randmixture}) the \pkg{copula} package offers no conditional

@@ -15,6 +15,18 @@ drawn dependently -- on \verb{(V1, V2)} and on each other -- injecting
 further dependence between the two margins, including non-monotonic
 dependence when \code{udp1}/\code{udp2} are many-to-one.
 }
+\details{
+\strong{Base copulas.} The copula of \verb{(V1, V2)} can be a parametric family from
+\pkg{rvinecopulib} (\code{bicop_dist}), a \code{parCopula} from \pkg{copula}, or the
+absolute spherical t copula, \linkS4class{astcopula}, the copula of the
+absolute values of a bivariate t vector with correlation zero (Dias, Han
+and McNeil, 2027), which has upper tail dependence and is the copula the
+symmetric v-transform produces from the t copula. See \code{\link[=astcopula]{astcopula()}} for its
+density, CDF, h-functions, Kendall's tau and the calibration of its degrees
+of freedom to a Kendall's tau. Which base copulas each function supports is
+stated in its help page; in particular \code{\link[=fitbsicopula]{fitbsicopula()}} estimates
+\code{bicop_dist} and \code{astcopula} base copulas.
+}
 \section{Slots}{
 
 \describe{
@@ -32,6 +44,10 @@ stochastic inversion (\code{\link[=udpsi]{udpsi()}}) to \code{V1} and \code{V2} 
 McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
 multivariate uniform-distribution-preserving transformations.
 \href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
+
+Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis},
+\strong{217}, 105695. \doi{10.1016/j.jmva.2026.105695}
 }
 \seealso{
 \code{\link[=bsicopula]{bsicopula()}} to construct one; \code{\link[=rbsicopula]{rbsicopula()}} to sample from one.

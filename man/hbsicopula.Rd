@@ -11,8 +11,8 @@ hbsicopula(u1, u2 = NULL, object, cond_var = 1L, inverse = FALSE, nodes = 101L)
 with a length-1 argument recycled to the length of the other. \code{u1} may
 instead be a two-column matrix with \code{u2} omitted: \code{pbsicopula(U, object = bc)}.}
 
-\item{object}{an object of class \linkS4class{bsicopula}. Its base copula may be a \code{bicop_dist} or a
-\code{parCopula} (via \code{\link[copula:pCopula]{copula::pCopula()}}).}
+\item{object}{an object of class \linkS4class{bsicopula}. Its base copula may be a \code{bicop_dist}, an
+\linkS4class{astcopula} or a \code{parCopula} (via \code{\link[copula:pCopula]{copula::pCopula()}}).}
 
 \item{cond_var}{the conditioning variable, \code{1} or \code{2}.}
 
@@ -58,6 +58,10 @@ solves for \code{u2} by a bracketed Newton iteration, the density being the
 derivative. This path is several times slower than the exact one, and the
 inverse slower again.
 
+For an \linkS4class{astcopula} base copula the base h-functions and their
+inverses are closed forms in the univariate t distribution
+(Dias, Han and McNeil, 2027).
+
 For a \code{bicop_dist} base copula the base h-functions are those of
 \pkg{rvinecopulib}, called with the copula's arguments in its own order
 (never transposed), so non-exchangeable copulas such as the 90 and 270
@@ -80,8 +84,9 @@ if (requireNamespace("rvinecopulib", quietly = TRUE)) {
 }
 }
 \references{
-Dias, A., Han, J. and McNeil, A. J. (2026). GARCH copulas, v-transforms and
-D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis}.
+Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis},
+\strong{217}, 105695. \doi{10.1016/j.jmva.2026.105695}
 }
 \seealso{
 \code{\link[=pbsicopula]{pbsicopula()}}, \code{\link[=dbsicopula]{dbsicopula()}}, \code{\link[=rbsicopula]{rbsicopula()}}.
