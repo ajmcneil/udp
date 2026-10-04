@@ -48,9 +48,18 @@ bicop_par_info <- function(family) {
 # and (1, 1) for rho > 0 and at the other two for rho < 0 -- so the rule
 # needs neither, and the objective stays one function when rho changes sign
 # mid-fit.)
-basecopula_needs_vfloor <- function(cop) {
+setGeneric("basecopula_needs_vfloor", function(cop) standardGeneric("basecopula_needs_vfloor"))
+
+setMethod("basecopula_needs_vfloor", "bicop_dist", function(cop) {
   !(cop$family %in% c("indep", "frank", "bb8"))
-}
+})
+
+# The absolute spherical t copula has an asymptote at (1, 1) (upper tail
+# dependence), and a zigzag's breakpoints map interior points to 1.
+setMethod("basecopula_needs_vfloor", "astcopula", function(cop) TRUE)
+
+# Any other base copula: be safe.
+setMethod("basecopula_needs_vfloor", "ANY", function(cop) TRUE)
 
 # A parameter block for a bicop_dist held somewhere in a bsicopula: get()
 # extracts it, set(obj, cop) stores a replacement.
@@ -63,6 +72,43 @@ bicop_block <- function(label, cop, set) {
       set(obj, rvinecopulib::bicop_dist(cop$family, cop$rotation, value))
     }
   )
+}
+
+# The parameter block of a base copula held in a bsicopula, a generic so that
+# a new base-copula family can be estimated by defining a method. set(obj, cop)
+# stores a replacement copula in obj.
+setGeneric("basecopula_fit_block", function(cop, label, set) standardGeneric("basecopula_fit_block"))
+
+setMethod("basecopula_fit_block", "bicop_dist", function(cop, label, set) bicop_block(label, cop, set))
+
+# The absolute spherical t copula has the single parameter nu > 0, estimated
+# on the log scale.
+setMethod("basecopula_fit_block", "astcopula", function(cop, label, set) {
+  list(
+    label = label, names = "nu", value = cop@nu,
+    maps = bounded_maps(0, Inf),
+    set = function(obj, value) set(obj, astcopula(value))
+  )
+})
+
+setMethod("basecopula_fit_block", "ANY", function(cop, label, set) {
+  stop(sprintf(
+    "estimation is not supported for a base copula of class '%s'; use a bicop_dist (rvinecopulib) or an astcopula.",
+    class(cop)[1L]
+  ),
+  call. = FALSE
+  )
+})
+
+# A one-line description of a base copula, for show().
+basecopula_label <- function(cop) {
+  if (is_bicop_dist(cop)) {
+    sprintf("%s (rotation %s)", cop$family, cop$rotation)
+  } else if (methods::is(cop, "astcopula")) {
+    "absolute spherical t (ast)"
+  } else {
+    class(cop)[1L]
+  }
 }
 
 # udp_fitpars() gives either box bounds (lower/upper) or, for parameters
@@ -81,7 +127,7 @@ udp_block <- function(label, x, set) {
 # so a randsdvine's tree-2 copulas, independence by default, are estimated
 # only when the user has made them parametric.
 fit_blocks <- function(object, udpfix) {
-  blocks <- list(bicop_block("basecopula", object@basecopula, function(obj, cop) {
+  blocks <- list(basecopula_fit_block(object@basecopula, "basecopula", function(obj, cop) {
     obj@basecopula <- cop
     obj
   }))
@@ -334,9 +380,11 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' copula families and rotations, the udp classes, the randomizer model --
 #' and the starting values for the optimization.
 #'
-#' The base copula (and every copula of a \linkS4class{randsdvine}) must be
-#' a parametric `bicop_dist` object from \pkg{rvinecopulib}; its family and
-#' rotation are held fixed and only its parameters are estimated.
+#' The base copula must be a parametric `bicop_dist` object from
+#' \pkg{rvinecopulib} or an \linkS4class{astcopula} (whose one parameter,
+#' `nu`, is estimated on the log scale), and every copula of a
+#' \linkS4class{randsdvine} a parametric `bicop_dist`; the family and
+#' rotation are held fixed and only the parameters are estimated.
 #' `randomizermod` must be `NULL` or a \linkS4class{randsdvine}.
 #'
 #' **udp parameters.** With `udpfix = FALSE`, the continuous parameters of
@@ -372,7 +420,12 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' with a small correlation, say) as its starting value. With
 #' `twostage = TRUE`, the model is first fitted with independent
 #' randomizers, and that fit's base copula and udps are used as starting
-#' values for the full fit.
+#' values for the full fit. Since the independent-randomizer model is
+#' misspecified for such data, those values can lie in the basin of a poor
+#' local maximum (with an absolute spherical t base copula the likelihood was
+#' 30 to 50 units lower in simulations), so the full fit is also run from the
+#' starting values in `object` and the better of the two is kept; this
+#' doubles the work, and `twostage = FALSE` gives the single fit from `object`.
 #'
 #' **Boundary clamp.** udp breakpoints map interior points to `0` or `1`: a
 #' v-transform's fulcrum `delta` to `0`, a zigzag's breakpoints to `0` and
@@ -436,7 +489,8 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #'   their given values?
 #' @param twostage logical; when `randomizermod` is a
 #'   \linkS4class{randsdvine}, obtain starting values from a first fit with
-#'   independent randomizers? Ignored otherwise.
+#'   independent randomizers (the full fit is also run from `object` and the
+#'   better kept; see Details)? Ignored otherwise.
 #' @param se `FALSE` (the default) for no standard errors, `"bootstrap"` (or
 #'   `TRUE`) for parametric bootstrap standard errors, or `"hessian"` for
 #'   Hessian-based ones; see Details.
@@ -452,7 +506,7 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
 #' multivariate uniform-distribution-preserving transformations.
 #' \href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
-#' @include bsicopula.R
+#' @include bsicopula.R astcopula.R
 #' @export
 #'
 #' @examples
@@ -502,11 +556,6 @@ fitbsicopula <- function(U, object, pseudo = TRUE, udpfix = FALSE, twostage = TR
     (!is.numeric(B) || length(B) != 1L || is.na(B) || B < 2 || B != round(B))) {
     stop("'B' must be a single integer of at least 2.", call. = FALSE)
   }
-  if (!is_bicop_dist(object@basecopula)) {
-    stop("fitbsicopula() requires the base copula to be a bicop_dist object (rvinecopulib).",
-      call. = FALSE
-    )
-  }
   rm <- object@randomizermod
   if (!is.null(rm) && !methods::is(rm, "randsdvine")) {
     stop("fitbsicopula() supports only randomizermod = NULL or a 'randsdvine' object.",
@@ -539,20 +588,32 @@ fitbsicopula <- function(U, object, pseudo = TRUE, udpfix = FALSE, twostage = TR
 
 # The whole estimation procedure from the starting object: for a randsdvine
 # with twostage = TRUE, a first fit with independent randomizers whose base
-# copula and udps then start the full fit. Returns the full fit's result
-# ('res') and the first stage's ('res1', NULL for a single-stage fit).
+# copula and udps then start the full fit. The independent-randomizer model
+# is misspecified for the data, so its estimates can lie in the basin of a
+# poor local maximum of the full likelihood (with an absolute spherical t base
+# copula, 30 to 50 log-likelihood units below the best in simulations), and
+# the full fit is therefore also run from the user's own starting values, the
+# better of the two being kept. Returns the full fit's result ('res') and the
+# first stage's ('res1', NULL for a single-stage fit).
 fit_procedure <- function(U, object, udpfix, twostage, vfloor, hessian, method, control) {
   res1 <- NULL
   if (!is.null(object@randomizermod) && twostage) {
     object1 <- object
     object1@randomizermod <- NULL
     res1 <- fit_continued(U, object1, udpfix, vfloor, FALSE, method, control)
-    object@basecopula <- res1$object@basecopula
-    object@udp1 <- res1$object@udp1
-    object@udp2 <- res1$object@udp2
+    object2 <- object
+    object2@basecopula <- res1$object@basecopula
+    object2@udp1 <- res1$object@udp1
+    object2@udp2 <- res1$object@udp2
+    res <- fit_continued(U, object2, udpfix, vfloor, hessian, method, control)
+    direct <- tryCatch(
+      fit_continued(U, object, udpfix, vfloor, hessian, method, control),
+      error = function(e) NULL
+    )
+    if (!is.null(direct) && direct$loglik > res$loglik) res <- direct
+    return(list(res = res, res1 = res1))
   }
-  res <- fit_continued(U, object, udpfix, vfloor, hessian, method, control)
-  list(res = res, res1 = res1)
+  list(res = fit_continued(U, object, udpfix, vfloor, hessian, method, control), res1 = res1)
 }
 
 # Carrier-value clamps for the preliminary fits of fit_continued().
@@ -624,9 +685,7 @@ setMethod("show", "fitbsicopula", function(object) {
   udpname <- function(x) if (methods::is(x, "vtransform")) x@name else class(x)
   rm <- bc@randomizermod
   cat("Fitted bsicopula (maximum likelihood, n = ", object@nobs, ")\n", sep = "")
-  cat("base copula: ", bc@basecopula$family, " (rotation ", bc@basecopula$rotation, ")\n",
-    sep = ""
-  )
+  cat("base copula: ", basecopula_label(bc@basecopula), "\n", sep = "")
   cat("udp1: ", udpname(bc@udp1), ", udp2: ", udpname(bc@udp2), "\n", sep = "")
   cat("randomizer: ", if (is.null(rm)) "independent" else "randsdvine", "\n", sep = "")
   if (object@npar > 0L) {
