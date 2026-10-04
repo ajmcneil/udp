@@ -8,6 +8,7 @@
 \alias{pastcopula}
 \alias{hastcopula}
 \alias{rastcopula}
+\alias{show,astcopula-method}
 \title{The absolute spherical t copula}
 \usage{
 astcopula(nu)
@@ -19,6 +20,8 @@ pastcopula(u1, u2 = NULL, object)
 hastcopula(u1, u2 = NULL, object, cond_var = 1L, inverse = FALSE)
 
 rastcopula(n, object)
+
+\S4method{show}{astcopula}(object)
 }
 \arguments{
 \item{nu}{degrees of freedom, a positive number.}

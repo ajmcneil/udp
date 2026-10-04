@@ -206,6 +206,8 @@ setMethod("basecopula_h", "astcopula", function(basecopula, given, x, given_var)
 setMethod("basecopula_hinv", "astcopula", function(basecopula, given, q, given_var) ast_hinv(given, q, basecopula@nu))
 setMethod("basecopula_fast_hinv", "astcopula", function(basecopula) TRUE)
 
+#' @rdname astcopula
+#' @export
 setMethod("show", "astcopula", function(object) {
   cat("Absolute spherical t copula, nu = ", format(object@nu), "\n", sep = "")
 })
