@@ -50,6 +50,12 @@ astcopula_tau(c(0.5, 1, 2, 4, 10))
 astcopula_nu(c(0.1, 0.3, 0.5))
 astcopula_tau(astcopula_nu(0.25))
 }
+\references{
+Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis},
+\strong{217}, 105695. \doi{10.1016/j.jmva.2026.105695} (the double integral for
+Kendall's tau is equation 34 of the Supplementary Material).
+}
 \seealso{
 \code{\link[=astcopula]{astcopula()}}.
 }

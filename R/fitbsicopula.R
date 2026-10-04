@@ -506,6 +506,10 @@ new_fitbsicopula <- function(res, nobs, vfloor, se_method = "none", stage1 = NUL
 #' McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
 #' multivariate uniform-distribution-preserving transformations.
 #' \href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
+#'
+#' Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*,
+#' **217**, 105695. \doi{10.1016/j.jmva.2026.105695}
 #' @include bsicopula.R astcopula.R
 #' @export
 #'

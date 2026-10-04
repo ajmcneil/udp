@@ -46,7 +46,7 @@ distribution with \code{nu} degrees of freedom and correlation zero. It is the
 t copula with correlation zero transformed on both margins by the
 symmetric v-transform (\code{\link[=vsymmetric]{vsymmetric()}}), and applying the stochastic inverse
 of that transformation under independent randomizers gives the t copula
-back (Dias, Han and McNeil, 2026). The family interpolates between
+back (Dias, Han and McNeil, 2027). The family interpolates between
 independence (\code{nu} to infinity) and comonotonicity (\code{nu} to 0), so
 Kendall's tau (\code{\link[=astcopula_tau]{astcopula_tau()}}) ranges over \verb{(0, 1)}. It has upper tail
 dependence and is asymptotically independent in the lower tail.
@@ -74,8 +74,9 @@ hastcopula(0.4, h, ac, inverse = TRUE)
 head(rastcopula(5, ac))
 }
 \references{
-Dias, A., Han, J. and McNeil, A. J. (2026). GARCH copulas, v-transforms and
-D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis}.
+Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+D-vines for stochastic volatility. \emph{Journal of Multivariate Analysis},
+\strong{217}, 105695. \doi{10.1016/j.jmva.2026.105695}
 }
 \seealso{
 \code{\link[=astcopula_tau]{astcopula_tau()}} and \code{\link[=astcopula_nu]{astcopula_nu()}} for Kendall's tau and the

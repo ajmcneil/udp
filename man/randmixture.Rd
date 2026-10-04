@@ -7,8 +7,9 @@
 randmixture(cop1, cop2, selector)
 }
 \arguments{
-\item{cop1, cop2}{parCopula objects (\pkg{copula}) or bicop_dist objects
-(\pkg{rvinecopulib}), the two copulas of \verb{(Z1, Z2)} to choose between.}
+\item{cop1, cop2}{parCopula objects (\pkg{copula}), bicop_dist objects
+(\pkg{rvinecopulib}) or \linkS4class{astcopula} objects, the two copulas
+of \verb{(Z1, Z2)} to choose between.}
 
 \item{selector}{a function \code{selector(v1, v2)} returning a logical vector
 the same length as \code{v1}/\code{v2}, with no \code{NA}s: \code{TRUE} selects \code{cop1},

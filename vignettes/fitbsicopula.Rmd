@@ -31,14 +31,16 @@ likelihood. The object you give it fixes the *structure* of the model -- the
 family and rotation of the base copula, the class of each udp
 transformation, and the kind of randomizer model -- and supplies the
 *starting values* of the parameters. Everything continuous is then estimated.
-This vignette fits two models to simulated data, in each case starting
+This vignette fits three models to simulated data, in each case starting
 well away from the truth:
 
 1. independent randomizers, with a three-piece zigzag and a `v2p`
    v-transform as the udp transformations;
-2. a `randsdvine` randomizer model, with v-transforms for the udps.
+2. a `randsdvine` randomizer model, with v-transforms for the udps;
+3. independent randomizers and the absolute spherical t copula as the
+   base copula, with v-transforms for the udps.
 
-Each follows the same recipe: simulate from a known model, estimate it from
+A third example uses the absolute spherical t copula as the base copula. Each follows the same recipe: simulate from a known model, estimate it from
 poor starting values, and compare the true and fitted densities.
 
 The data given to `fitbsicopula()` are pseudo-observations, ranks scaled into
@@ -219,10 +221,70 @@ the main features of the true one: the shape imposed by the
 v-transforms and the concentration in the upper-right corner from the
 Gumbel copula's tail dependence.
 
+## Example 3: the absolute spherical t copula as base copula
+
+The base copula need not come from `rvinecopulib`. The absolute spherical
+t copula, `astcopula(nu)`, is the copula of the absolute values of a
+bivariate t vector with correlation zero (Dias, Han and McNeil, 2027). It
+has upper tail dependence, a single parameter `nu`, and is available as a
+base copula of a `bsicopula`. It interpolates between independence
+(`nu` large) and comonotonicity (`nu` small), and its Kendall's tau is
+`astcopula_tau(nu)`.
+
+```{r truth3}
+truth3 <- bsicopula(astcopula(2),
+  udp1 = vlinear(delta = 0.4),
+  udp2 = v2p(delta = 0.6, kappa = 1.4)
+)
+set.seed(21)
+U3 <- pseudo_obs(rbsicopula(1500, truth3))
+```
+
+The fit starts from 15 degrees of freedom -- nearly independence -- and
+fulcrums at the middle of the unit interval. The degrees of freedom are
+estimated on the log scale and reported as `basecopula.nu`.
+
+```{r fit3}
+start3 <- bsicopula(astcopula(15),
+  udp1 = vlinear(delta = 0.5),
+  udp2 = v2p(delta = 0.5, kappa = 1)
+)
+fit3 <- fitbsicopula(U3, start3)
+fit3
+```
+
+The fitted `nu` can be reported as a Kendall's tau of the base copula,
+and `astcopula_nu()` converts a Kendall's tau into degrees of freedom:
+
+```{r tau3}
+c(true = astcopula_tau(2), fitted = astcopula_tau(coef(fit3)[["basecopula.nu"]]))
+astcopula_nu(0.2)
+```
+
+```{r dens3, fig.height = 4.2}
+op <- par(mfrow = c(1, 2))
+plot(truth3, main = "True density")
+plot(fit3@bsicopula, main = "Fitted density")
+par(op)
+```
+
+The shape of this density comes from the two v-transforms, which fold the
+carrier values of the t copula with correlation zero, so that ranks near
+the fulcrums are pushed to the corner where the ast copula has its
+tail dependence. As in Example 1, `se = "bootstrap"` would give standard
+errors.
+
 ## Practical notes
 
-* `fitbsicopula()` needs `bicop_dist` base copulas, and the randomizer model
-  must be `NULL` or a `randsdvine`.
+* `fitbsicopula()` fits `bicop_dist` base copulas from `rvinecopulib` and
+  the absolute spherical t copula `astcopula()`, and the randomizer model
+  must be `NULL` or a `randsdvine`. (Example 3 uses the second.)
+* The estimation of models with a `randsdvine` randomizer is harder than
+  with independent randomizers: the likelihood can have several local
+  maxima, which is why `fitbsicopula()` also starts the full fit from the
+  starting values you supply and keeps the better of the two fits. Treat the
+  fitted randomizer parameters with some caution and compare fits from
+  different starting values.
 * A udp whose parameters should not be estimated (determined elsewhere, for
   instance by `aceshuffle()`) is held fixed with `udpfix = TRUE`.
 * The likelihood in a udp breakpoint such as `delta` is only piecewise
@@ -234,3 +296,9 @@ Gumbel copula's tail dependence.
 * Set `pseudo = FALSE` when the data are probability integral transforms
   from fitted marginal models rather than ranks; this only changes the
   bootstrap.
+
+## References
+
+Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+D-vines for stochastic volatility. *Journal of Multivariate Analysis*, **217**,
+105695. <https://doi.org/10.1016/j.jmva.2026.105695>

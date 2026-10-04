@@ -1,5 +1,7 @@
 # udp 0.1.1
 
+* Documentation: the absolute spherical t copula is described wherever base copulas are, with the JMVA reference (Dias, Han and McNeil, 2027, 217, 105695) added to `?astcopula_tau`, `?bsicopula`, `?fitbsicopula` and the README, and the fitting vignette gains an example with an `astcopula` base copula.
+
 * `fitbsicopula()` estimates `nu` (on the log scale) when the base copula is an `astcopula`, with any v-transform or zigzag udps and with or without a `randsdvine` randomizer, through a new internal generic `basecopula_fit_block()` (and `basecopula_needs_vfloor()`) that other base-copula families can implement. With a `randsdvine` and `twostage = TRUE` the full fit is now also run from the user's starting values and the better fit kept: the independent-randomizer first stage can land in a poor basin (30 to 50 log-likelihood units below the best for an `astcopula` base in simulations).
 
 * A `randsdvine` randomizer model no longer requires a `bicop_dist` base copula: the base copula's h-functions come from the base-copula interface, so a `parCopula` (central differences, slower) or an `astcopula` can be the base copula.

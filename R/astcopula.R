@@ -76,7 +76,7 @@ ast_sample <- function(n, nu) {
 #' t copula with correlation zero transformed on both margins by the
 #' symmetric v-transform ([vsymmetric()]), and applying the stochastic inverse
 #' of that transformation under independent randomizers gives the t copula
-#' back (Dias, Han and McNeil, 2026). The family interpolates between
+#' back (Dias, Han and McNeil, 2027). The family interpolates between
 #' independence (`nu` to infinity) and comonotonicity (`nu` to 0), so
 #' Kendall's tau ([astcopula_tau()]) ranges over `(0, 1)`. It has upper tail
 #' dependence and is asymptotically independent in the lower tail.
@@ -107,8 +107,9 @@ ast_sample <- function(n, nu) {
 #' @return `astcopula()` an object of class `astcopula`; the others numeric
 #'   vectors, except `rastcopula()`, which gives an `n` by 2 matrix.
 #' @references
-#' Dias, A., Han, J. and McNeil, A. J. (2026). GARCH copulas, v-transforms and
-#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*.
+#' Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*,
+#' **217**, 105695. \doi{10.1016/j.jmva.2026.105695}
 #' @seealso [astcopula_tau()] and [astcopula_nu()] for Kendall's tau and the
 #'   calibration of `nu` to it.
 #' @include basecopula.R
@@ -279,6 +280,11 @@ ast_tau_interp <- local({
 #' @param exact logical; compute `astcopula_tau()` by quadrature instead of
 #'   interpolation?
 #' @return A numeric vector.
+#' @references
+#' Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*,
+#' **217**, 105695. \doi{10.1016/j.jmva.2026.105695} (the double integral for
+#' Kendall's tau is equation 34 of the Supplementary Material).
 #' @seealso [astcopula()].
 #' @export
 #' @examples

@@ -105,8 +105,9 @@ randsdvine <- function(copZ1Z2_V1V2,
 #' `selector` must also be vectorized (`pmax()`/`ifelse()`/`&`/`|`, not
 #' `if`/`&&`/`||`) and must never return `NA`.
 #'
-#' @slot cop1,cop2 parCopula objects (\pkg{copula}) or bicop_dist objects
-#'   (\pkg{rvinecopulib}), the two copulas of `(Z1, Z2)` to choose between.
+#' @slot cop1,cop2 parCopula objects (\pkg{copula}), bicop_dist objects
+#'   (\pkg{rvinecopulib}) or \linkS4class{astcopula} objects, the two copulas
+#'   of `(Z1, Z2)` to choose between.
 #'   `cop1` and `cop2` need not share a backend -- one may be a parCopula
 #'   and the other a bicop_dist object -- since sampling and density/CDF
 #'   evaluation dispatch on each of `cop1`/`cop2` individually.
@@ -126,8 +127,9 @@ setClass("randmixture", slots = list(
 
 #' Construct a mixture-of-copulas randomizer model
 #'
-#' @param cop1,cop2 parCopula objects (\pkg{copula}) or bicop_dist objects
-#'   (\pkg{rvinecopulib}), the two copulas of `(Z1, Z2)` to choose between.
+#' @param cop1,cop2 parCopula objects (\pkg{copula}), bicop_dist objects
+#'   (\pkg{rvinecopulib}) or \linkS4class{astcopula} objects, the two copulas
+#'   of `(Z1, Z2)` to choose between.
 #' @param selector a function `selector(v1, v2)` returning a logical vector
 #'   the same length as `v1`/`v2`, with no `NA`s: `TRUE` selects `cop1`,
 #'   `FALSE` selects `cop2`. Capture any further parameters in its closure,
@@ -171,6 +173,17 @@ randmixture <- function(cop1, cop2, selector) {
 #' further dependence between the two margins, including non-monotonic
 #' dependence when `udp1`/`udp2` are many-to-one.
 #'
+#' **Base copulas.** The copula of `(V1, V2)` can be a parametric family from
+#' \pkg{rvinecopulib} (`bicop_dist`), a `parCopula` from \pkg{copula}, or the
+#' absolute spherical t copula, \linkS4class{astcopula}, the copula of the
+#' absolute values of a bivariate t vector with correlation zero (Dias, Han
+#' and McNeil, 2027), which has upper tail dependence and is the copula the
+#' symmetric v-transform produces from the t copula. See [astcopula()] for its
+#' density, CDF, h-functions, Kendall's tau and the calibration of its degrees
+#' of freedom to a Kendall's tau. Which base copulas each function supports is
+#' stated in its help page; in particular [fitbsicopula()] estimates
+#' `bicop_dist` and `astcopula` base copulas.
+#'
 #' @slot basecopula a parCopula object (\pkg{copula}), a bicop_dist object
 #'   (\pkg{rvinecopulib}) or an \linkS4class{astcopula}, the copula of `(V1, V2)`.
 #' @slot udp1,udp2 objects of class \linkS4class{udp}, applied via
@@ -183,6 +196,10 @@ randmixture <- function(cop1, cop2, selector) {
 #' McNeil, A. J. and Nešlehová, J. G. (2026). Stochastic inversion of
 #' multivariate uniform-distribution-preserving transformations.
 #' \href{https://arxiv.org/abs/2607.07174}{arXiv:2607.07174}
+#'
+#' Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*,
+#' **217**, 105695. \doi{10.1016/j.jmva.2026.105695}
 #' @include udp-package.R
 #' @export
 setClass("bsicopula", slots = list(

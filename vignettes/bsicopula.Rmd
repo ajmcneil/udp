@@ -34,6 +34,12 @@ that pre-image selection is the only source of randomness beyond
 `randmixture` -- instead couples `Z1` and `Z2` (on `(V1, V2)` and on each
 other), injecting further dependence between the two margins.
 
+The base copula `(V1, V2)` can come from `rvinecopulib`
+(`bicop_dist()`), from `copula`, or be the absolute spherical t copula
+`astcopula()` (Dias, Han and McNeil, 2027, *Journal of Multivariate
+Analysis* **217**, 105695, <https://doi.org/10.1016/j.jmva.2026.105695>);
+`vignette("fitbsicopula")` shows how to fit one.
+
 This vignette builds four `bsicopula` objects that share the same
 `basecopula` and the same margins (both `vsymmetric()`, the two-branch fold
 `T(u) = |2u - 1|`), differing only in their randomizer model, and finishes

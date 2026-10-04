@@ -339,16 +339,17 @@ check_nodes <- function(nodes) {
 #'   with a length-1 argument recycled to the length of the other. `u1` may
 #'   instead be a two-column matrix with `u2` omitted: `pbsicopula(U, object =
 #'   bc)`.
-#' @param object an object of class \linkS4class{bsicopula}. Its base copula may be a `bicop_dist` or a
-#'   `parCopula` (via [copula::pCopula()]).
+#' @param object an object of class \linkS4class{bsicopula}. Its base copula may be a `bicop_dist`, an
+#'   \linkS4class{astcopula} or a `parCopula` (via [copula::pCopula()]).
 #' @param nodes number of tanh-sinh quadrature nodes per cell for
 #'   transformations that are not piecewise linear; ignored where the result
 #'   is exact.
 #'
 #' @return A numeric vector of CDF values, one per pair.
 #' @references
-#' Dias, A., Han, J. and McNeil, A. J. (2026). GARCH copulas, v-transforms and
-#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*.
+#' Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*,
+#' **217**, 105695. \doi{10.1016/j.jmva.2026.105695}
 #' @seealso [hbsicopula()], [dbsicopula()], [rbsicopula()].
 #' @include bsicopula.R
 #' @export
@@ -403,6 +404,10 @@ pbsicopula <- function(u1, u2 = NULL, object, nodes = 101L) {
 #' derivative. This path is several times slower than the exact one, and the
 #' inverse slower again.
 #'
+#' For an \linkS4class{astcopula} base copula the base h-functions and their
+#' inverses are closed forms in the univariate t distribution
+#' (Dias, Han and McNeil, 2027).
+#'
 #' For a `bicop_dist` base copula the base h-functions are those of
 #' \pkg{rvinecopulib}, called with the copula's arguments in its own order
 #' (never transposed), so non-exchangeable copulas such as the 90 and 270
@@ -421,8 +426,9 @@ pbsicopula <- function(u1, u2 = NULL, object, nodes = 101L) {
 #'
 #' @return A numeric vector, one value per pair.
 #' @references
-#' Dias, A., Han, J. and McNeil, A. J. (2026). GARCH copulas, v-transforms and
-#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*.
+#' Dias, A., Han, J. and McNeil, A. J. (2027). GARCH copulas, v-transforms and
+#' D-vines for stochastic volatility. *Journal of Multivariate Analysis*,
+#' **217**, 105695. \doi{10.1016/j.jmva.2026.105695}
 #' @seealso [pbsicopula()], [dbsicopula()], [rbsicopula()].
 #' @include bsicopula.R
 #' @export
