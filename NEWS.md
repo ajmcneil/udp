@@ -31,7 +31,7 @@
   quadrature on the smooth cells of the transformation (`nodes` per cell),
   and models with a `randsdvine` or `randmixture` randomizer, for which the
   integrand is `dbsicopula()` itself (the CDF is then a double integral costing
-  `nodes^2` per pair of cells). `demo("hbsicopula")` illustrates all cases.
+  `nodes^2` per pair of cells).
 * New vignette, "Fitting bivariate stochastic inversion copulas".
   `dbsicopula()` now also accepts a two-column matrix (`dbsicopula(U, bc)`)
   and recycles a length-1 argument, as the new functions do.
