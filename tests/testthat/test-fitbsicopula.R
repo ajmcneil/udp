@@ -318,3 +318,62 @@ test_that("dbsicopula() handles randsdvine models with an expansion udp", {
   d <- dbsicopula(U[, 1], U[, 2], bc)
   expect_true(all(is.finite(d) & d > 0))
 })
+
+test_that("astcopula is estimated on the log scale, alone and with other parameters", {
+  skip_if_not_installed("rvinecopulib")
+  bd <- rvinecopulib::bicop_dist
+  expect_true(basecopula_needs_vfloor(astcopula(2)))
+
+  # nu with two v-transforms, from a start far from the truth
+  truth <- bsicopula(astcopula(2), vlinear(0.4), v2p(0.6, 1.4))
+  set.seed(21)
+  U <- pobs(rbsicopula(1500, truth))
+  start <- bsicopula(astcopula(15), vlinear(0.5), v2p(0.5, 1))
+  fit <- fitbsicopula(U, start)
+  expect_identical(names(coef(fit)), c("basecopula.nu", "udp1.delta", "udp2.delta", "udp2.kappa"))
+  expect_equal(unname(coef(fit)["basecopula.nu"]), 2, tolerance = 0.25)
+  expect_equal(unname(coef(fit)["udp1.delta"]), 0.4, tolerance = 0.1)
+  expect_s4_class(fit@bsicopula@basecopula, "astcopula")
+  expect_gte(fit@loglik, -bsicopula_negll(U, truth, fit@vfloor) - 1e-6)
+  expect_output(print(fit), "absolute spherical t")
+
+  # nu alone with the udps held fixed
+  fit2 <- fitbsicopula(U, truth, udpfix = TRUE)
+  expect_identical(names(coef(fit2)), "basecopula.nu")
+  expect_equal(unname(coef(fit2)), 2, tolerance = 0.25)
+
+  # a zigzag, whose breakpoints need the boundary clamp
+  truth3 <- bsicopula(astcopula(3), udpzigzag(widths = c(2, 3, 2)), vlinear(0.4))
+  set.seed(22)
+  U3 <- pobs(rbsicopula(1000, truth3))
+  fit3 <- fitbsicopula(U3, bsicopula(astcopula(10), udpzigzag(widths = c(1, 1, 1)), vlinear(0.5)))
+  expect_lt(max(abs(unname(coef(fit3)[c("udp1.break1", "udp1.break2")]) - c(2, 5) / 7)), 0.15)
+  expect_equal(unname(coef(fit3)["basecopula.nu"]), 3, tolerance = 0.5)
+  expect_gte(fit3@loglik, -bsicopula_negll(U3, truth3, fit3@vfloor) - 1e-6)
+})
+
+test_that("an astcopula base copula with a randsdvine fits, and twostage keeps the better start", {
+  skip_if_not_installed("rvinecopulib")
+  bd <- rvinecopulib::bicop_dist
+  truth <- bsicopula(astcopula(2.5), v2p(0.4, 1.5), vlinear(0.6), randsdvine(bd("gaussian", 0, 0.6)))
+  set.seed(23)
+  U <- pobs(rbsicopula(800, truth))
+  start <- bsicopula(astcopula(8), v2p(0.5, 1), vlinear(0.5), randsdvine(bd("gaussian", 0, 0.1)))
+  fit <- fitbsicopula(U, start)
+  direct <- fitbsicopula(U, start, twostage = FALSE)
+  expect_gte(fit@loglik, direct@loglik - 1e-8)
+  # the fit is at least as good as the truth, and sensible
+  expect_gte(fit@loglik, -bsicopula_negll(U, truth, fit@vfloor) - 1e-6)
+  expect_equal(unname(coef(fit)["copZ1Z2_V1V2.rho"]), 0.6, tolerance = 0.2)
+  expect_equal(unname(coef(fit)["basecopula.nu"]), 2.5, tolerance = 0.5)
+  expect_s4_class(fit@stage1, "fitbsicopula")
+})
+
+test_that("unsupported base copulas are refused with a clear message", {
+  skip_if_not_installed("copula")
+  U <- matrix(runif(100), 50)
+  expect_error(
+    fitbsicopula(U, bsicopula(copula::claytonCopula(2), vlinear(0.4), vlinear(0.6))),
+    "not supported for a base copula"
+  )
+})

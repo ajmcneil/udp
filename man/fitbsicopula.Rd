@@ -34,7 +34,8 @@ their given values?}
 
 \item{twostage}{logical; when \code{randomizermod} is a
 \linkS4class{randsdvine}, obtain starting values from a first fit with
-independent randomizers? Ignored otherwise.}
+independent randomizers (the full fit is also run from \code{object} and the
+better kept; see Details)? Ignored otherwise.}
 
 \item{se}{\code{FALSE} (the default) for no standard errors, \code{"bootstrap"} (or
 \code{TRUE}) for parametric bootstrap standard errors, or \code{"hessian"} for
@@ -62,9 +63,11 @@ copula families and rotations, the udp classes, the randomizer model --
 and the starting values for the optimization.
 }
 \details{
-The base copula (and every copula of a \linkS4class{randsdvine}) must be
-a parametric \code{bicop_dist} object from \pkg{rvinecopulib}; its family and
-rotation are held fixed and only its parameters are estimated.
+The base copula must be a parametric \code{bicop_dist} object from
+\pkg{rvinecopulib} or an \linkS4class{astcopula} (whose one parameter,
+\code{nu}, is estimated on the log scale), and every copula of a
+\linkS4class{randsdvine} a parametric \code{bicop_dist}; the family and
+rotation are held fixed and only the parameters are estimated.
 \code{randomizermod} must be \code{NULL} or a \linkS4class{randsdvine}.
 
 \strong{udp parameters.} With \code{udpfix = FALSE}, the continuous parameters of
@@ -100,7 +103,12 @@ estimate a tree-2 copula too, give it a parametric family (a Gaussian
 with a small correlation, say) as its starting value. With
 \code{twostage = TRUE}, the model is first fitted with independent
 randomizers, and that fit's base copula and udps are used as starting
-values for the full fit.
+values for the full fit. Since the independent-randomizer model is
+misspecified for such data, those values can lie in the basin of a poor
+local maximum (with an absolute spherical t base copula the likelihood was
+30 to 50 units lower in simulations), so the full fit is also run from the
+starting values in \code{object} and the better of the two is kept; this
+doubles the work, and \code{twostage = FALSE} gives the single fit from \code{object}.
 
 \strong{Boundary clamp.} udp breakpoints map interior points to \code{0} or \code{1}: a
 v-transform's fulcrum \code{delta} to \code{0}, a zigzag's breakpoints to \code{0} and
