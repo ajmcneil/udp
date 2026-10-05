@@ -57,14 +57,14 @@ whose pieces alternately rise and fall; here it has three pieces, of widths
 `2/7`, `3/7` and `2/7`. The second uses `v2p()`, a smooth v-transform with
 fulcrum `delta` and shape `kappa`. The base copula is Gaussian.
 
-```{r truth1}
+```{r truth1, fig.width = 3.9, fig.height = 4.5}
 truth1 <- bsicopula(bicop_dist("gaussian", 0, 0.7),
   udp1 = udpzigzag(widths = c(2, 3, 2)),
   udp2 = v2p(delta = 0.35, kappa = 1.5)
 )
 set.seed(11)
 U1 <- pseudo_obs(rbsicopula(1000, truth1))
-plot(U1, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1, xaxs = "i", yaxs = "i")
+plot(U1, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1)
 ```
 
 ### Fitting from poor starting values
@@ -166,7 +166,7 @@ the dependence of `Z1` and `Z2` given the carrier values, is non-trivial.
 Here the base copula is Gumbel, which has upper tail dependence, and the
 margins are a `v2p` and a `vlinear` v-transform.
 
-```{r truth2}
+```{r truth2, fig.width = 3.9, fig.height = 4.5}
 truth2 <- bsicopula(bicop_dist("gumbel", 0, 2),
   udp1 = v2p(delta = 0.4, kappa = 1.5),
   udp2 = vlinear(delta = 0.6),
@@ -174,7 +174,7 @@ truth2 <- bsicopula(bicop_dist("gumbel", 0, 2),
 )
 set.seed(12)
 U2 <- pseudo_obs(rbsicopula(800, truth2))
-plot(U2, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1, xaxs = "i", yaxs = "i")
+plot(U2, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1)
 ```
 
 ### Fitting

@@ -69,7 +69,7 @@ probability that stochastic inversion lands back on the original value is
 returned by `pcoincide()`.
 
 ```{r vtransform-pcoincide}
-plot(U, U2, pch = 20, cex = 0.4, asp = 1, xaxs = "i", yaxs = "i")
+plot(U, U2, pch = 20, cex = 0.4, asp = 1)
 pcoincide(T1)
 ```
 
