@@ -64,7 +64,7 @@ truth1 <- bsicopula(bicop_dist("gaussian", 0, 0.7),
 )
 set.seed(11)
 U1 <- pseudo_obs(rbsicopula(1000, truth1))
-plot(U1, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1)
+plot(U1, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1, xaxs = "i", yaxs = "i")
 ```
 
 ### Fitting from poor starting values
@@ -174,7 +174,7 @@ truth2 <- bsicopula(bicop_dist("gumbel", 0, 2),
 )
 set.seed(12)
 U2 <- pseudo_obs(rbsicopula(800, truth2))
-plot(U2, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1)
+plot(U2, pch = 20, cex = 0.5, col = "grey35", xlab = "u1", ylab = "u2", asp = 1, xaxs = "i", yaxs = "i")
 ```
 
 ### Fitting
